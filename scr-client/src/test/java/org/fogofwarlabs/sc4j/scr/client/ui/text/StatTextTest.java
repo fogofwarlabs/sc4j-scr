@@ -53,7 +53,7 @@ final class StatTextTest {
 
         int moveTextOffset = headerLength + body.size();
 
-        body.writeBytes(new byte[]{'m', 0, 3, 'M', 1, 'o', 'v', 'e', 0});
+        body.writeBytes(new byte[]{'z', 1, 4, 'M', 'o', 'v', 'e', ' ', 2, '(', 'Z', ')', 0});
 
         for (int identifier = 1; identifier <= MOVE; identifier++) {
             int offset = identifier == CUSTOM ? customTextOffset : identifier == MOVE ? moveTextOffset : emptyTextOffset;
@@ -98,12 +98,15 @@ final class StatTextTest {
             Assertions.assertEquals("q\0[Q] 스킬", text.getString(new ScrGameView(game), CUSTOM), "Type 0: the text from the pointer plus two.");
             Assertions.assertEquals("q\0[Q] 스킬", profile.getString(new ScrGameView(game), CUSTOM), "An id outside the profile table is the plain string.");
             Assertions.assertEquals('q', profile.getHotkey(new ScrGameView(game), CUSTOM), "The map's key.");
-            Assertions.assertEquals("m\0Move [\u0003M\u0001]", profile.getString(new ScrGameView(game), MOVE), "A profile id keeps its entry key.");
+            Assertions.assertEquals("z\u0001\u0004Move \u0002(Z)", profile.getString(new ScrGameView(game), MOVE), "A profile id is the plain string.");
+            Assertions.assertEquals('z', profile.getHotkey(new ScrGameView(game), MOVE), "A profile id takes the map's key.");
 
             Game next = Game.create(data.createGameCopy(), new GameMap(1, 1, 0, new int[1]), new LcgRandom(0));
 
             Assertions.assertEquals("Young Chrysalis\0*\0Powerups", text.getString(new ScrGameView(next), CUSTOM), "A new game reads the installed strings.");
             Assertions.assertEquals('Y', profile.getHotkey(new ScrGameView(next), CUSTOM));
+            Assertions.assertEquals("m\0Move [\u0003M\u0001]", profile.getString(new ScrGameView(next), MOVE), "A new game applies the profile.");
+            Assertions.assertEquals('m', profile.getHotkey(new ScrGameView(next), MOVE));
         }
     }
 }
