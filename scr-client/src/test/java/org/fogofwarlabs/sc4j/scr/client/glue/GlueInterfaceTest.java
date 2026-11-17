@@ -13,6 +13,8 @@ import org.fogofwarlabs.sc4j.scr.client.ClientContext;
 import org.fogofwarlabs.sc4j.scr.client.audio.ClientAudio;
 import org.fogofwarlabs.sc4j.scr.client.audio.SoundSettings;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
+import org.fogofwarlabs.sc4j.scr.client.glue.lobby.BeaconLinkGlueScenario;
+import org.fogofwarlabs.sc4j.scr.client.glue.menu.MainMenuScreen;
 import org.fogofwarlabs.sc4j.scr.client.glue.score.GlueResume;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
 import org.fogofwarlabs.sc4j.scr.core.test.RequiresInstallation;
@@ -102,9 +104,9 @@ final class GlueInterfaceTest {
     private static @NotNull Map<String, String> createReferenceDigests() {
         Map<String, String> digests = new LinkedHashMap<>();
 
-        digests.put(MAIN_MENU_FRAME, "732bc6c513bd816ce96536b3014b03eafffffa0420af5c177a2e5798a21e7dbd");
-        digests.put(OPTIONS_POPUP_FRAME, "60bd79bf4b43a8851bfe0833ab7742faae020468d4b2a20def1f32c95301dcf8");
-        digests.put(ERROR_POPUP_FRAME, "9f7d1a790cad51cffded96fcd55838253096579984b663aeb3904ecee2d26723");
+        digests.put(MAIN_MENU_FRAME, "bee4f66d7d1afaebd0af6d328ae56e4234e8ce837348fbc6a52107cf5345a2ea");
+        digests.put(OPTIONS_POPUP_FRAME, "75cfda6841428d2945cd30b466c24f43d4c08eee67d5f043b317bed183e0b8b3");
+        digests.put(ERROR_POPUP_FRAME, "77c10f315b81537b36d24b41dbda76b82194a8b04aee3ad0d417f4eed2bad475");
         digests.put(CUSTOM_GAME_FRAME, "fe4c8125a8ef978ca8d2818bd52ae0813c86de481ff6db9621044104f850541f");
 
         for (float scale : DISPLAY_SCALES) {
@@ -253,6 +255,7 @@ final class GlueInterfaceTest {
                  GlueInterface glue = GlueInterface.open(client, LOCALE, folders, null)) {
                 long time = 0;
 
+                glue.registerScreen(GlueNavigator.Destination.MAIN_MENU, context -> new MainMenuScreen(BeaconLinkGlueScenario.UNKNOWN_RELEASE));
                 glue.setTargetFramebuffer(framebuffer, FRAME_WIDTH, FRAME_HEIGHT);
 
                 glue.showScreen(GlueNavigator.Destination.MAIN_MENU);
@@ -280,6 +283,7 @@ final class GlueInterfaceTest {
                      GlueInterface glue = GlueInterface.open(client, LOCALE, folders, null)) {
                     String name = SCALED_MAIN_MENU_FRAME + scale;
 
+                    glue.registerScreen(GlueNavigator.Destination.MAIN_MENU, context -> new MainMenuScreen(BeaconLinkGlueScenario.UNKNOWN_RELEASE));
                     glue.setTargetFramebuffer(framebuffer, FRAME_WIDTH, FRAME_HEIGHT);
                     glue.showScreen(GlueNavigator.Destination.MAIN_MENU);
                     drawFrames(glue, 0, DisplayScale.of(scale, 1));

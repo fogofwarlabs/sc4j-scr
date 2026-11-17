@@ -15,6 +15,7 @@ import org.fogofwarlabs.sc4j.engine.client.input.Key;
 import org.fogofwarlabs.sc4j.engine.client.input.PointerButton;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.FoundRoom;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.CommunitySession;
+import org.fogofwarlabs.sc4j.manifest.version.EngineVersion;
 import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
 import org.fogofwarlabs.sc4j.scr.client.ClientContext;
 import org.fogofwarlabs.sc4j.scr.client.audio.ClientAudio;
@@ -24,6 +25,9 @@ import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueFolders;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueInterface;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
+import org.fogofwarlabs.sc4j.scr.client.glue.menu.MainMenuScreen;
+import org.fogofwarlabs.sc4j.scr.client.glue.menu.ReleaseState;
+import org.fogofwarlabs.sc4j.scr.client.glue.menu.ReleaseStatus;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialog;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialogLayer;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
@@ -62,6 +66,10 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      * The mod version of the session's player and of the players who can play with it.
      */
     public static final @NotNull String MOD_VERSION = "0.1.0";
+    /**
+     * The release status of a run whose latest release is not known, which the main menu of a scenario shows unless another is given.
+     */
+    public static final @NotNull ReleaseStatus UNKNOWN_RELEASE = ReleaseStatus.of(EngineVersion.SC4J_VERSION, ReleaseState.UNKNOWN, null);
 
     private static final int WINDOW_WIDTH = 640;
     private static final int WINDOW_HEIGHT = 480;
@@ -143,6 +151,28 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
     public static @NotNull BeaconLinkGlueScenario open(@NotNull Path root, @NotNull String locale, int width, int height, @NotNull String qualityPrefix,
                                                        @NotNull CommunitySession community, @NotNull List<@NotNull FoundRoom> rooms,
                                                        @Nullable String accountName) throws IOException {
+        return open(root, locale, width, height, qualityPrefix, community, rooms, accountName, UNKNOWN_RELEASE);
+    }
+
+    /**
+     * Creates a {@link BeaconLinkGlueScenario} instance whose room searches find the given rooms and whose run has the given account and SC4J
+     * release status, and opens the glue.
+     *
+     * @param root          the install root of the client's folders, empty
+     * @param locale        the text locale, for example {@code koKR}
+     * @param width         the frame width in pixels
+     * @param height        the frame height in pixels
+     * @param qualityPrefix the glue's asset set ({@link org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas#SD_PREFIX}, ...)
+     * @param community     the community part of the Beacon.Link session
+     * @param rooms         the rooms every search finds; those with a join refusal are another version's
+     * @param accountName   the name of the run's account, or {@code null} for a run without an account (a guest)
+     * @param releaseStatus the running SC4J version and the latest SC4J release
+     * @return the created {@link BeaconLinkGlueScenario} instance
+     * @throws IOException if an installed asset cannot be read
+     */
+    public static @NotNull BeaconLinkGlueScenario open(@NotNull Path root, @NotNull String locale, int width, int height, @NotNull String qualityPrefix,
+                                                       @NotNull CommunitySession community, @NotNull List<@NotNull FoundRoom> rooms,
+                                                       @Nullable String accountName, @NotNull ReleaseStatus releaseStatus) throws IOException {
         ClientHost host = ClientHost.initialize();
 
         try {
@@ -152,7 +182,7 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
             window.makeContextCurrent();
             host.createCapabilities();
 
-            return new BeaconLinkGlueScenario(host, root, locale, width, height, qualityPrefix, community, rooms, accountName);
+            return new BeaconLinkGlueScenario(host, root, locale, width, height, qualityPrefix, community, rooms, accountName, releaseStatus);
         } catch (IOException | RuntimeException exception) {
             host.close();
 
@@ -173,7 +203,7 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
 
     private BeaconLinkGlueScenario(@NotNull ClientHost host, @NotNull Path root, @NotNull String locale, int width, int height,
                                    @NotNull String qualityPrefix, @NotNull CommunitySession community, @NotNull List<@NotNull FoundRoom> rooms,
-                                   @Nullable String accountName) throws IOException {
+                                   @Nullable String accountName, @NotNull ReleaseStatus releaseStatus) throws IOException {
         this.host   = host;
         this.width  = width;
         this.height = height;
@@ -208,6 +238,7 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
 
         this.time = 0;
 
+        this.glue.registerScreen(GlueNavigator.Destination.MAIN_MENU, context -> new MainMenuScreen(releaseStatus));
         this.glue.setQualityPrefix(qualityPrefix);
         this.glue.setTargetFramebuffer(this.framebuffer, width, height);
     }

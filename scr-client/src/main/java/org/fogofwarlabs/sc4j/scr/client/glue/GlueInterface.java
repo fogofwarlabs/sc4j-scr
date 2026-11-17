@@ -584,6 +584,16 @@ public final class GlueInterface implements AutoCloseable {
     }
 
     /**
+     * Registers the screen of a destination in place of the one registered before, such as a native screen.
+     *
+     * @param destination the destination
+     * @param factory     the factory of its screen
+     */
+    public void registerScreen(GlueNavigator.@NotNull Destination destination, @NotNull GlueSceneFactory factory) {
+        this.scenes.register(destination, factory);
+    }
+
+    /**
      * Shows a screen directly (developer path for screenshot runs; the menus normally reach it through the navigator).
      *
      * @param destination the screen

@@ -593,8 +593,8 @@ public final class Main {
      * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a
      *                     bounded replay load fails
      */
-    public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources, @Nullable BeaconLink beaconLink,
-                              @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
+    public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources,
+                              @Nullable BeaconLink beaconLink, @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
         ConsoleOutputUtils.install();
         start(ClientOptions.parse(arguments, layout), arguments, resources, beaconLink, build);
     }
@@ -1226,7 +1226,8 @@ public final class Main {
      * @param beaconLink the run's Beacon.Link, or {@code null} if the run offers none
      * @param build      the run's build identity, which the desync dumps of network games name
      */
-    Main(@NotNull ClientOptions options, @Nullable ScrResourceProvider resources, @Nullable BeaconLink beaconLink, @NotNull String build) {
+    Main(@NotNull ClientOptions options, @Nullable ScrResourceProvider resources,
+         @Nullable BeaconLink beaconLink, @NotNull String build) {
         this.clientHost = null;
 
         this.hostWindow = null;

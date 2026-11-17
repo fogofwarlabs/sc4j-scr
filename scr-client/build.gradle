@@ -15,6 +15,8 @@ dependencies {
     implementation "org.fogofwarlabs.sc4j:sc4j-base:$sc4jVersion"
     // The mod API of the entry org.fogofwarlabs.sc4j.scr.ScrMod; at run time the runtime provides it, scr.jar does not hold it.
     implementation "org.fogofwarlabs.sc4j:sc4j-engine:$sc4jVersion"
+    // The release check of the main menu's status panel; at run time the runtime provides it, scr.jar does not hold it.
+    implementation "org.fogofwarlabs.sc4j:sc4j-catalog:$sc4jVersion"
     implementation project(':scr-data')
     implementation project(':scr-game')
     implementation project(':scr-render')

@@ -83,8 +83,8 @@ public final class ClientContext implements AutoCloseable {
     }
 
     /**
-     * Creates a {@link ClientContext} instance with the acquired client resources and the run's Beacon.Link. The context closes the provider and
-     * the audio when it is closed or when the creation fails.
+     * Creates a {@link ClientContext} instance with the acquired client resources and the run's Beacon.Link. The context closes the provider
+     * and the audio when it is closed or when the creation fails.
      *
      * @param installLayout the selected client directories
      * @param resources     the resource provider of the StarCraft: Remastered installation

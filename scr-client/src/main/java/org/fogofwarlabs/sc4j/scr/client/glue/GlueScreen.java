@@ -71,6 +71,10 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      * under the top of its title ({@code gluJoin}: the title at {@code 60}, the list at {@code 92}).
      */
     public static final int PAGE_CONTENT_TOP = 32;
+    /**
+     * The packed {@code 0xRRGGBBAA} color of the one-pixel rules of SC4J's own panels: under a panel's title and between its parts.
+     */
+    public static final int PANEL_RULE_COLOR = 0x8C0000FF;
 
     /**
      * The empty key code; the glue screens receive the characters and the editing and navigation key codes below from the window.
