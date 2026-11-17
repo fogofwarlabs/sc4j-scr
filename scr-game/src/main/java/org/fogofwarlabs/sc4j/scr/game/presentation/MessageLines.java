@@ -55,7 +55,7 @@ public final class MessageLines {
      */
     public static final int STYLE_OWN_CHAT_TEXT = 7;
     /**
-     * The color code of a received whisper line (yellow).
+     * The color code of a whisper line (yellow).
      */
     public static final int STYLE_WHISPER = 3;
     /**
@@ -856,7 +856,19 @@ public final class MessageLines {
      */
     public void writeWhisper(@NotNull String format, int sender, byte @NotNull [] text) {
         byte[] name = sender >= 0 && sender < this.playerNames.length ? this.playerNames[sender] : new byte[0];
-        byte[] prefix = format.replace("%s", new String(name, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8);
+
+        this.writeWhisper(format, new String(name, StandardCharsets.UTF_8), text);
+    }
+
+    /**
+     * Writes a whisper line with a localized prefix that names the other player, a space and the text, all in the whisper style.
+     *
+     * @param format the localized prefix format with one {@code %s} for the name, for example {@code "<From: %s>"} or {@code "<To: %s>"}
+     * @param name   the other player's name
+     * @param text   the text bytes
+     */
+    public void writeWhisper(@NotNull String format, @NotNull String name, byte @NotNull [] text) {
+        byte[] prefix = format.replace("%s", name).getBytes(StandardCharsets.UTF_8);
 
         this.writeChatLine(joinWithSeparator(prefix, text), STYLE_WHISPER, 0);
     }
