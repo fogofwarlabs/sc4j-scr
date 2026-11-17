@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Draws a glue dialog or popup over its palette background.
@@ -334,7 +335,16 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
     private final @NotNull GlueSwish swish;
     private int @Nullable [] pendingSwish;
     private int pendingSwishDelay;
+    /**
+     * The listed panels that stay out while the others enter, kept until the slide starts.
+     */
+    private final @NotNull List<Integer> pendingHeldPanels;
+    private @Nullable Consumer<GlueAudio.Sound> swishSounds;
     private @Nullable Runnable afterLeave;
+    /**
+     * What runs once a panel's slide out ends.
+     */
+    private @Nullable Runnable afterPanelOut;
 
     /**
      * Creates a {@link GlueScreen} instance.
@@ -374,7 +384,10 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
         this.swish             = new GlueSwish();
         this.pendingSwish      = null;
         this.pendingSwishDelay = 0;
+        this.pendingHeldPanels = new ArrayList<>();
+        this.swishSounds       = null;
         this.afterLeave        = null;
+        this.afterPanelOut     = null;
     }
 
     /**
@@ -778,6 +791,59 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
         this.pendingSwishDelay = delay;
     }
 
+    /**
+     * Keeps a panel of {@link #setSwish} off-screen while the other panels slide in; {@link #slidePanelIn} brings it in.
+     *
+     * @param control the panel's control id
+     */
+    protected final void keepPanelOut(int control) {
+        if (this.pendingSwish != null) {
+            this.pendingHeldPanels.add(control);
+        } else {
+            this.swish.holdPanel(control);
+        }
+    }
+
+    /**
+     * Slides a panel of {@link #setSwish} in from where it is and drops the action a slide out of it would run. A panel in place stays.
+     *
+     * @param control the panel's control id
+     */
+    protected final void slidePanelIn(int control) {
+        this.afterPanelOut = null;
+        this.swish.startPanelEntering(control);
+    }
+
+    /**
+     * Slides a panel of {@link #setSwish} out from where it is, then runs an action. Nothing slides or runs while the screen leaves.
+     *
+     * @param control  the panel's control id
+     * @param afterOut what runs once the panel is out
+     */
+    protected final void slidePanelOut(int control, @NotNull Runnable afterOut) {
+        if (this.afterLeave == null && this.swish.startPanelLeaving(control, requireBound(this.swishSounds))) {
+            this.afterPanelOut = afterOut;
+        }
+    }
+
+    /**
+     * @param control the control id of a panel of {@link #setSwish}
+     * @return {@code true} if the panel is at least partly inside the screen, {@code false} otherwise
+     */
+    protected final boolean isPanelOnScreen(int control) {
+        return this.swish.isPanelOnScreen(control);
+    }
+
+    /**
+     * Makes a control move with a panel of {@link #setSwish}: it is drawn at the panel's offset from its place.
+     *
+     * @param control the control id
+     * @param panel   the panel's control id
+     */
+    protected final void moveWithPanel(int control, int panel) {
+        this.swish.attach(control, panel);
+    }
+
 
     /**
      * Loads the dialog and palette and prepares the buttons. Called once by the glue flow before the first draw.
@@ -787,8 +853,9 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      */
     @Override
     public final void open(@NotNull GlueContext glueContext) throws IOException {
-        this.context = glueContext;
-        this.dialog  = this.loadDialog(glueContext);
+        this.context     = glueContext;
+        this.dialog      = this.loadDialog(glueContext);
+        this.swishSounds = glueContext.getAudio()::play;
         this.runtime = new ScrDialog(this.dialog);
         this.palette = this.loadPalette(glueContext);
 
@@ -1045,6 +1112,8 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
             return;
         }
 
+        this.afterPanelOut = null;
+
         if (this.swish.startLeaving(this.getContext().getAudio())) {
             this.afterLeave = next;
         } else {
@@ -1158,14 +1227,27 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
                                      this.pendingSwishDelay,
                                      (int) this.getDialogLeft(), (int) canvas.getInterfaceWidth());
             this.pendingSwish = null;
+
+            for (int control : this.pendingHeldPanels) {
+                this.swish.holdPanel(control);
+            }
+
+            this.pendingHeldPanels.clear();
         }
 
-        this.swish.update(time, (int) canvas.getInterfaceWidth(), this.getContext().getAudio(), this.getContext().getTimers());
+        this.swish.update(time, (int) canvas.getInterfaceWidth(), requireBound(this.swishSounds), this.getContext().getTimers());
 
         if (this.afterLeave != null && this.swish.getPhase() == GlueSwish.Phase.GONE) {
             Runnable next = this.afterLeave;
 
             this.afterLeave = null;
+            next.run();
+        }
+
+        if (this.afterPanelOut != null && !this.swish.isMoving()) {
+            Runnable next = this.afterPanelOut;
+
+            this.afterPanelOut = null;
             next.run();
         }
 

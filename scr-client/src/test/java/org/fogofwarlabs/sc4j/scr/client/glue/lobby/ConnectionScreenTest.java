@@ -34,6 +34,8 @@ import java.util.Map;
  * protocol pane and is hidden for Beacon.Link, which has no pane; Beacon.Link shows its plain name and a requirements line as the
  * installed ones.
  * <p>
+ * Switching between them slides the lower left panel out and back in with its pane instead of hiding and showing it at once.
+ * <p>
  * The reference frames are stored as SHA-256 digests of the read-back pixels (the frames hold installation artwork, which the repository does
  * not keep); every drawn frame is also written to {@code build/glue-screenshots}. The digests are those of the reference machine's OpenGL
  * driver.
@@ -52,6 +54,12 @@ final class ConnectionScreenTest {
     private static final @NotNull String GUEST_FRAME = "beaconlink-guest-";
     private static final @NotNull String LAN_PANE_FRAME = "connection-lan-";
     private static final @NotNull String BEACON_LINK_PANE_FRAME = "connection-beaconlink-";
+    private static final @NotNull String SLIDE_OUT_FRAME = "connection-slide-out-";
+    private static final @NotNull String SLIDE_IN_FRAME = "connection-slide-in-";
+    /**
+     * The drawn times after a selection at which the slide frames are taken, in milliseconds.
+     */
+    private static final int @NotNull [] SLIDE_FRAME_TIMES = {60, 120, 180, 240, 360, 480};
     /**
      * The panel of the selected provider's pane and LAN's protocol pane in it.
      */
@@ -80,6 +88,10 @@ final class ConnectionScreenTest {
      */
     private static final float BEACON_LINK_ROW_X = 150;
     private static final float BEACON_LINK_ROW_Y = 100;
+    /**
+     * The provider list's second row, LAN, in dialog pixels.
+     */
+    private static final float LAN_ROW_Y = 120;
     /**
      * The digests of the reference frames.
      */
@@ -211,6 +223,77 @@ final class ConnectionScreenTest {
         }
     }
 
+    /**
+     * Opens the connection choice on LAN, selects Beacon.Link and LAN again and takes frames of both slides.
+     */
+    private void slidePane(@NotNull String size, @NotNull String locale, int width, int height, @NotNull String qualityPrefix) throws IOException {
+        Path root = this.directory;
+
+        Assertions.assertNotNull(root);
+
+        RecordingCommunitySession community = new RecordingCommunitySession(
+                RecordingCommunitySession.createPresence(SELF_KEY, BeaconLinkGlueScenario.ACCOUNT_NAME, BeaconLinkGlueScenario.MOD_ID,
+                                                         BeaconLinkGlueScenario.MOD_VERSION, true, PlayerStatus.AVAILABLE, LatencyEstimate.UNKNOWN)
+        );
+
+        try (BeaconLinkGlueScenario scenario = BeaconLinkGlueScenario.open(root.resolve(SLIDE_OUT_FRAME + size), locale, width, height,
+                                                                           qualityPrefix, community)) {
+            scenario.show(GlueNavigator.Destination.CONNECTION);
+
+            ScrDialog dialog = scenario.getScreenDialog();
+            DialogControl panel = dialog.requireControl(PANE_PANEL).getDefinition();
+
+            // The pointer rests where the last selection leaves it.
+            scenario.hover(BEACON_LINK_ROW_X, LAN_ROW_Y);
+
+            String lan = scenario.capture(LAN_PANE_FRAME + size + "-hovered");
+
+            // The panel slides out while it stays shown, then hides.
+            List<String> outFrames = this.captureSlide(scenario, BEACON_LINK_ROW_Y, SLIDE_OUT_FRAME + size, dialog, panel);
+
+            Assertions.assertNotEquals(lan, outFrames.getFirst(), size);
+            scenario.settle();
+            Assertions.assertFalse(dialog.isVisible(panel), size);
+
+            String beaconLink = scenario.capture(BEACON_LINK_PANE_FRAME + size);
+
+            Assertions.assertNotEquals(beaconLink, outFrames.getFirst(), size);
+
+            // The panel shows at once and slides in, then stands where it stood.
+            List<String> inFrames = this.captureSlide(scenario, LAN_ROW_Y, SLIDE_IN_FRAME + size, dialog, panel);
+
+            Assertions.assertNotEquals(beaconLink, inFrames.getFirst(), size);
+            Assertions.assertNotEquals(lan, inFrames.getFirst(), size);
+            scenario.settle();
+            Assertions.assertEquals(lan, scenario.capture(LAN_PANE_FRAME + size + "-again"), size);
+        }
+    }
+
+    /**
+     * Selects a provider row and takes a frame at each of {@link #SLIDE_FRAME_TIMES}; the panel is shown at the first one.
+     *
+     * @return the frames' digests
+     */
+    private @NotNull List<String> captureSlide(@NotNull BeaconLinkGlueScenario scenario, float rowY, @NotNull String name, @NotNull ScrDialog dialog,
+                                              @NotNull DialogControl panel) throws IOException {
+        List<String> digests = new ArrayList<>();
+        int drawn = 0;
+
+        scenario.tap(BEACON_LINK_ROW_X, rowY);
+
+        for (int time : SLIDE_FRAME_TIMES) {
+            scenario.draw(time - drawn);
+            drawn = time;
+            digests.add(scenario.capture(name + time));
+
+            if (digests.size() == 1) {
+                Assertions.assertTrue(dialog.isVisible(panel), name);
+            }
+        }
+
+        return digests;
+    }
+
     @Test
     void beacon_link_shows_its_plain_name_and_a_requirements_line_as_the_installed_ones() throws IOException {
         try (CascStorage storage = CascStorage.open(ExternalInput.INSTALLATION.getPath())) {
@@ -235,6 +318,14 @@ final class ConnectionScreenTest {
         this.selectProviders(LARGE_WIDTH + "x" + LARGE_HEIGHT + "-koKR", "koKR", LARGE_WIDTH, LARGE_HEIGHT, GlueCanvas.HD_PREFIX, digests);
 
         assertReferenceDigests(digests);
+    }
+
+    @Test
+    void the_lower_left_panel_slides_out_for_beacon_link_and_back_in_for_lan() throws IOException {
+        Assumptions.assumeTrue(Boolean.getBoolean(RENDER_SMOKE_PROPERTY), RENDER_SMOKE_MESSAGE);
+
+        this.slidePane(SMALL_WIDTH + "x" + SMALL_HEIGHT + "-enUS", "enUS", SMALL_WIDTH, SMALL_HEIGHT, GlueCanvas.SD_PREFIX);
+        this.slidePane(LARGE_WIDTH + "x" + LARGE_HEIGHT + "-koKR", "koKR", LARGE_WIDTH, LARGE_HEIGHT, GlueCanvas.HD_PREFIX);
     }
 
     @Test

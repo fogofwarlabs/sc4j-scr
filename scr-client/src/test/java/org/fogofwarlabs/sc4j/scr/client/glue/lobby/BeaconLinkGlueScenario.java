@@ -226,7 +226,16 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      * Draws the current screen for the settle time of frozen time.
      */
     public void settle() {
-        for (int elapsed = 0; elapsed < SETTLE_MILLISECONDS; elapsed += FRAME_MILLISECONDS) {
+        this.draw(SETTLE_MILLISECONDS);
+    }
+
+    /**
+     * Draws the current screen frame by frame for a time of frozen time.
+     *
+     * @param milliseconds the time to draw
+     */
+    public void draw(int milliseconds) {
+        for (int elapsed = 0; elapsed < milliseconds; elapsed += FRAME_MILLISECONDS) {
             this.glue.draw(UiSurface.of(this.width, this.height, DisplayScale.ONE), this.time);
             this.time += FRAME_MILLISECONDS;
         }
@@ -239,6 +248,17 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      * @param dialogY the y in the dialog's pixels
      */
     public void click(float dialogX, float dialogY) {
+        this.tap(dialogX, dialogY);
+        this.settle();
+    }
+
+    /**
+     * Clicks a point of the shown dialog with the left button without drawing; the pointer stays there.
+     *
+     * @param dialogX the x in the dialog's pixels
+     * @param dialogY the y in the dialog's pixels
+     */
+    public void tap(float dialogX, float dialogY) {
         GlueCanvas canvas = this.glue.getCanvas();
         float x = canvas.toScreenX((canvas.getInterfaceWidth() - DIALOG_WIDTH) / CENTER_DIVISOR + dialogX);
         float y = canvas.toScreenY(dialogY);
@@ -246,7 +266,6 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
         this.glue.handleInput(InputEvent.createPointerMoved(x, y));
         this.glue.handleInput(InputEvent.createButtonPressed(PointerButton.LEFT, NO_MODIFIERS, x, y, false));
         this.glue.handleInput(InputEvent.createButtonReleased(PointerButton.LEFT, NO_MODIFIERS, x, y));
-        this.settle();
     }
 
     /**
