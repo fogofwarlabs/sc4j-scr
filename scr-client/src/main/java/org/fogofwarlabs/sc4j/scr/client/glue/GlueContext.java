@@ -1,9 +1,9 @@
 package org.fogofwarlabs.sc4j.scr.client.glue;
 
-import org.fogofwarlabs.sc4j.engine.client.community.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.client.dialog.DialogStack;
 import org.fogofwarlabs.sc4j.engine.client.dialog.TextClipboard;
 import org.fogofwarlabs.sc4j.engine.client.host.HostWindow;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
 import org.fogofwarlabs.sc4j.scr.client.ClientContext;

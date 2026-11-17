@@ -1,9 +1,9 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.menu;
 
-import org.fogofwarlabs.sc4j.engine.client.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LatencyEstimate;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LinkAccount;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
 import org.fogofwarlabs.sc4j.scr.client.glue.CharacterFile;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;

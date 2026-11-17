@@ -1,6 +1,5 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
-import org.fogofwarlabs.sc4j.engine.client.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.engine.client.host.NoTextInputMethod;
 import org.fogofwarlabs.sc4j.engine.client.host.TextCompositionListener;
 import org.fogofwarlabs.sc4j.engine.client.host.TextInputMethod;
@@ -8,6 +7,7 @@ import org.fogofwarlabs.sc4j.engine.client.input.InputEvent;
 import org.fogofwarlabs.sc4j.engine.client.input.Key;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChatChannel;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.InputMethod;

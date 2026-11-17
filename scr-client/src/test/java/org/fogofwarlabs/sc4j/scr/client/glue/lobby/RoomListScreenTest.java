@@ -1,10 +1,10 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
-import org.fogofwarlabs.sc4j.engine.client.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.*;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChatLineKind;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerPresence;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.engine.net.lobby.JoinRefusal;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
