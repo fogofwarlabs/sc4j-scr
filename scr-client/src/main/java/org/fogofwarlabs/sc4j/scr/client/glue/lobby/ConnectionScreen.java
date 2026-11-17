@@ -21,8 +21,8 @@ import java.util.Set;
 
 /**
  * Shows multiplayer provider information and the LAN protocol selection: the online service, which is Beacon.Link (the installed text names
- * it so), and the local network; the same game list, lobby and game screens play the games of both. Both play under the run's account
- * name, which the top right shows; Beacon.Link is offered only to a run with an account.
+ * it so), and the local network; the same game list, lobby and game screens play the games of both. Both play under the run player's
+ * name, which the top right shows in place of the login button; Beacon.Link is offered only to a run with an account.
  */
 public final class ConnectionScreen extends GlueScreen {
     private static final int LIST = 5;
@@ -193,7 +193,8 @@ public final class ConnectionScreen extends GlueScreen {
             this.bindControl(control).setVisible(false);
         }
 
-        this.showPlayerName(LOGIN, PLAYER_NAME);
+        this.bindControl(LOGIN).setVisible(false);
+        this.bindControl(PLAYER_NAME).setReplacedText(glueContext.getTaggedPlayerName());
 
         this.setSwish(SWISH, SWISH_DELAY_MILLISECONDS);
 
@@ -368,7 +369,7 @@ public final class ConnectionScreen extends GlueScreen {
                 String supported = String.format(Locale.ROOT, glueContext.getGluText().get("conSUPPORTED"), SUPPORTED_PLAYERS);
                 String requirements = lanSelected
                                       ? glueContext.getGluText().get(LAN_REQUIREMENTS_KEY)
-                                      : BeaconLinkText.CONNECTION_REQUIREMENTS.get(glueContext.getLocale());
+                                      : OwnText.CONNECTION_REQUIREMENTS.get(glueContext.getLocale());
 
                 float innerLeft = left + PAGE_PADDING;
                 float innerWidth = control.getWidth() - SIDE_COUNT * PAGE_PADDING;

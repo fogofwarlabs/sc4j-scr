@@ -349,6 +349,10 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      * What runs once a panel's slide out ends.
      */
     private @Nullable Runnable afterPanelOut;
+    /**
+     * The panel whose slide out {@link #afterPanelOut} waits for.
+     */
+    private int afterPanelOutControl;
 
     /**
      * Creates a {@link GlueScreen} instance.
@@ -385,13 +389,14 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
         this.owner = null;
         this.layer = new ScreenLayer(this);
 
-        this.swish             = new GlueSwish();
-        this.pendingSwish      = null;
-        this.pendingSwishDelay = 0;
-        this.pendingHeldPanels = new ArrayList<>();
-        this.swishSounds       = null;
-        this.afterLeave        = null;
-        this.afterPanelOut     = null;
+        this.swish                = new GlueSwish();
+        this.pendingSwish         = null;
+        this.pendingSwishDelay    = 0;
+        this.pendingHeldPanels    = new ArrayList<>();
+        this.swishSounds          = null;
+        this.afterLeave           = null;
+        this.afterPanelOut        = null;
+        this.afterPanelOutControl = 0;
     }
 
     /**
@@ -772,19 +777,6 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
     }
 
     /**
-     * Fills the top right of a screen as a signed-in player sees it: hides the login button and names the run's player in the label that
-     * shares its place, as the account's {@code Name#tag} or the guest name.
-     *
-     * @param loginButton the login button
-     * @param nameLabel   the label of the signed-in player's name
-     * @throws IllegalStateException if the screen is not open
-     */
-    protected final void showPlayerName(int loginButton, int nameLabel) {
-        this.bindControl(loginButton).setVisible(false);
-        this.bindControl(nameLabel).setReplacedText(this.getContext().getTaggedPlayerName());
-    }
-
-    /**
      * Sets the control and direction pairs for panels that slide in when the screen opens.
      *
      * @param entries pairs of control id and direction code ({@code 0} left, {@code 1} up, {@code 2} right, {@code 3} down)
@@ -826,7 +818,8 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      */
     protected final void slidePanelOut(int control, @NotNull Runnable afterOut) {
         if (this.afterLeave == null && this.swish.startPanelLeaving(control, requireBound(this.swishSounds))) {
-            this.afterPanelOut = afterOut;
+            this.afterPanelOut        = afterOut;
+            this.afterPanelOutControl = control;
         }
     }
 
@@ -1118,7 +1111,11 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
 
         this.afterPanelOut = null;
 
-        if (this.swish.startLeaving(this.getContext().getAudio())) {
+        if (this.swish.hasPanels()) {
+            this.getContext().getAudio().stopSounds();
+        }
+
+        if (this.swish.startLeaving(requireBound(this.swishSounds))) {
             this.afterLeave = next;
         } else {
             next.run();
@@ -1248,7 +1245,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
             next.run();
         }
 
-        if (this.afterPanelOut != null && !this.swish.isMoving()) {
+        if (this.afterPanelOut != null && !this.swish.isPanelMoving(this.afterPanelOutControl)) {
             Runnable next = this.afterPanelOut;
 
             this.afterPanelOut = null;

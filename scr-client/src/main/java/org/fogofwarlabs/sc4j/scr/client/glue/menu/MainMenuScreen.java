@@ -1,10 +1,13 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.menu;
 
+import org.fogofwarlabs.sc4j.catalog.ReleaseVersion;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.BeaconLinkSession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LinkNode;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LinkNodeState;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogDefinition;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseState;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseStatus;
 import org.fogofwarlabs.sc4j.scr.client.glue.*;
 import org.fogofwarlabs.sc4j.scr.client.glue.popup.OptionsPopup;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrControl;
@@ -23,15 +26,16 @@ import java.util.function.Consumer;
 /**
  * Shows animated game-choice and exit buttons together with the available menu actions.
  * <p>
- * Single Player and Multiplayer ask for Original or Expansion before opening the campaigns or the connection choice. Options, Hotkeys,
- * Credits and Intro open their corresponding scenes. The top right names the run's player ({@code Name#tag}, or the guest name) in place of
- * the login button, which is hidden; the unavailable collection action is disabled. Runtime information lines are cleared, and the build
- * line shows version, locale and platform.
+ * Single Player and Multiplayer ask for Original or Expansion before opening the campaigns or the connection choice; a run without a
+ * player ({@link GlueContext#hasPlayer()}) chooses its local ID on the ID screen in between. Options, Hotkeys, Credits and Intro open their
+ * corresponding scenes. The top right names the run's player ({@code Name#tag}, or the local ID's name) in place of the login button,
+ * which is hidden; without a player it shows the login button, which opens the ID screen. The unavailable collection action is disabled.
+ * Runtime information lines are cleared, and the build line shows version, locale and platform.
  * <p>
  * The top right frame holds SC4J's status panel in place of the web panel: a title over a rule and rows of a label and a value, the running
- * SC4J version, the latest release, whether an update is available and how Beacon.Link stands. The values follow the release status
- * ({@link ReleaseStatus#getRun()} unless another is given), whose one check per run starts when the panel first shows it, and the glue's
- * Beacon.Link session while the menu is shown.
+ * SC4J version, the latest release, whether an update is available and how Beacon.Link stands. The values follow the run's release status
+ * ({@link GlueContext#getReleaseStatus()}), whose one check per run starts when the panel first shows it, and the glue's Beacon.Link session
+ * while the menu is shown.
  */
 public final class MainMenuScreen extends GlueScreen {
     private static final @NotNull String DIALOG = "gluMain";
@@ -42,6 +46,7 @@ public final class MainMenuScreen extends GlueScreen {
     private static final int VIEW_INTRO = 8;
     private static final int LOGIN = 10;
     private static final int PLAYER_NAME = 11;
+    private static final @NotNull String NO_PLAYER_NAME = "";
     private static final int OPTIONS = 12;
     private static final int LOCK = 13;
     private static final int HOTKEYS = 15;
@@ -74,8 +79,7 @@ public final class MainMenuScreen extends GlueScreen {
     /**
      * The rows of the status panel, top to bottom.
      */
-    private static final @NotNull List<StatusPanelText> STATUS_ROWS = List.of(StatusPanelText.VERSION, StatusPanelText.LATEST_RELEASE,
-                                                                              StatusPanelText.UPDATE, StatusPanelText.BEACON_LINK);
+    private static final @NotNull List<OwnText> STATUS_ROWS = List.of(OwnText.VERSION, OwnText.LATEST_RELEASE, OwnText.UPDATE, OwnText.BEACON_LINK);
     private static final int VERSION_ROW = 0;
     private static final int LATEST_RELEASE_ROW = 1;
     private static final int UPDATE_ROW = 2;
@@ -191,68 +195,56 @@ public final class MainMenuScreen extends GlueScreen {
      * @param glueContext the shared services
      * @return the text of the state
      */
-    private static @NotNull StatusPanelText getBeaconLinkText(@NotNull GlueContext glueContext) {
+    private static @NotNull OwnText getBeaconLinkText(@NotNull GlueContext glueContext) {
         LanClient client = glueContext.getLanClient();
         BeaconLinkSession session = client == null ? null : client.getNetwork().getBeaconLinkSession();
 
         if (session == null) {
-            return glueContext.getBeaconLink().isAvailable() ? StatusPanelText.READY : StatusPanelText.OFFLINE;
+            return glueContext.getBeaconLink().isAvailable() ? OwnText.READY : OwnText.OFFLINE;
         }
 
         if (session.getFailure() != null) {
-            return StatusPanelText.OFFLINE;
+            return OwnText.OFFLINE;
         }
 
         for (LinkNode node : session.getNodes()) {
             if (node.getState() == LinkNodeState.REGISTERED) {
-                return StatusPanelText.ONLINE;
+                return OwnText.ONLINE;
             }
         }
 
-        return StatusPanelText.CONNECTING;
+        return OwnText.CONNECTING;
     }
 
-    private static @NotNull StatusPanelText getUpdateText(@NotNull ReleaseState state) {
+    private static @NotNull OwnText getUpdateText(@NotNull ReleaseState state) {
         return switch (state) {
-            case CHECKING -> StatusPanelText.CHECKING;
-            case UP_TO_DATE -> StatusPanelText.UP_TO_DATE;
-            case UPDATE_AVAILABLE -> StatusPanelText.UPDATE_AVAILABLE;
-            case UNKNOWN -> StatusPanelText.UNKNOWN;
+            case CHECKING -> OwnText.CHECKING;
+            case UP_TO_DATE -> OwnText.UP_TO_DATE;
+            case UPDATE_AVAILABLE -> OwnText.UPDATE_AVAILABLE;
+            case UNKNOWN -> OwnText.UNKNOWN;
         };
     }
 
 
-    private final @NotNull ReleaseStatus releaseStatus;
     /**
      * The value controls of the status panel's rows, bound at open.
      */
     private @NotNull ScrControl @Nullable [] statusValues;
 
     /**
-     * Creates a {@link MainMenuScreen} instance that shows the release status of the run ({@link ReleaseStatus#getRun()}).
+     * Creates a {@link MainMenuScreen} instance.
      */
     public MainMenuScreen() {
-        this(ReleaseStatus.getRun());
-    }
-
-    /**
-     * Creates a {@link MainMenuScreen} instance that shows a release status.
-     *
-     * @param releaseStatus the running SC4J version and the latest SC4J release
-     */
-    public MainMenuScreen(@NotNull ReleaseStatus releaseStatus) {
         super(DIALOG, PALETTE_FOLDER, getPaletteBackground(PALETTE_FOLDER));
 
-        this.releaseStatus = releaseStatus;
-        this.statusValues  = null;
+        this.statusValues = null;
     }
 
     /**
      * Loads the screen's dialog: {@code rez\<dialog name>.ui.json}, or an empty dialog without a name. A screen whose
      * native content is not a control list builds its dialog here.
      * <p>
-     * The main menu adds the status panel's controls right after the web panel of the top right frame, so that the frame's overlay is drawn
-     * over them.
+     * The main menu adds the status panel's controls right after the web panel of the top right frame; the frame's overlay is drawn over them.
      *
      * @param glueContext the shared services
      * @return the dialog
@@ -284,7 +276,12 @@ public final class MainMenuScreen extends GlueScreen {
         this.bindControl(SINGLE_PLAYER_UNAVAILABLE).setVisible(false);
         this.bindControl(LOCK).setVisible(false);
         this.bindControl(COLLECTIONS).setEnabled(false);
-        this.showPlayerName(LOGIN, PLAYER_NAME);
+
+        boolean signedIn = glueContext.hasPlayer();
+
+        // The player's name takes the place of the login button.
+        this.bindControl(LOGIN).setVisible(!signedIn);
+        this.bindControl(PLAYER_NAME).setReplacedText(signedIn ? glueContext.getTaggedPlayerName() : NO_PLAYER_NAME);
 
         for (int control : RUNTIME_TEXTS) {
             this.bindControl(control).setReplacedText("");
@@ -339,13 +336,13 @@ public final class MainMenuScreen extends GlueScreen {
 
         GlueContext glueContext = this.getContext();
         String locale = glueContext.getLocale();
-        ReleaseStatus release = this.releaseStatus;
+        ReleaseStatus release = glueContext.getReleaseStatus();
         ReleaseState state = release.getState();
-        String latest = release.getLatestVersion();
-        StatusPanelText update = getUpdateText(state);
+        ReleaseVersion latest = release.getLatestVersion();
+        OwnText update = getUpdateText(state);
 
-        values[VERSION_ROW].setReplacedText(release.getRunningVersion());
-        values[LATEST_RELEASE_ROW].setReplacedText(latest != null ? latest : update.get(locale));
+        values[VERSION_ROW].setReplacedText(release.getRunningVersion().toString());
+        values[LATEST_RELEASE_ROW].setReplacedText(latest != null ? latest.toString() : update.get(locale));
         values[UPDATE_ROW].setReplacedText(update.get(locale));
         values[UPDATE_ROW].setHighlighted(state == ReleaseState.UPDATE_AVAILABLE);
         values[BEACON_LINK_ROW].setReplacedText(getBeaconLinkText(glueContext).get(locale));
@@ -387,6 +384,7 @@ public final class MainMenuScreen extends GlueScreen {
             case VIEW_INTRO -> this.getContext().getNavigator().show(GlueNavigator.Destination.INTRO);
             case CREDITS -> this.getContext().getNavigator().show(GlueNavigator.Destination.CREDITS);
             case HOTKEYS -> this.getContext().getNavigator().show(GlueNavigator.Destination.HOTKEYS);
+            case LOGIN -> this.getContext().getNavigator().show(GlueNavigator.Destination.LOGIN);
             case SINGLE_PLAYER -> this.chooseGameMode(false, GlueNavigator.Destination.CAMPAIGN);
             case MULTIPLAYER -> this.chooseGameMode(true, GlueNavigator.Destination.CONNECTION);
             default -> {
@@ -395,16 +393,24 @@ public final class MainMenuScreen extends GlueScreen {
     }
 
     /**
-     * Shows the Original or Expansion choice; a choice sets the game mode and shows the next destination.
+     * Shows the Original or Expansion choice; a choice sets the game mode and shows the next destination, after the ID screen for a run
+     * without a player.
      *
      * @param multiplayer whether the chosen game is a multiplayer game
      * @param next        the destination shown after the choice
      */
     private void chooseGameMode(boolean multiplayer, GlueNavigator.@NotNull Destination next) {
         this.showPopup(new GameModePopup(expansion -> {
-            this.getContext().setExpansion(expansion);
-            this.getContext().setMultiplayer(multiplayer);
-            this.getContext().getNavigator().show(next);
+            GlueContext glueContext = this.getContext();
+
+            glueContext.setExpansion(expansion);
+            glueContext.setMultiplayer(multiplayer);
+
+            if (glueContext.hasPlayer()) {
+                glueContext.getNavigator().show(next);
+            } else {
+                glueContext.getNavigator().replace(new LoginScreen(next));
+            }
         }));
     }
 }

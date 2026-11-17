@@ -1,9 +1,12 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.menu;
 
+import org.fogofwarlabs.sc4j.catalog.ReleaseVersion;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LatencyEstimate;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LinkAccount;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunitySession;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseState;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseStatus;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
 import org.fogofwarlabs.sc4j.scr.client.glue.CharacterFile;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
@@ -26,10 +29,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Checks that the main menu names the run's player at the top right in place of the login button, as the account's {@code Name#tag} or as
- * the guest name of a run without an account, SD at 640x480 in English and HD at 1920x1080 in Korean, that the status panel in the top right
- * frame shows the release state and the Beacon.Link state (up to date, an update available, Beacon.Link offline), and that Single Player
- * opens the campaigns at once, playing with the character file of the account.
+ * Checks that the main menu names the run's player at the top right in place of the login button, as the account's {@code Name#tag}, or
+ * shows the login button for a run without an account that chose no ID, SD at 640x480 in English and HD at 1920x1080 in Korean, that the
+ * status panel in the top right frame shows the release state and the Beacon.Link state (up to date, an update available, Beacon.Link
+ * offline), and that Single Player opens the campaigns at once, playing with the character file of the account.
  * <p>
  * The reference frames are stored as SHA-256 digests of the read-back pixels (the frames hold installation artwork, which the repository does
  * not keep); every drawn frame is also written to {@code build/glue-screenshots}. The digests are those of the reference machine's OpenGL
@@ -50,8 +53,9 @@ final class MainMenuScreenTest {
     private static final @NotNull String UP_TO_DATE_FRAME = "main-menu-status-up-to-date-";
     private static final @NotNull String UPDATE_FRAME = "main-menu-status-update-";
     private static final @NotNull String OFFLINE_FRAME = "main-menu-status-offline-";
-    private static final @NotNull ReleaseStatus UP_TO_DATE = ReleaseStatus.of("0.1.4", ReleaseState.UP_TO_DATE, "0.1.4");
-    private static final @NotNull ReleaseStatus UPDATE_AVAILABLE = ReleaseStatus.of("0.1.3", ReleaseState.UPDATE_AVAILABLE, "0.1.4");
+    private static final @NotNull ReleaseStatus UP_TO_DATE = ReleaseStatus.of(parseVersion("0.1.4"), ReleaseState.UP_TO_DATE, parseVersion("0.1.4"));
+    private static final @NotNull ReleaseStatus UPDATE_AVAILABLE = ReleaseStatus.of(parseVersion("0.1.3"), ReleaseState.UPDATE_AVAILABLE,
+                                                                                    parseVersion("0.1.4"));
     /**
      * The campaign screen after Single Player, written to {@code build/glue-screenshots} and not compared.
      */
@@ -67,15 +71,23 @@ final class MainMenuScreenTest {
     private static final @NotNull Map<String, String> REFERENCE_DIGESTS = Map.of(
             ACCOUNT_FRAME + "640x480-enUS", "8475f2985bafc49cc001bee15be75ed44c082c0219a29e7e279b171594ce8613",
             ACCOUNT_FRAME + "1920x1080-koKR", "8a540d67d9a765a76d86a7e5695912c45d2b6337b50d1ee49a2c42af62ef0525",
-            GUEST_FRAME + "640x480-enUS", "d48e766f70fc10dd03a4cf9f11427d11110ecac4004243db8f6ab65153b38f24",
-            GUEST_FRAME + "1920x1080-koKR", "0dbdbceaf9fcff734a94e81806524cc2095540ae4aa1d7bd52fdbe329f2cff47",
+            GUEST_FRAME + "640x480-enUS", "671a2684288abb08bfcac80aec7e65ca78cab5df37734dcceeeeb784de680933",
+            GUEST_FRAME + "1920x1080-koKR", "ba4947399bada5ce6c27f6c9eb5b1fffae358858b78b15f9c3d7d937472d60e3",
             UP_TO_DATE_FRAME + "640x480-enUS", "0806d7719edb4b45ad607079c3887b6799dbedd5de886304265b9cd4cd4a1add",
             UP_TO_DATE_FRAME + "1920x1080-koKR", "88177bde0966526affa8367ee784826e8a03d528befef296a9387230510a1439",
             UPDATE_FRAME + "640x480-enUS", "53bc6d5f0eba77dc317fa5fcacfadde9af2b87c2da4fd195f250e78295ba5342",
             UPDATE_FRAME + "1920x1080-koKR", "cd895967e4f9cd53d84a08a7a8053a9bbf31f8926a786fb29203fb109fdb1560",
-            OFFLINE_FRAME + "640x480-enUS", "0e8a4bbd1302d3d2f4850b7abaf51fb86430e51bf7095d41624ed06ae17fbecd",
-            OFFLINE_FRAME + "1920x1080-koKR", "c6a883e8ed32a644bb4c9f8d0868409889710a4293427a9c749bd7b4df72e97c"
+            OFFLINE_FRAME + "640x480-enUS", "eea83f95c302b33dfe538aa690b04e3a7e0add0f36cabde925b3d7052217bf3f",
+            OFFLINE_FRAME + "1920x1080-koKR", "7fa5e28582ce4aa70d00f94f815f2513411c94623ae3b49c70a9ce7570052f3c"
     );
+
+    private static @NotNull ReleaseVersion parseVersion(@NotNull String text) {
+        ReleaseVersion version = ReleaseVersion.parse(text);
+
+        Assertions.assertNotNull(version, text);
+
+        return version;
+    }
 
     private static @NotNull RecordingCommunitySession createCommunity() {
         return new RecordingCommunitySession(RecordingCommunitySession.createPresence(SELF_KEY, BeaconLinkGlueScenario.ACCOUNT_NAME,
@@ -119,7 +131,7 @@ final class MainMenuScreenTest {
     }
 
     @Test
-    void top_right_names_the_account_with_its_tag_or_the_guest() throws IOException {
+    void top_right_names_the_account_with_its_tag_or_shows_the_login_button() throws IOException {
         Assumptions.assumeTrue(Boolean.getBoolean(RENDER_SMOKE_PROPERTY), RENDER_SMOKE_MESSAGE);
 
         Map<String, String> digests = new LinkedHashMap<>();

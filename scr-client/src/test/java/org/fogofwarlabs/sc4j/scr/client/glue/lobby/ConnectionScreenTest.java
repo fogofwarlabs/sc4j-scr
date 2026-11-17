@@ -7,6 +7,7 @@ import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunityS
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
+import org.fogofwarlabs.sc4j.scr.client.glue.OwnText;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialog;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.GluText;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
@@ -29,12 +30,12 @@ import java.util.Map;
 
 /**
  * Checks that the connection choice enters Beacon.Link with the run's account: Beacon.Link and Ok open the channel chat at once with a
- * session named after the account, while the top right names the account; a run without an account keeps Ok disabled on Beacon.Link, says
- * that it needs an account and opens no session. SD at 640x480 in English and HD at 1920x1080 in Korean. The lower left panel holds LAN's
+ * session named after the account, while the top right names the account. SD at 640x480 in English and HD at 1920x1080 in Korean. The
+ * lower left panel holds LAN's
  * protocol pane and is hidden for Beacon.Link, which has no pane; Beacon.Link shows its plain name and a requirements line as the
  * installed ones.
  * <p>
- * Switching between them slides the lower left panel out and back in with its pane instead of hiding and showing it at once.
+ * Switching between them slides the lower left panel out and back in with its pane.
  * <p>
  * The reference frames are stored as SHA-256 digests of the read-back pixels (the frames hold installation artwork, which the repository does
  * not keep); every drawn frame is also written to {@code build/glue-screenshots}. The digests are those of the reference machine's OpenGL
@@ -51,7 +52,6 @@ final class ConnectionScreenTest {
     private static final int LARGE_WIDTH = 1920;
     private static final int LARGE_HEIGHT = 1080;
     private static final @NotNull String ACCOUNT_FRAME = "beaconlink-entry-";
-    private static final @NotNull String GUEST_FRAME = "beaconlink-guest-";
     private static final @NotNull String LAN_PANE_FRAME = "connection-lan-";
     private static final @NotNull String BEACON_LINK_PANE_FRAME = "connection-beaconlink-";
     private static final @NotNull String SLIDE_OUT_FRAME = "connection-slide-out-";
@@ -98,8 +98,6 @@ final class ConnectionScreenTest {
     private static final @NotNull Map<String, String> REFERENCE_DIGESTS = Map.of(
             ACCOUNT_FRAME + "640x480-enUS", "faed1456eb85e9d10d0b12bee1539cf2a272278ec7d567324ce1d280bbbf9212",
             ACCOUNT_FRAME + "1920x1080-koKR", "d4c9bb31b18030337aa12e8859e7c7ea787bdf9f8aafddcf05178a5680a146e9",
-            GUEST_FRAME + "640x480-enUS", "018258eaf0c22ca17ad93ce9eec7b8a6318e9ef7d30c789e0734a377b0a79929",
-            GUEST_FRAME + "1920x1080-koKR", "db133271c2bc6fa804638a908d557d730a5b869746a7ebdff0d77b5a76196d29",
             LAN_PANE_FRAME + "640x480-enUS", "01d9c1111141865885e8039027e1fe167a74e3f040133c3bb95c6b8b16fb8a9d",
             LAN_PANE_FRAME + "1920x1080-koKR", "acef69ab1d8142a7d6f67d8a469fa124636469ea90d46600d1243d9748fb27cf",
             BEACON_LINK_PANE_FRAME + "640x480-enUS", "faed1456eb85e9d10d0b12bee1539cf2a272278ec7d567324ce1d280bbbf9212",
@@ -194,8 +192,7 @@ final class ConnectionScreenTest {
      *
      * @return the frame's digest
      */
-    private @NotNull String enterBeaconLink(@NotNull String name, @NotNull String locale, int width, int height, @NotNull String qualityPrefix,
-                                            @Nullable String accountName) throws IOException {
+    private @NotNull String enterBeaconLink(@NotNull String name, @NotNull String locale, int width, int height, @NotNull String qualityPrefix) throws IOException {
         Path root = this.directory;
 
         Assertions.assertNotNull(root);
@@ -205,8 +202,7 @@ final class ConnectionScreenTest {
                                                          BeaconLinkGlueScenario.MOD_VERSION, true, PlayerStatus.AVAILABLE, LatencyEstimate.UNKNOWN)
         );
 
-        try (BeaconLinkGlueScenario scenario = BeaconLinkGlueScenario.open(root.resolve(name), locale, width, height, qualityPrefix, community, List.of(),
-                                                                           accountName)) {
+        try (BeaconLinkGlueScenario scenario = BeaconLinkGlueScenario.open(root.resolve(name), locale, width, height, qualityPrefix, community)) {
             scenario.show(GlueNavigator.Destination.CONNECTION);
             scenario.click(BEACON_LINK_ROW_X, BEACON_LINK_ROW_Y);
 
@@ -214,9 +210,7 @@ final class ConnectionScreenTest {
 
             scenario.press(Key.ENTER);
 
-            List<String> expected = accountName == null ? List.of() : List.of(accountName);
-
-            Assertions.assertEquals(expected, scenario.getBeaconLink().getDisplayNames(), name);
+            Assertions.assertEquals(List.of(BeaconLinkGlueScenario.ACCOUNT_NAME), scenario.getBeaconLink().getDisplayNames(), name);
             Assertions.assertFalse(scenario.isPopupOpen(), name);
 
             return digest;
@@ -303,7 +297,7 @@ final class ConnectionScreenTest {
                 String label = installed.substring(0, installed.indexOf(LABEL_END) + 1);
 
                 Assertions.assertEquals(BEACON_LINK_NAME, text.get(BEACON_LINK_TITLE_KEY), locale);
-                Assertions.assertTrue(BeaconLinkText.CONNECTION_REQUIREMENTS.get(locale).startsWith(label + " "), locale);
+                Assertions.assertTrue(OwnText.CONNECTION_REQUIREMENTS.get(locale).startsWith(label + " "), locale);
             }
         }
     }
@@ -329,19 +323,15 @@ final class ConnectionScreenTest {
     }
 
     @Test
-    void ok_enters_beacon_link_with_the_account_name_and_a_guest_gets_no_session() throws IOException {
+    void ok_enters_beacon_link_with_the_account_name() throws IOException {
         Assumptions.assumeTrue(Boolean.getBoolean(RENDER_SMOKE_PROPERTY), RENDER_SMOKE_MESSAGE);
 
         Map<String, String> digests = new LinkedHashMap<>();
         String small = SMALL_WIDTH + "x" + SMALL_HEIGHT + "-enUS";
         String large = LARGE_WIDTH + "x" + LARGE_HEIGHT + "-koKR";
 
-        digests.put(ACCOUNT_FRAME + small, this.enterBeaconLink(ACCOUNT_FRAME + small, "enUS", SMALL_WIDTH, SMALL_HEIGHT, GlueCanvas.SD_PREFIX,
-                                                                BeaconLinkGlueScenario.ACCOUNT_NAME));
-        digests.put(ACCOUNT_FRAME + large, this.enterBeaconLink(ACCOUNT_FRAME + large, "koKR", LARGE_WIDTH, LARGE_HEIGHT, GlueCanvas.HD_PREFIX,
-                                                                BeaconLinkGlueScenario.ACCOUNT_NAME));
-        digests.put(GUEST_FRAME + small, this.enterBeaconLink(GUEST_FRAME + small, "enUS", SMALL_WIDTH, SMALL_HEIGHT, GlueCanvas.SD_PREFIX, null));
-        digests.put(GUEST_FRAME + large, this.enterBeaconLink(GUEST_FRAME + large, "koKR", LARGE_WIDTH, LARGE_HEIGHT, GlueCanvas.HD_PREFIX, null));
+        digests.put(ACCOUNT_FRAME + small, this.enterBeaconLink(ACCOUNT_FRAME + small, "enUS", SMALL_WIDTH, SMALL_HEIGHT, GlueCanvas.SD_PREFIX));
+        digests.put(ACCOUNT_FRAME + large, this.enterBeaconLink(ACCOUNT_FRAME + large, "koKR", LARGE_WIDTH, LARGE_HEIGHT, GlueCanvas.HD_PREFIX));
 
         assertReferenceDigests(digests);
     }

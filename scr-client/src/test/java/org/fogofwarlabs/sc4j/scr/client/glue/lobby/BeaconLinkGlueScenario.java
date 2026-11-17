@@ -1,6 +1,7 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
+import org.fogofwarlabs.sc4j.catalog.ReleaseVersion;
 import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
 import org.fogofwarlabs.sc4j.engine.client.audio.AudioMixer;
 import org.fogofwarlabs.sc4j.engine.client.audio.SilentAudioDevice;
@@ -15,9 +16,10 @@ import org.fogofwarlabs.sc4j.engine.client.input.PointerButton;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.FoundRoom;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.CommunitySession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingBeaconLink;
-import org.fogofwarlabs.sc4j.manifest.version.EngineVersion;
 import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
 import org.fogofwarlabs.sc4j.scr.client.ClientContext;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseState;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseStatus;
 import org.fogofwarlabs.sc4j.scr.client.audio.ClientAudio;
 import org.fogofwarlabs.sc4j.scr.client.audio.SoundSettings;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
@@ -25,9 +27,6 @@ import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueFolders;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueInterface;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
-import org.fogofwarlabs.sc4j.scr.client.glue.menu.MainMenuScreen;
-import org.fogofwarlabs.sc4j.scr.client.glue.menu.ReleaseState;
-import org.fogofwarlabs.sc4j.scr.client.glue.menu.ReleaseStatus;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialog;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialogLayer;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
@@ -67,9 +66,9 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      */
     public static final @NotNull String MOD_VERSION = "0.1.0";
     /**
-     * The release status of a run whose latest release is not known, which the main menu of a scenario shows unless another is given.
+     * The release status of a run whose latest release is not known, which a scenario's run has unless another is given.
      */
-    public static final @NotNull ReleaseStatus UNKNOWN_RELEASE = ReleaseStatus.of(EngineVersion.SC4J_VERSION, ReleaseState.UNKNOWN, null);
+    public static final @NotNull ReleaseStatus UNKNOWN_RELEASE = ReleaseStatus.of(ReleaseVersion.CURRENT, ReleaseState.UNKNOWN, null);
 
     private static final int WINDOW_WIDTH = 640;
     private static final int WINDOW_HEIGHT = 480;
@@ -224,7 +223,8 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
                                                   ScrResourceProvider.open(ExternalInput.INSTALLATION.getPath(), ScrIscriptImporter::readLibrary),
                                                   locale,
                                                   new ClientAudio(new AudioMixer(new SilentAudioDevice(System::nanoTime)), new SoundSettings()),
-                                                  new BeaconLinkAccess(this.beaconLink));
+                                                  new BeaconLinkAccess(this.beaconLink),
+                                                  releaseStatus);
 
         this.client = opened;
 
@@ -238,7 +238,6 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
 
         this.time = 0;
 
-        this.glue.registerScreen(GlueNavigator.Destination.MAIN_MENU, context -> new MainMenuScreen(releaseStatus));
         this.glue.setQualityPrefix(qualityPrefix);
         this.glue.setTargetFramebuffer(this.framebuffer, width, height);
     }
@@ -356,6 +355,13 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      */
     public @NotNull RecordingBeaconLink getBeaconLink() {
         return this.beaconLink;
+    }
+
+    /**
+     * @return the client's resources, which name the run's player
+     */
+    public @NotNull ClientContext getClient() {
+        return this.client;
     }
 
     /**
