@@ -853,8 +853,8 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
         this.context     = glueContext;
         this.dialog      = this.loadDialog(glueContext);
         this.swishSounds = glueContext.getAudio()::play;
-        this.runtime = new ScrDialog(this.dialog);
-        this.palette = this.loadPalette(glueContext);
+        this.runtime     = new ScrDialog(this.dialog);
+        this.palette     = this.loadPalette(glueContext);
 
         this.runtime.setPainter((control, x, y) -> this.drawControl(this.getContext().getCanvas(), control.getDefinition(), x, y));
 

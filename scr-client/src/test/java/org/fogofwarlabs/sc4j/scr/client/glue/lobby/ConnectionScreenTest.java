@@ -269,7 +269,7 @@ final class ConnectionScreenTest {
      * @return the frames' digests
      */
     private @NotNull List<String> captureSlide(@NotNull BeaconLinkGlueScenario scenario, float rowY, @NotNull String name, @NotNull ScrDialog dialog,
-                                              @NotNull DialogControl panel) throws IOException {
+                                               @NotNull DialogControl panel) throws IOException {
         List<String> digests = new ArrayList<>();
         int drawn = 0;
 

@@ -643,18 +643,18 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
         this.replayObservation             = false;
         this.instructionLimit              = 0;
 
-        this.world                  = null;
-        this.players                = null;
-        this.accounting             = null;
-        this.accountingSnapshot     = null;
-        this.relations              = null;
-        this.computerPhase          = null;
-        this.localPlayer            = 0;
-        this.initiallyActive        = new byte[PlayerTable.PLAYABLE_PLAYER_SLOTS];
-        this.decodedSessionState    = 0;
-        this.multiplayerSession     = 0;
-        this.resultFlags            = 0;
-        this.outcomeDisplay         = 0;
+        this.world               = null;
+        this.players             = null;
+        this.accounting          = null;
+        this.accountingSnapshot  = null;
+        this.relations           = null;
+        this.computerPhase       = null;
+        this.localPlayer         = 0;
+        this.initiallyActive     = new byte[PlayerTable.PLAYABLE_PLAYER_SLOTS];
+        this.decodedSessionState = 0;
+        this.multiplayerSession  = 0;
+        this.resultFlags         = 0;
+        this.outcomeDisplay      = 0;
 
         this.switches               = new int[SWITCH_COUNT / Integer.SIZE];
         this.missionObjectives      = new int[PlayerTable.PLAYABLE_PLAYER_SLOTS];

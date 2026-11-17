@@ -1,8 +1,8 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
-import org.fogofwarlabs.sc4j.catalog.ReleaseVersion;
 import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
+import org.fogofwarlabs.sc4j.catalog.ReleaseVersion;
 import org.fogofwarlabs.sc4j.engine.client.audio.AudioMixer;
 import org.fogofwarlabs.sc4j.engine.client.audio.SilentAudioDevice;
 import org.fogofwarlabs.sc4j.engine.client.display.DisplayScale;

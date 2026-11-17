@@ -1,7 +1,11 @@
 package org.fogofwarlabs.sc4j.scr.client;
 
-import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.*;
-import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.*;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChatLineKind;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerPresence;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunitySession;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.CommunityText;
 import org.fogofwarlabs.sc4j.scr.game.presentation.MessageLines;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -23,8 +27,8 @@ final class GameCommunityChatTest {
      * The install's English texts of the in-game whispers.
      */
     private static final @NotNull Map<String, String> TEXTS = Map.of("bnet_chat_whisperFromPrefix", "<From: %s>",
-                                                                      "bnet_chat_whisperToPrefix", "<To: %s>",
-                                                                      "bnet_chat_whisper_invalidUser", "Invalid user.");
+                                                                     "bnet_chat_whisperToPrefix", "<To: %s>",
+                                                                     "bnet_chat_whisper_invalidUser", "Invalid user.");
     private static final @NotNull String CHANNEL_BASE = "StarCraft Remastered";
     private static final @NotNull String MOD_ID = "scr";
     private static final @NotNull String MOD_VERSION = "0.1.0";
