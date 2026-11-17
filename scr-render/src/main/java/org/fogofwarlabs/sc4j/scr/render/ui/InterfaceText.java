@@ -681,7 +681,7 @@ public final class InterfaceText {
 
 
     /**
-     * Wraps a text; see {@link #wrapBreaks}. A line or form feed ends its piece and is not part of the line.
+     * Wraps a text; see {@link #wrapBreaks(String, float, ToDoubleFunction)}. A line or form feed ends its piece and is not part of the line.
      *
      * @param font  the font
      * @param text  the text
@@ -697,7 +697,7 @@ public final class InterfaceText {
         List<String> lines = new ArrayList<>();
         int start = 0;
 
-        for (int end : wrapBreaks(font, text, width, null, Integer.MAX_VALUE, kerning, mode)) {
+        for (int end : wrapBreaks(text, width, mode, piece -> measureWithoutCaretGlyph(font, piece, kerning))) {
             String piece = text.substring(start, end);
 
             if (!piece.isEmpty() && (piece.charAt(piece.length() - 1) == LINE_FEED || piece.charAt(piece.length() - 1) == FORM_FEED)) {
@@ -712,26 +712,33 @@ public final class InterfaceText {
     }
 
     /**
-     * Returns word-wrap piece ends, falling back to character wrapping when the first word does not fit. Line and form feeds end pieces, and
-     * piece lengths are measured in caller units (for example bytes) when offsets are given: {@code offsets[i]} is the unit offset of character
-     * {@code i}, {@code offsets[length]} the total.
+     * Returns the word-wrap piece ends of a text in the font, falling back to character wrapping when the first word does not fit; see
+     * {@link #wrapBreaks(String, float, ToDoubleFunction)}.
      *
-     * @param font          the font
-     * @param text          the text
-     * @param width         the wrap width; {@code 0} or less only breaks at line and form feeds
-     * @param offsets       the unit offsets, or {@code null} to count characters
-     * @param maximumLength the maximum piece length in units
-     * @return the end index of each piece (character indexes), the last one {@code text.length()}
+     * @param font  the font
+     * @param text  the text
+     * @param width the wrap width; {@code 0} or less only breaks at line and form feeds
+     * @return the end index of each piece, the last one {@code text.length()}
      */
-    public static int @NotNull [] wrapBreaks(@NotNull InterfaceFont font, @NotNull String text,
-                                             float width, int @Nullable [] offsets, int maximumLength) {
-        return wrapBreaks(font, text, width, offsets, maximumLength, true, WrapMode.WORD);
+    public static int @NotNull [] wrapBreaks(@NotNull InterfaceFont font, @NotNull String text, float width) {
+        return wrapBreaks(text, width, piece -> measureWithoutCaretGlyph(font, piece, true));
     }
 
-    private static int @NotNull [] wrapBreaks(@NotNull InterfaceFont font, @NotNull String text,
-                                              float width, int @Nullable [] offsets, int maximumLength,
-                                              boolean kerning, @NotNull WrapMode mode) {
-        ToDoubleFunction<String> measure = piece -> measureWithoutCaretGlyph(font, piece, kerning);
+    /**
+     * Returns the word-wrap piece ends of a text, falling back to character wrapping when the first word does not fit. Each piece starts at
+     * pen {@code 0} and ends where the wrap stops; line and form feeds end pieces. A piece has no length limit: codes that advance nothing,
+     * such as carriage returns, stay in the piece of the text before them.
+     *
+     * @param text    the text
+     * @param width   the wrap width; {@code 0} or less only breaks at line and form feeds
+     * @param measure the advance of a text in interface pixels
+     * @return the end index of each piece, the last one {@code text.length()}
+     */
+    public static int @NotNull [] wrapBreaks(@NotNull String text, float width, @NotNull ToDoubleFunction<String> measure) {
+        return wrapBreaks(text, width, WrapMode.WORD, measure);
+    }
+
+    private static int @NotNull [] wrapBreaks(@NotNull String text, float width, @NotNull WrapMode mode, @NotNull ToDoubleFunction<String> measure) {
         float right = width > 0 ? width : Float.NaN;
         List<Integer> ends = new ArrayList<>();
         int start = 0;
@@ -746,18 +753,6 @@ public final class InterfaceText {
 
             if (end == start) {
                 end = start + 1;
-            }
-
-            if ((offsets == null ? end - start : offsets[end] - offsets[start]) > maximumLength) {
-                int fitting = start + 1;
-
-                while (fitting < end && (offsets == null ? fitting + 1 - start : offsets[fitting + 1] - offsets[start]) <= maximumLength) {
-                    fitting++;
-                }
-
-                int wordStart = text.lastIndexOf(SPACE, fitting - 1) + 1;
-
-                end = wordStart > start ? wordStart : fitting;
             }
 
             ends.add(end);

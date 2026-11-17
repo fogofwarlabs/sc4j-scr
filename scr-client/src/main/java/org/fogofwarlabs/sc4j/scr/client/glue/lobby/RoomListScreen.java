@@ -2,21 +2,18 @@ package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.log.Logger;
-import org.fogofwarlabs.sc4j.engine.client.community.ChannelChat;
-import org.fogofwarlabs.sc4j.engine.client.community.CommunityText;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.BeaconLinkSession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.FoundRoom;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.LatencyClass;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.RoomSettings;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChatChannel;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerPresence;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.CommunityText;
 import org.fogofwarlabs.sc4j.engine.net.lobby.JoinRefusal;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogDefinition;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueContext;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueScreen;
+import org.fogofwarlabs.sc4j.scr.client.glue.*;
 import org.fogofwarlabs.sc4j.scr.client.glue.popup.GlueEditPopup;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.*;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.GluText;
@@ -413,7 +410,7 @@ public final class RoomListScreen extends GlueScreen {
 
         this.addSlider(LATENCY_SLIDER).setRange(0, LATENCY_STEPS.length - 1);
         this.addSlider(PLAYERS_SLIDER).setRange(RoomFilter.MINIMUM_PLAYERS, RoomFilter.MAXIMUM_PLAYERS);
-        this.bindControl(VERSIONS_CHECK).setReplacedText(BeaconLinkText.SHOW_CLOSED_GAMES.get(locale));
+        this.bindControl(VERSIONS_CHECK).setReplacedText(OwnText.SHOW_CLOSED_GAMES.get(locale));
 
         this.chatInput = this.setEditText(CHAT_INPUT, "", ChatChannel.MAXIMUM_TEXT_LENGTH, "");
         this.search    = this.setEditText(SEARCH, this.filter.getQuery(), RoomSettings.MAXIMUM_NAME_LENGTH, "");
@@ -1173,7 +1170,7 @@ public final class RoomListScreen extends GlueScreen {
                               {text.get("infoPane_size"),
                                data == null ? unknown : String.format(Locale.ROOT, SIZE_FORMAT, data.getMapWidth(), data.getMapHeight())},
                               {text.get("infoPane_speed"), data == null ? unknown : GameListScreen.getSpeedName(glueContext, data.getSpeed())},
-                              {BeaconLinkText.MOD.get(locale), mod}};
+                              {OwnText.MOD.get(locale), mod}};
         float middle = innerLeft + innerWidth / CENTER_DIVISOR;
         float valueWidth = innerLeft + innerWidth - middle;
 

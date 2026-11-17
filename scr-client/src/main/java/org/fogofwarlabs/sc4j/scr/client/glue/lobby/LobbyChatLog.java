@@ -1,9 +1,9 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
-import org.fogofwarlabs.sc4j.engine.client.community.ChannelChat;
-import org.fogofwarlabs.sc4j.engine.client.community.ChatEntry;
-import org.fogofwarlabs.sc4j.engine.client.community.ChatEntryKind;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChatEntry;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChatEntryKind;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueScreen;
@@ -452,7 +452,7 @@ final class LobbyChatLog {
     }
 
     /**
-     * Makes this log the chat's log: each entry of the chat is added in its kind's colors.
+     * Adds this log to the chat's logs: the chat's recent entries and then each new entry are added in their kind's colors.
      *
      * @param chat the chat
      */
@@ -463,12 +463,11 @@ final class LobbyChatLog {
                                                     ChannelChatScreen.getEntryColor(entry.getKind(), false));
 
         this.listener = log;
-        chat.setLog(log);
+        chat.addLog(log, true);
     }
 
     /**
-     * Stops this log taking the chat's entries; a log of another screen that listens since ({@link #listen}) keeps taking them, since the
-     * next screen opens before the left one closes.
+     * Stops this log taking the chat's entries; the chat's other logs keep taking them.
      *
      * @param chat the chat
      */

@@ -2,15 +2,12 @@ package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.log.Logger;
-import org.fogofwarlabs.sc4j.engine.client.community.ChannelChat;
-import org.fogofwarlabs.sc4j.engine.client.community.RecentMaps;
+import org.fogofwarlabs.sc4j.engine.client.lobby.RecentMaps;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChatChannel;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogDefinition;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueContext;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
-import org.fogofwarlabs.sc4j.scr.client.glue.GlueSettings;
+import org.fogofwarlabs.sc4j.scr.client.glue.*;
 import org.fogofwarlabs.sc4j.scr.client.glue.popup.GlueEditPopup;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.*;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.GluText;
@@ -757,7 +754,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
         LanClient client = glueContext.getLanClient();
         String playerName = client == null ? glueContext.getPlayerName() : client.getPlayerName();
 
-        return BeaconLinkText.GAME_NAME_DEFAULT.format(glueContext.getLocale(), playerName);
+        return OwnText.GAME_NAME_DEFAULT.format(glueContext.getLocale(), playerName);
     }
 
     /**

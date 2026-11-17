@@ -26,6 +26,10 @@ final class InterfaceTextTest {
      */
     private static final int WRAP_RIGHT = 55;
     /**
+     * The carriage returns after the line, more than a message line holds in bytes.
+     */
+    private static final int PADDING_LENGTH = 300;
+    /**
      * Ten pixels per printable character; control codes advance nothing.
      */
     private static final @NotNull ToDoubleFunction<String> MEASURE = text -> {
@@ -93,6 +97,30 @@ final class InterfaceTextTest {
     void compute_alignment_shifts_should_center_on_the_wrap_point_when_the_rest_overflows() {
         // "\x13" at pen 0, right 55: the rest "aaa  bbb" stops at 50 (see above): shift = (55 - 50) >> 1 = 2.
         Assertions.assertArrayEquals(new int[]{2}, InterfaceText.computeAlignmentShifts("\u0013aaa  bbb", 0, WRAP_RIGHT, MEASURE));
+    }
+
+    @Test
+    void compute_alignment_shifts_should_center_a_line_padded_with_carriage_returns() {
+        // Carriage returns advance nothing: "\x13\x05ab cd" and its padding center like "ab cd" alone, (630 - (int) (10 + 50)) >> 1 = 285.
+        String line = "\u0013\u0005ab cd" + "\r".repeat(PADDING_LENGTH);
+
+        Assertions.assertArrayEquals(new int[]{285}, InterfaceText.computeAlignmentShifts(line, MESSAGE_ROW_PEN, MESSAGE_ROW_RIGHT, MEASURE));
+    }
+
+    @Test
+    void wrap_breaks_should_keep_a_padded_line_in_one_piece() {
+        // No length limit breaks a piece: the padding stays with its line and the next piece starts after the line feed.
+        String line = "\u0013\u0005ab cd" + "\r".repeat(PADDING_LENGTH) + "\n";
+        String text = line + "\u0013ef";
+
+        Assertions.assertArrayEquals(new int[]{line.length(), text.length()},
+                                     InterfaceText.wrapBreaks(text, MESSAGE_ROW_RIGHT - MESSAGE_ROW_PEN, MEASURE));
+    }
+
+    @Test
+    void wrap_breaks_should_end_a_piece_after_the_codes_before_the_word_that_passes_the_right_edge() {
+        // Right 55: "aaa " fits and "bbb" would end at 70, so the piece ends at the word with the alignment and color codes before it.
+        Assertions.assertArrayEquals(new int[]{6, 9}, InterfaceText.wrapBreaks("aaa \u0013\u0005bbb", WRAP_RIGHT, MEASURE));
     }
 
     @Test

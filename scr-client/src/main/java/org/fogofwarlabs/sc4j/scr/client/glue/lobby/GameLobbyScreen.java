@@ -5,8 +5,10 @@ import org.fogofwarlabs.sc4j.base.log.Logger;
 import org.fogofwarlabs.sc4j.engine.client.host.HostWindow;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.BeaconLinkSession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogDefinition;
+import org.fogofwarlabs.sc4j.scr.client.GameCommunityChat;
 import org.fogofwarlabs.sc4j.scr.client.glue.*;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.*;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.ForceNamesUtils;
@@ -311,6 +313,24 @@ public final class GameLobbyScreen extends GlueScreen {
         if (session != null) {
             session.getCommunity().setStatus(status);
         }
+    }
+
+    /**
+     * Creates the Beacon.Link community part of the starting game: the channel chat of the client's network, with the install's texts.
+     *
+     * @param glueContext the glue context, which holds the channel chat
+     * @param client      the LAN client of the lobby
+     * @return the created {@link GameCommunityChat} instance, or {@code null} if the client plays without Beacon.Link or the channel chat is not
+     * open
+     */
+    private static @Nullable GameCommunityChat createCommunityChat(@NotNull GlueContext glueContext, @NotNull LanClient client) {
+        ChannelChat chat = glueContext.getChannelChat();
+
+        if (client.getNetwork().getBeaconLinkSession() == null || chat == null) {
+            return null;
+        }
+
+        return new GameCommunityChat(chat, glueContext.getGluText()::get);
     }
 
     private final @NotNull LobbyChatLog chatLog;
@@ -1201,6 +1221,7 @@ public final class GameLobbyScreen extends GlueScreen {
                                                                 client.getPlayerName(),
                                                                 glueContext.isExpansion(),
                                                                 client,
+                                                                createCommunityChat(glueContext, client),
                                                                 client.getSpeed(),
                                                                 glueContext.getMultiplayerHome());
 

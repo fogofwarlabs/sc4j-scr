@@ -593,8 +593,8 @@ public final class Main {
      * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a
      *                     bounded replay load fails
      */
-    public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources, @Nullable BeaconLink beaconLink,
-                              @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
+    public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources,
+                              @Nullable BeaconLink beaconLink, @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
         ConsoleOutputUtils.install();
         start(ClientOptions.parse(arguments, layout), arguments, resources, beaconLink, build);
     }
@@ -679,7 +679,7 @@ public final class Main {
                                                                         DEFAULT_NETWORK_TURNS_IN_TRANSIT, Boolean.getBoolean(LAN_KEEP_ALIVE_PROPERTY),
                                                                         locale);
 
-            started.attachNetworkChat(lanClient);
+            attachChats(started, lanClient, request.getCommunityChat());
             started.setGameFlags(lanClient.getGameFlags());
             setDesyncDumpTarget(started, clientContext, mapPath, build);
 
@@ -702,7 +702,7 @@ public final class Main {
                                                            DEFAULT_NETWORK_TURNS_IN_TRANSIT, Boolean.getBoolean(LAN_KEEP_ALIVE_PROPERTY),
                                                            locale);
 
-        started.attachNetworkChat(lanClient);
+        attachChats(started, lanClient, request.getCommunityChat());
         started.setGameFlags(lanClient.getGameFlags());
         setDesyncDumpTarget(started, clientContext, mapPath, build);
 
@@ -711,6 +711,21 @@ public final class Main {
         }
 
         return started;
+    }
+
+    /**
+     * Attaches the game's chat to the LAN client and, for a game over Beacon.Link with the channel chat, the community.
+     *
+     * @param started       the started session
+     * @param lanClient     the LAN client of the game
+     * @param communityChat the community part of the game, or {@code null}
+     */
+    private static void attachChats(@NotNull ClientSession started, @NotNull LanClient lanClient, @Nullable GameCommunityChat communityChat) {
+        started.attachNetworkChat(lanClient);
+
+        if (communityChat != null) {
+            started.attachCommunityChat(communityChat);
+        }
     }
 
     private static void setDesyncDumpTarget(@NotNull ClientSession started, @NotNull ClientContext clientContext, @NotNull Path mapPath,
@@ -2817,7 +2832,8 @@ public final class Main {
 
             this.clientContext = ClientContext.open(this.options.getInstallLayout(), provider,
                                                     this.getTextLocale(), ClientAudio.open(this.options.getSoundSettings()),
-                                                    this.beaconLink);
+                                                    this.beaconLink,
+                                                    ReleaseStatus.checkRunningVersion());
             this.clientContext.setWindow(this.hostWindow);
             // The localized text tables are client data, loaded once at the start (and again for another locale).
             this.loading.enqueue(new TextTablesLoadTask(this.clientContext, this.getTextLocale()));
@@ -3262,9 +3278,9 @@ public final class Main {
                 String player = request != null ? request.getPlayerName() : melee != null ? melee.getName() : "";
 
                 if (!player.isEmpty()) {
-                    String folderName = this.requireClientContext().getPlayer().getFolderName();
+                    ClientPlayer clientPlayer = this.requireClientContext().getPlayer();
 
-                    loadedSession.setSaveDirectory(this.options.getInstallLayout().getSaveDirectory().resolve(folderName));
+                    loadedSession.setSaveDirectory(clientPlayer.getSaveDirectory(this.options.getInstallLayout().getSaveDirectory()));
                 }
             }
 

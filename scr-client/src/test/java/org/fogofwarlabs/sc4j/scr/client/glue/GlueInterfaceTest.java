@@ -9,10 +9,12 @@ import org.fogofwarlabs.sc4j.engine.client.display.UiSurface;
 import org.fogofwarlabs.sc4j.engine.client.host.ClientHost;
 import org.fogofwarlabs.sc4j.engine.client.host.HostWindow;
 import org.fogofwarlabs.sc4j.engine.client.host.WindowSettings;
+import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
 import org.fogofwarlabs.sc4j.scr.client.ClientContext;
 import org.fogofwarlabs.sc4j.scr.client.audio.ClientAudio;
 import org.fogofwarlabs.sc4j.scr.client.audio.SoundSettings;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
+import org.fogofwarlabs.sc4j.scr.client.glue.lobby.BeaconLinkGlueScenario;
 import org.fogofwarlabs.sc4j.scr.client.glue.score.GlueResume;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
 import org.fogofwarlabs.sc4j.scr.core.test.RequiresInstallation;
@@ -102,9 +104,9 @@ final class GlueInterfaceTest {
     private static @NotNull Map<String, String> createReferenceDigests() {
         Map<String, String> digests = new LinkedHashMap<>();
 
-        digests.put(MAIN_MENU_FRAME, "732bc6c513bd816ce96536b3014b03eafffffa0420af5c177a2e5798a21e7dbd");
-        digests.put(OPTIONS_POPUP_FRAME, "60bd79bf4b43a8851bfe0833ab7742faae020468d4b2a20def1f32c95301dcf8");
-        digests.put(ERROR_POPUP_FRAME, "9f7d1a790cad51cffded96fcd55838253096579984b663aeb3904ecee2d26723");
+        digests.put(MAIN_MENU_FRAME, "8be4d58da5ab4f1d9fc3ce8190a66dadbc6aa5431c14535bdd2324af73ecdaaf");
+        digests.put(OPTIONS_POPUP_FRAME, "f7583af6e6ae74de4a5aa662de7d948be4857cf7398f98b9c5f27c53d1805499");
+        digests.put(ERROR_POPUP_FRAME, "754d4ed165fba12108d51060b73fc17aa32b1644f197ef9fca3e4e8e4e448291");
         digests.put(CUSTOM_GAME_FRAME, "fe4c8125a8ef978ca8d2818bd52ae0813c86de481ff6db9621044104f850541f");
 
         for (float scale : DISPLAY_SCALES) {
@@ -249,7 +251,7 @@ final class GlueInterfaceTest {
                                                   layout.getRecentMapsFile());
 
             try (ClientContext client = ClientContext.open(layout, ScrResourceProvider.open(installationPath, ScrIscriptImporter::readLibrary), LOCALE,
-                                                           createSilentAudio());
+                                                           createSilentAudio(), BeaconLinkAccess.NONE, BeaconLinkGlueScenario.UNKNOWN_RELEASE);
                  GlueInterface glue = GlueInterface.open(client, LOCALE, folders, null)) {
                 long time = 0;
 
@@ -276,7 +278,8 @@ final class GlueInterfaceTest {
 
             for (float scale : DISPLAY_SCALES) {
                 try (ClientContext client = ClientContext.open(layout, ScrResourceProvider.open(installationPath, ScrIscriptImporter::readLibrary),
-                                                               LOCALE, createSilentAudio());
+                                                               LOCALE, createSilentAudio(), BeaconLinkAccess.NONE,
+                                                               BeaconLinkGlueScenario.UNKNOWN_RELEASE);
                      GlueInterface glue = GlueInterface.open(client, LOCALE, folders, null)) {
                     String name = SCALED_MAIN_MENU_FRAME + scale;
 
@@ -380,7 +383,7 @@ final class GlueInterfaceTest {
                                                   layout.getRecentMapsFile());
 
             try (ClientContext client = ClientContext.open(layout, ScrResourceProvider.open(installationPath, ScrIscriptImporter::readLibrary), LOCALE,
-                                                           createSilentAudio());
+                                                           createSilentAudio(), BeaconLinkAccess.NONE, BeaconLinkGlueScenario.UNKNOWN_RELEASE);
                  GlueInterface glue = GlueInterface.open(client, LOCALE, folders, openResume)) {
                 if (leaveResume != null) {
                     glue.enterGame();

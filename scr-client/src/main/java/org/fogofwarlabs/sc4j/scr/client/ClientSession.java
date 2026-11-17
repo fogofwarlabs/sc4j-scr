@@ -78,6 +78,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
 /**
@@ -943,6 +944,7 @@ public final class ClientSession implements AutoCloseable {
     private long lastSaveTick;
 
     private @Nullable LanClient networkClient;
+    private @Nullable GameCommunityChat communityChat;
     private int gameFlags;
     /**
      * The recipient slot, force or special chat target.
@@ -1036,6 +1038,7 @@ public final class ClientSession implements AutoCloseable {
         this.lastSaveTick  = NO_SAVE_TICK;
 
         this.networkClient = null;
+        this.communityChat = null;
         this.gameFlags     = 0;
         this.chatRecipient = ChatPrompt.RECIPIENT_ALL;
         this.chatLabel     = "";
@@ -2896,6 +2899,52 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
+     * Attaches the Beacon.Link community to the network game's message area and chat box, under the LAN client's lock
+     * ({@link #attachNetworkChat} first).
+     *
+     * @param chat the community part of the game
+     * @throws IllegalStateException if this session has no network client
+     */
+    public void attachCommunityChat(@NotNull GameCommunityChat chat) {
+        LanClient client = this.networkClient;
+
+        if (client == null) {
+            throw Exceptions.newIllegalStateException("The community chat needs the network client.");
+        }
+
+        synchronized (client) {
+            chat.attach();
+        }
+
+        this.communityChat = chat;
+    }
+
+    /**
+     * @return {@code true} if the Beacon.Link community is attached to this session's game, {@code false} otherwise
+     */
+    public boolean hasCommunityChat() {
+        return this.communityChat != null;
+    }
+
+    /**
+     * Runs a typed community command ({@link GameCommunityChat#isCommand}) in the attached channel chat; without one it does nothing.
+     *
+     * @param line the typed line
+     */
+    public void submitCommunityCommand(@NotNull String line) {
+        LanClient client = this.networkClient;
+        GameCommunityChat chat = this.communityChat;
+
+        if (client == null || chat == null) {
+            return;
+        }
+
+        synchronized (client) {
+            chat.submit(line);
+        }
+    }
+
+    /**
      * Formats the chosen recipient's player or force name and copies the label into the local interface buffer.
      *
      * @param format the box's format
@@ -2997,29 +3046,38 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * Receives chat and whispers with a known sender and a terminated nonempty text within the receive limit.
+     * Receives chat and whispers with a known sender and a terminated nonempty text within the receive limit, then shows the attached
+     * community's whispers and command answers ({@link GameCommunityChat#takeWrites}).
      * Ordinary chat is recorded with bounded text; whispers are displayed without recording.
      */
     public void receiveNetworkChat() {
         LanClient client = this.networkClient;
         LiveGame game = this.liveGame;
+        GameCommunityChat community = this.communityChat;
 
         if (client == null || game == null) {
             return;
         }
 
         List<ProviderSession.Message> messages = new ArrayList<>();
+        List<Consumer<MessageLines>> communityWrites;
 
         synchronized (client) {
+            communityWrites = community == null ? List.of() : community.takeWrites();
+
             ProviderSession session = client.getSession();
 
-            if (session == null) {
-                return;
+            if (session != null) {
+                for (ProviderSession.Message message = session.receiveMessage(); message != null; message = session.receiveMessage()) {
+                    messages.add(message);
+                }
             }
+        }
 
-            for (ProviderSession.Message message = session.receiveMessage(); message != null; message = session.receiveMessage()) {
-                messages.add(message);
-            }
+        MessageLines lines = this.state.getInterfaceLink().getMessageLines();
+
+        for (Consumer<MessageLines> write : communityWrites) {
+            write.accept(lines);
         }
 
         for (ProviderSession.Message message : messages) {
@@ -3055,12 +3113,11 @@ public final class ClientSession implements AutoCloseable {
                         (data[0] == WHISPER_KIND ? "whisper" : "chat"));
 
             if (data[0] == WHISPER_KIND) {
-                MessageLines messageLines = this.state.getInterfaceLink().getMessageLines();
                 TextTables tables = this.textTables;
 
-                messageLines.writeWhisper(tables == null ? "" : tables.getNetwork().get(WHISPER_FROM_KEY), slot, text);
+                lines.writeWhisper(tables == null ? "" : tables.getNetwork().get(WHISPER_FROM_KEY), slot, text);
             } else {
-                this.state.getInterfaceLink().getMessageLines().writeChat(slot, text);
+                lines.writeChat(slot, text);
                 game.recordChat(slot, text, this.state.getCurrentFrame());
             }
         }
@@ -3484,6 +3541,17 @@ public final class ClientSession implements AutoCloseable {
 
             if (this.liveGame != null && this.liveGame.isNetworkGame()) {
                 this.liveGame.leaveNetwork();
+            }
+
+            LanClient client = this.networkClient;
+            GameCommunityChat community = this.communityChat;
+
+            if (client != null && community != null) {
+                synchronized (client) {
+                    community.detach();
+                }
+
+                this.communityChat = null;
             }
 
             this.selectedPlacement = null;

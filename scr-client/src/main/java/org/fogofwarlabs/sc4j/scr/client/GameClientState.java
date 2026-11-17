@@ -501,14 +501,16 @@ final class GameClientState implements InputListener {
     }
 
     /**
-     * Routes client commands locally and live-game text to the session; dropped lines perform no action.
+     * Routes community commands to the session's channel chat, client commands locally and live-game text to the session; dropped lines perform no
+     * action.
      *
      * @param line the submitted line
      */
     private void submitTypedLine(@NotNull String line) {
         ClientSession session = this.main.session;
 
-        switch (ChatPrompt.route(line, session != null && session.isLive())) {
+        switch (ChatPrompt.route(line, session != null && session.isLive(), session != null && session.hasCommunityChat())) {
+            case COMMUNITY -> this.main.requireSession().submitCommunityCommand(line);
             case COMMAND -> this.main.runTypedCommand(line);
             case GAME_TEXT -> this.submitGameText(this.main.requireSession(), line);
             case DROPPED -> {
