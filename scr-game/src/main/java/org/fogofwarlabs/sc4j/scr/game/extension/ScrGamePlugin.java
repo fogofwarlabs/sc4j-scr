@@ -79,4 +79,13 @@ public interface ScrGamePlugin {
     default boolean isConsoleHidden() {
         return false;
     }
+
+    /**
+     * Finds how the plugin places the console: moved dialogs, the shown console pixels and the dialog pictures.
+     *
+     * @return the placement, or {@code null} for the installed console
+     */
+    default @Nullable ScrConsolePlacement findConsolePlacement() {
+        return null;
+    }
 }

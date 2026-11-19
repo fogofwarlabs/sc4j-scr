@@ -18,6 +18,7 @@ import org.fogofwarlabs.sc4j.scr.game.ability.TransportCargo;
 import org.fogofwarlabs.sc4j.scr.game.ability.UnitSpells;
 import org.fogofwarlabs.sc4j.scr.game.combat.ScrShieldLayer;
 import org.fogofwarlabs.sc4j.scr.game.combat.UnitTargeting;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrGamePlugin;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameFrame;
@@ -591,6 +592,23 @@ public final class ScrGameView implements GameView {
         }
 
         return false;
+    }
+
+    /**
+     * Finds how the console is placed: the first placement a plugin of the game gives ({@link ScrGamePlugin#findConsolePlacement}).
+     *
+     * @return the placement, or {@code null} for the installed console
+     */
+    public @Nullable ScrConsolePlacement findConsolePlacement() {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            ScrConsolePlacement placement = plugin.findConsolePlacement();
+
+            if (placement != null) {
+                return placement;
+            }
+        }
+
+        return null;
     }
 
     /**

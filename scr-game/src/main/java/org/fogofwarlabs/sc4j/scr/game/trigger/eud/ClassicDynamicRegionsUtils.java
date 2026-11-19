@@ -356,6 +356,16 @@ public final class ClassicDynamicRegionsUtils {
         @Override
         public void writeByte(int offset, int value) {
         }
+
+        /**
+         * Tells whether the region is served from the emulation's own storage.
+         *
+         * @return {@code true}: the buffer holds zero and no game state
+         */
+        @Override
+        public boolean isEmulatorStorage() {
+            return true;
+        }
     }
 
     /**

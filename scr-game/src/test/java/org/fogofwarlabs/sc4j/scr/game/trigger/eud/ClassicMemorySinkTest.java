@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Checks that a memory source serves memory only where the SC:R mod serves no game state: it replaces whole emulation storage regions and covers
- * addresses without a native region, it is refused over game state, part of an emulation storage region, native memory without a region and the
+ * Checks that a memory source serves memory only where the SC:R mod serves no game state: it replaces whole emulation storage regions, unbound
+ * buffers among them, and covers addresses without a native region, it is refused over game state, part of an emulation storage region, native memory without a region and the
  * map-dependent range, and its bytes enter the state hash.
  */
 final class ClassicMemorySinkTest {
@@ -28,6 +28,11 @@ final class ClassicMemorySinkTest {
      */
     private static final int NATIVE_WITHOUT_REGION = 0x6D1200;
     private static final int GAP_SIZE = 0x100;
+    /**
+     * An unbound buffer followed by addresses without a native region.
+     */
+    private static final int UNBOUND_BUFFER = 0xE770B0;
+    private static final int UNBOUND_SIZE = 0x12DA;
     private static final int VALUE = 0x12345678;
     private static final int HASH_SEED = 7;
 
@@ -55,6 +60,23 @@ final class ClassicMemorySinkTest {
 
         Assertions.assertEquals(VALUE, space.readDword(PROTECTED_STORAGE));
         Assertions.assertFalse(space.findRegion(PROTECTED_STORAGE).isEmulatorStorage());
+    }
+
+    @Test
+    void a_provided_region_replaces_an_unbound_buffer_and_grows_past_its_end() {
+        ClassicAddressSpace space = new ClassicAddressSpace();
+
+        space.addAll(ClassicDynamicRegionsUtils.create(null));
+
+        Assertions.assertTrue(space.findRegion(UNBOUND_BUFFER).isEmulatorStorage());
+        Assertions.assertNull(space.findRegion(UNBOUND_BUFFER + UNBOUND_SIZE));
+
+        new ClassicMemorySink(space).add(new ClassicStorageRegion(UNBOUND_BUFFER, 2 * UNBOUND_SIZE));
+        space.writeDword(UNBOUND_BUFFER, VALUE);
+        space.writeDword(UNBOUND_BUFFER + UNBOUND_SIZE, VALUE);
+
+        Assertions.assertEquals(VALUE, space.readDword(UNBOUND_BUFFER));
+        Assertions.assertEquals(VALUE, space.readDword(UNBOUND_BUFFER + UNBOUND_SIZE));
     }
 
     @Test

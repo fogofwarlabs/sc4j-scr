@@ -45,6 +45,7 @@ import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogControlUtils;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogImportUtils;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitTypeFlags;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.presentation.InterfaceTimers;
 import org.fogofwarlabs.sc4j.scr.game.presentation.MessageLines;
@@ -111,6 +112,19 @@ public final class ConsoleView implements AutoCloseable {
      */
     public static final int MINIMAP_PIXEL_SCALE_INDEX = 6;
 
+    /**
+     * The console dialogs a placement moves, in the order of {@link ConsoleLayout#createMovedLayout}, and the number of their offsets.
+     */
+    private static final ScrConsolePlacement.Dialog @NotNull [] PLACED_DIALOGS = {
+            ScrConsolePlacement.Dialog.COMMAND_CARD, ScrConsolePlacement.Dialog.SELECTION, ScrConsolePlacement.Dialog.RESOURCES,
+            ScrConsolePlacement.Dialog.PORTRAIT, ScrConsolePlacement.Dialog.MINIMAP, ScrConsolePlacement.Dialog.MENU
+    };
+    private static final int PLACED_OFFSET_COUNT = 2 * PLACED_DIALOGS.length;
+    /**
+     * The bytes of an RGBA pixel and the index of its alpha byte.
+     */
+    private static final int RGBA_BYTES = 4;
+    private static final int RGBA_ALPHA = 3;
     private static final int CHAT_ALL_LABEL_CONTROL = 3;
     private static final int CHAT_ALLIES_LABEL_CONTROL = 2;
     private static final int CHAT_OBSERVERS_LABEL_CONTROL = 4;
@@ -747,6 +761,27 @@ public final class ConsoleView implements AutoCloseable {
     private boolean replayPaused;
     private int consoleTexture;
     /**
+     * The console placement of the game's plugins ({@link #setPlacement}), or {@code null} for the installed console.
+     */
+    private @Nullable ScrConsolePlacement placement;
+    /**
+     * The HD layout of the interface width, before the placement moves its dialogs.
+     */
+    private @Nullable ConsoleLayout hdLayout;
+    /**
+     * The layout with the placement's dialog moves, the layout it was moved from and the dialog offsets it applies.
+     */
+    private @Nullable ConsoleLayout placedLayout;
+    private @Nullable ConsoleLayout placedBase;
+    private final float @NotNull [] placedOffsets;
+    /**
+     * The standard-definition console art drawn through the placement's mask, its race, its texture and the placement change count of its texels.
+     */
+    private @Nullable InterfaceImage maskedArt;
+    private int maskedArtRace;
+    private int maskedArtTexture;
+    private long maskedArtChange;
+    /**
      * The renderer's layer textures: terrain with creep, fog (one texel per tile) and dots.
      */
     private int minimapTerrainTexture;
@@ -938,6 +973,15 @@ public final class ConsoleView implements AutoCloseable {
         this.replayEndFrame        = 0L;
         this.replayPaused          = false;
         this.consoleTexture        = 0;
+        this.placement             = null;
+        this.hdLayout              = null;
+        this.placedLayout          = null;
+        this.placedBase            = null;
+        this.placedOffsets         = new float[PLACED_OFFSET_COUNT];
+        this.maskedArt             = null;
+        this.maskedArtRace         = -1;
+        this.maskedArtTexture      = 0;
+        this.maskedArtChange       = -1;
         this.minimapTerrainTexture = 0;
         this.minimapFogTexture     = 0;
         this.minimapDotTexture     = 0;
@@ -1116,6 +1160,16 @@ public final class ConsoleView implements AutoCloseable {
     public void setGluText(@NotNull GluText gluText) {
         this.replayPanel = new ReplayPanel(this.text, gluText);
         this.gluText     = gluText;
+    }
+
+    /**
+     * Sets how the game's plugins place the console: the dialogs it moves are drawn and hit at their moved places, and with a mask the console
+     * art is drawn and hit only where the mask shows it.
+     *
+     * @param placement the placement, or {@code null} for the installed console
+     */
+    public void setPlacement(@Nullable ScrConsolePlacement placement) {
+        this.placement = placement;
     }
 
     /**
@@ -1381,6 +1435,14 @@ public final class ConsoleView implements AutoCloseable {
 
         if (console == null || art == null || this.layoutReplay) {
             return false;
+        }
+
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        if (shownPlacement != null && shownPlacement.isMasked()) {
+            float column = console.toInterfaceX(screenX) - InterfaceTransform.getCenteredDialogLeft(console.getInterfaceWidth());
+
+            return shownPlacement.isShown((int) Math.floor(column), (int) Math.floor(console.toInterfaceY(screenY)));
         }
 
         return art.isHit(console.toInterfaceX(screenX), console.toInterfaceY(screenY));
@@ -1928,22 +1990,28 @@ public final class ConsoleView implements AutoCloseable {
             // W = trunc(clamp(aspect, 4/3, 16/9) * 480), from the shared viewport.
             float interfaceWidth = viewport.getInterfaceWidth();
 
-            if (interfaceWidth != this.layoutWidth) {
-                this.layout = HdConsoleLayout.createLayout(this.sdLayout, interfaceWidth, this.hdVariant);
+            if (interfaceWidth != this.layoutWidth || this.hdLayout == null) {
+                this.hdLayout = HdConsoleLayout.createLayout(this.sdLayout, interfaceWidth, this.hdVariant);
 
                 art.placePieces(interfaceWidth, this.hdVariant);
 
                 this.layoutWidth = interfaceWidth;
             }
 
-            console = this.layout;
+            console = this.hdLayout;
         }
+
+        console     = this.placeDialogs(console);
+        this.layout = console;
 
         console.setViewport(viewport);
 
         float scale = console.getScale();
+        ScrConsolePlacement shownPlacement = this.placement;
 
-        if (this.hdScale == 0) {
+        if (shownPlacement != null && shownPlacement.isMasked()) {
+            this.drawMaskedArt(console, loaded, race, shownPlacement);
+        } else if (this.hdScale == 0) {
             this.renderer.drawTexture(this.consoleTexture,
                                       console.toScreenX(art.getLeft(ConsoleArt.LEFT_PIECE)), console.toScreenY(art.getTop(ConsoleArt.LEFT_PIECE)),
                                       art.getWidth(ConsoleArt.LEFT_PIECE) * scale, art.getHeight(ConsoleArt.LEFT_PIECE) * scale,
@@ -4974,6 +5042,104 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
+     * Moves the dialogs of a layout to the places the placement gives them, in the classic screen centered in the interface width, and the hidden
+     * dialogs out of the interface.
+     *
+     * @param base the layout of the interface width
+     * @return the layout with the dialogs moved, the same layout while the moves are unchanged, or {@code base} without a moved dialog
+     */
+    private @NotNull ConsoleLayout placeDialogs(@NotNull ConsoleLayout base) {
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        if (shownPlacement == null) {
+            return base;
+        }
+
+        int center = InterfaceTransform.getCenteredDialogLeft(base.getInterfaceWidth());
+        DialogLayout[] dialogs = {base.getCommandButtons(), base.getSelectionPanel(), base.getResources(), base.getPortrait(), base.getMinimap(),
+                                  base.getMenu()};
+        float[] offsets = new float[PLACED_OFFSET_COUNT];
+        boolean moved = false;
+
+        for (int index = 0; index < dialogs.length; index++) {
+            ScrConsolePlacement.Dialog dialog = PLACED_DIALOGS[index];
+
+            if (shownPlacement.isDialogHidden(dialog)) {
+                // A hidden dialog moves past the interface's right edge, where it is neither drawn nor hit.
+                offsets[index * 2] = base.getInterfaceWidth() - dialogs[index].getX();
+                moved              = true;
+            } else if (shownPlacement.isDialogMoved(dialog)) {
+                offsets[index * 2]     = shownPlacement.getDialogLeft(dialog) + center - dialogs[index].getX();
+                offsets[index * 2 + 1] = shownPlacement.getDialogTop(dialog) - dialogs[index].getY();
+                moved                  = true;
+            }
+        }
+
+        if (!moved) {
+            return base;
+        }
+
+        if (this.placedLayout == null || this.placedBase != base || !Arrays.equals(offsets, this.placedOffsets)) {
+            this.placedLayout = base.createMovedLayout(base.getInterfaceWidth(), base.getConsoleTop(), offsets[0], offsets[1], offsets[2], offsets[3],
+                                                       offsets[4], offsets[5], offsets[6], offsets[7], offsets[8], offsets[9], offsets[10],
+                                                       offsets[11]);
+            this.placedBase   = base;
+
+            System.arraycopy(offsets, 0, this.placedOffsets, 0, offsets.length);
+        }
+
+        return this.placedLayout;
+    }
+
+    /**
+     * Draws the standard-definition console art of a race through the placement's mask, in the classic screen centered in the interface width.
+     *
+     * @param console   the console layout
+     * @param loaded    the interface assets
+     * @param race      the race: {@code 0} Zerg, {@code 1} Terran, {@code 2} Protoss
+     * @param placement the masked placement
+     * @throws IOException if the art cannot be decoded
+     */
+    private void drawMaskedArt(@NotNull ConsoleLayout console, @NotNull InterfaceAssets loaded, int race, @NotNull ScrConsolePlacement placement)
+            throws IOException {
+        if (this.maskedArt == null || this.maskedArtRace != race) {
+            this.maskedArt       = loaded.decodeConsole(race);
+            this.maskedArtRace   = race;
+            this.maskedArtChange = -1;
+        }
+
+        InterfaceImage image = this.maskedArt;
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int top = ConsoleLayout.INTERFACE_HEIGHT - height;
+
+        if (this.maskedArtTexture == 0 || this.maskedArtChange != placement.getChangeCount()) {
+            byte[] rgba = image.getRgba().clone();
+
+            for (int row = 0; row < height; row++) {
+                for (int column = 0; column < width; column++) {
+                    if (!placement.isShown(column * ConsoleLayout.INTERFACE_WIDTH / width, top + row)) {
+                        rgba[(row * width + column) * RGBA_BYTES + RGBA_ALPHA] = 0;
+                    }
+                }
+            }
+
+            if (this.maskedArtTexture != 0) {
+                this.renderer.deleteTexture(this.maskedArtTexture);
+            }
+
+            this.maskedArtTexture = this.renderer.createTexture(width, height, rgba);
+            this.maskedArtChange  = placement.getChangeCount();
+        }
+
+        float scale = console.getScale();
+
+        this.renderer.drawTexture(this.maskedArtTexture, console.toScreenX(InterfaceTransform.getCenteredDialogLeft(console.getInterfaceWidth())),
+                                  console.toScreenY(top), ConsoleLayout.INTERFACE_WIDTH * scale, height * scale, WHITE_RGBA);
+    }
+
+
+    /**
      * Releases the console art and its textures. The hit test reports no console until the next draw loads the art again.
      */
     private void releaseConsoleArt() {
@@ -4995,9 +5161,18 @@ public final class ConsoleView implements AutoCloseable {
             );
         }
 
-        this.consoleTexture = 0;
-        this.layoutWidth    = -1;
-        this.consoleArt     = null;
+        if (this.maskedArtTexture != 0) {
+            IgnoreException.execute(
+                    () -> this.renderer.deleteTexture(this.maskedArtTexture)
+            );
+        }
+
+        this.consoleTexture   = 0;
+        this.maskedArtTexture = 0;
+        this.maskedArtChange  = -1;
+        this.layoutWidth      = -1;
+        this.hdLayout         = null;
+        this.consoleArt       = null;
     }
 
     private void releaseTextures() {

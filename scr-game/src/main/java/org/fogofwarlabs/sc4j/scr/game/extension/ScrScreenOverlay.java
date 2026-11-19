@@ -8,6 +8,8 @@ import org.jetbrains.annotations.NotNull;
  * once it is set. The change count grows with every change of a shown pixel.
  */
 public final class ScrScreenOverlay {
+    private static final int BYTE_MASK = 0xFF;
+
     private final int width;
     private final int height;
     private final byte @NotNull [] pixels;
@@ -89,8 +91,24 @@ public final class ScrScreenOverlay {
     }
 
     /**
+     * Hides a pixel.
+     *
      * @param offset the pixel offset, {@code row * width + column}
-     * @return whether the pixel is shown
+     * @throws IndexOutOfBoundsException if the offset is outside the screen
+     */
+    public void hidePixel(int offset) {
+        if (!this.shown[offset]) {
+            return;
+        }
+
+        this.shown[offset] = false;
+        this.shownCount--;
+        this.changeCount++;
+    }
+
+    /**
+     * @param offset the pixel offset, {@code row * width + column}
+     * @return {@code true} if the pixel is shown, {@code false} otherwise
      * @throws IndexOutOfBoundsException if the offset is outside the screen
      */
     public boolean isShown(int offset) {
@@ -103,6 +121,6 @@ public final class ScrScreenOverlay {
      * @throws IndexOutOfBoundsException if the offset is outside the screen
      */
     public int getPixel(int offset) {
-        return this.pixels[offset] & 0xFF;
+        return this.pixels[offset] & BYTE_MASK;
     }
 }
