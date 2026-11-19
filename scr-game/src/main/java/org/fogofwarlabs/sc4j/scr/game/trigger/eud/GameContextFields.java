@@ -17,9 +17,9 @@ import java.util.List;
 /**
  * Serves game-context bytes through live simulation owners, game-start snapshots and retained context storage.
  * Frame, tileset, unit availability, expansion ({@link ContextExpansion}), pauses and start locations remain live.
- * Local player, lobby types, races, colors, forces and the console race are captured once. Color rows use their current owner; local alert
- * bytes are delegated to {@link LocalView}. Other bytes retain their stored values, among them the local relation table,
- * which the selection images rebuild ({@link GameContext#getLocalRelation}).
+ * Local player, lobby types, races, colors, forces, the active player count, the console race and the single-player byte are captured
+ * once. Color rows use their current owner; local alert bytes are delegated to {@link LocalView}. Other bytes retain their stored values,
+ * among them the local relation table, which the selection images rebuild ({@link GameContext#getLocalRelation}).
  */
 final class GameContextFields {
     private static final int FIRST_OFFSET = GameStructureView.LOCAL_PLAYER_OFFSET;
@@ -118,7 +118,7 @@ final class GameContextFields {
 
     /**
      * Stores the game-start snapshots into the world's context storage, once per game: the local player, the player types,
-     * races, colors, forces and the console race.
+     * races, colors, forces, the active player count, the console race and the single-player byte.
      *
      * @param localPlayer the local player, or {@code -1} when unknown
      */
@@ -126,6 +126,7 @@ final class GameContextFields {
         Game world = this.world;
         byte[] lobbyTypes = world.getGameContext().getLobbyTypes();
         byte[] lobbyRaces = world.getGameContext().getLobbyRaces();
+        int activePlayers = 0;
 
         // The game start copies the local lobby slot and the player table's types and races before the start placement: a
         // network game's lobby, otherwise the final records, which a single-player lobby keeps in place.
@@ -144,7 +145,13 @@ final class GameContextFields {
             this.writeDword(GameStructureView.PLAYER_COLORS_OFFSET + player * Integer.BYTES, record.getColor());
 
             this.storage[GameStructureView.PLAYER_FORCES_OFFSET + player] = (byte) (record.getType() == PlayerTypes.NONE ? 0 : record.getTeam() + 1);
+
+            if (record.getType() == PlayerTypes.HUMAN) {
+                activePlayers++;
+            }
         }
+
+        this.storage[GameStructureView.ACTIVE_PLAYER_COUNT_OFFSET] = (byte) activePlayers;
 
         // The forces and force flags the game started with.
         byte[] forces = world.getGameContext().getForceSnapshot();
@@ -154,6 +161,8 @@ final class GameContextFields {
         }
 
         this.storage[GameStructureView.CONSOLE_RACE_OFFSET] = (byte) this.findConsoleRace();
+        // A network game, a replay and an observer store 0.
+        this.storage[GameStructureView.SINGLE_PLAYER_OFFSET] = (byte) (lobbyTypes == null && !world.getLocalVision().isReplayOrObserver() ? 1 : 0);
     }
 
     /**
