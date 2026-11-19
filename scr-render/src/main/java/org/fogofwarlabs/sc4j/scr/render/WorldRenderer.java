@@ -4,6 +4,7 @@ import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
 import org.fogofwarlabs.sc4j.engine.client.render.GraphicsDevice;
 import org.fogofwarlabs.sc4j.engine.client.render.ShaderProgram;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.content.ScrAddedGraphics;
 import org.fogofwarlabs.sc4j.scr.data.format.image.AnimFile;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
@@ -580,6 +581,22 @@ public final class WorldRenderer implements AutoCloseable {
         return scale;
     }
 
+    /**
+     * Decodes a frame of an override sheet on the sheet's full frame box.
+     *
+     * @param sheet      the indexed sheet
+     * @param frameIndex the frame index
+     * @return the decoded frame
+     * @throws IOException if the sheet has no such frame
+     */
+    private static @NotNull ClassicFrame decodeSheetFrame(@NotNull SpriteSheet sheet, int frameIndex) throws IOException {
+        if (frameIndex < 0 || frameIndex >= sheet.getFrameCount()) {
+            throw Exceptions.newIOException("The image sheet has no frame {0}.", frameIndex);
+        }
+
+        return ClassicFrame.of(sheet, frameIndex);
+    }
+
     private static int roundUpToPowerOfTwo(int value) {
         if (value <= 1) {
             return value;
@@ -674,6 +691,16 @@ public final class WorldRenderer implements AutoCloseable {
     private @NotNull AtlasEntry @Nullable [] creepEdgeEntries;
     private final @NotNull SequencedMap<Long, AtlasEntry> warpFrames;
     private final @NotNull Map<Long, AtlasEntry> coverageMasks;
+    /**
+     * The atlas entries of the frames and of the coverage frames of each override sheet ({@link #setImageSheet}), kept while the sheet is in use
+     * and the map is loaded.
+     */
+    private final @NotNull Map<SpriteSheet, @Nullable AtlasEntry @NotNull []> sheetEntries;
+    private final @NotNull Map<SpriteSheet, @Nullable AtlasEntry @NotNull []> sheetCoverageMasks;
+    /**
+     * The sheet the image draws take their frames from instead of the image's installed graphics, or {@code null}.
+     */
+    private @Nullable SpriteSheet imageSheet;
 
     private @Nullable RenderAssets assets;
     private final @NotNull IntUnaryOperator loadedTileIdentifiers;
@@ -850,6 +877,10 @@ public final class WorldRenderer implements AutoCloseable {
         this.creepEdgeEntries = null;
         this.warpFrames       = new LinkedHashMap<>();
         this.coverageMasks    = new HashMap<>();
+
+        this.sheetEntries       = new WeakHashMap<>();
+        this.sheetCoverageMasks = new WeakHashMap<>();
+        this.imageSheet         = null;
 
         this.assets                = null;
         this.loadedTileIdentifiers = tileIndex -> this.mapTiles[tileIndex];
@@ -1213,7 +1244,22 @@ public final class WorldRenderer implements AutoCloseable {
      * @throws IOException if the image or frame is unavailable
      */
     public @Nullable ClassicFrame decodeImageFrame(int imageIndex, int frameIndex) throws IOException {
-        return this.assets == null ? null : this.assets.decodeImage(imageIndex, frameIndex);
+        if (this.assets == null) {
+            return null;
+        }
+
+        return this.imageSheet != null ? decodeSheetFrame(this.imageSheet, frameIndex) : this.assets.decodeImage(imageIndex, frameIndex);
+    }
+
+    /**
+     * Sets the sheet the image draws take their frames from instead of the image's installed graphics: the palette, shadow, cloak and effect draws
+     * draw its frames, the baked-remap and warp-texture draws fall back to the palette draw. Its frames are uploaded on first use and kept while the
+     * sheet is in use and the map is loaded.
+     *
+     * @param imageSheet an indexed sheet, or {@code null} for the installed graphics
+     */
+    void setImageSheet(@Nullable SpriteSheet imageSheet) {
+        this.imageSheet = imageSheet;
     }
 
     /**
@@ -1223,7 +1269,7 @@ public final class WorldRenderer implements AutoCloseable {
      * @return {@code true} if the image has a baked remap, {@code false} otherwise or before the map's assets are loaded
      */
     boolean hasBakedRemap(int imageIndex) {
-        return this.assets != null && this.assets.hasBakedRemap(imageIndex);
+        return this.imageSheet == null && this.assets != null && this.assets.hasBakedRemap(imageIndex);
     }
 
     /**
@@ -1775,7 +1821,9 @@ public final class WorldRenderer implements AutoCloseable {
                            ? this.coverageMasks.get(maskKey)
                            : imageFrames != null && frameIndex < imageFrames.length ? imageFrames[frameIndex] : null;
 
-        if (entry == null) {
+        if (this.imageSheet != null) {
+            entry = this.findSheetEntry(this.imageSheet, frameIndex, coverage);
+        } else if (entry == null) {
             this.flush();
 
             ClassicFrame frame = this.assets.decodeImage(imageIndex, frameIndex);
@@ -1844,6 +1892,87 @@ public final class WorldRenderer implements AutoCloseable {
                          : Math.clamp(playerColor, 0, SceneRenderer.PLAYER_COLOR + SceneRenderer.PLAYER_COLOR_ROWS - 1) + 1;
 
         this.holdImageQuad(entry, indexed, uniform, readsDestination, readExtension, horizontal, vertical, paletteRow, flipped);
+    }
+
+    /**
+     * Returns the atlas entry of a frame of an override sheet, uploading it on first use: the palette indices, or the coverage (nonzero indices
+     * opaque) of shadows and brightening.
+     *
+     * @param sheet      the indexed sheet
+     * @param frameIndex the frame index
+     * @param coverage   whether the coverage frame is drawn
+     * @return the atlas entry of the frame on the sheet's full frame box
+     * @throws IOException if the sheet has no such frame or the frame does not fit the atlas
+     */
+    private @NotNull AtlasEntry findSheetEntry(@NotNull SpriteSheet sheet, int frameIndex, boolean coverage) throws IOException {
+        Map<SpriteSheet, AtlasEntry[]> entries = coverage ? this.sheetCoverageMasks : this.sheetEntries;
+        AtlasEntry[] frames = entries.computeIfAbsent(sheet, key -> new AtlasEntry[key.getFrameCount()]);
+
+        if (frameIndex >= frames.length) {
+            throw Exceptions.newIOException("The image sheet has no frame {0}.", frameIndex);
+        }
+
+        AtlasEntry entry = frames[frameIndex];
+
+        if (entry == null) {
+            this.flush();
+
+            ClassicFrame frame = decodeSheetFrame(sheet, frameIndex);
+            byte[] pixels = frame.getPixels();
+
+            if (coverage) {
+                byte[] mask = new byte[pixels.length];
+
+                for (int index = 0; index < mask.length; index++) {
+                    mask[index] = pixels[index] == 0 ? 0 : OverlayPass.OPAQUE_ALPHA;
+                }
+
+                pixels = mask;
+            }
+
+            entry              = this.uploadFrame(pixels, frame.getWidth(), frame.getHeight());
+            frames[frameIndex] = entry;
+
+            this.batchTexture = 0;
+        }
+
+        return entry;
+    }
+
+    /**
+     * Copies the palette a player color draws with: the screen palette with indices {@code 8..15} remapped by the player color's row, the live row
+     * of a player color {@link SceneRenderer#PLAYER_COLOR}{@code + player}.
+     *
+     * @param playerColor the player color index {@code 0..15}, or {@link SceneRenderer#PLAYER_COLOR}{@code + player}
+     * @return the {@link RenderAssets#PALETTE_ENTRIES} entries of {@link RenderAssets#PALETTE_ENTRY_SIZE} bytes, red, green and blue first, or
+     * {@code null} before a map is loaded
+     */
+    public byte @Nullable [] copyPlayerColorPalette(int playerColor) {
+        RenderAssets loadedAssets = this.assets;
+        byte[] base = this.basePaletteRow;
+
+        if (loadedAssets == null || base == null) {
+            return null;
+        }
+
+        if (playerColor < SceneRenderer.PLAYER_COLOR) {
+            int row = Math.clamp(playerColor, 0, RenderAssets.REMAP_ROWS - 1) + 1;
+
+            return Arrays.copyOfRange(loadedAssets.copyPalette(), row * RenderAssets.PALETTE_BYTES, (row + 1) * RenderAssets.PALETTE_BYTES);
+        }
+
+        int player = Math.min(playerColor - SceneRenderer.PLAYER_COLOR, SceneRenderer.PLAYER_COLOR_ROWS - 1);
+        byte[] row = base.clone();
+
+        for (int index = 0; index < RenderAssets.REMAP_INDEX_COUNT; index++) {
+            int remapped = this.playerColorRows[player * RenderAssets.REMAP_INDEX_COUNT + index] & BYTE_MASK;
+
+            System.arraycopy(base, remapped * RenderAssets.PALETTE_ENTRY_SIZE,
+                             row, (RenderAssets.REMAP_FIRST_INDEX + index) * RenderAssets.PALETTE_ENTRY_SIZE,
+                             RenderAssets.PALETTE_FOURTH);
+        }
+
+        return row;
     }
 
     /**
@@ -2031,6 +2160,12 @@ public final class WorldRenderer implements AutoCloseable {
     public void drawWarpTexture(int imageIndex, int frameIndex, int textureFrame, float worldX, float worldY, boolean flipped) throws IOException {
         if (this.assets == null || this.worldFinished) {
             throw Exceptions.newIllegalStateException("Warp textures require an active world frame.");
+        }
+
+        if (this.imageSheet != null) {
+            this.drawImage(imageIndex, frameIndex, 0, worldX, worldY, flipped);
+
+            return;
         }
 
         if (imageIndex < 0 || imageIndex >= this.spriteEntries.length ||
@@ -3121,6 +3256,8 @@ public final class WorldRenderer implements AutoCloseable {
 
         this.warpFrames.clear();
         this.coverageMasks.clear();
+        this.sheetEntries.clear();
+        this.sheetCoverageMasks.clear();
 
         for (int index = this.atlasTextures.size() - 1; index >= 0; index--) {
             int texture = this.atlasTextures.get(index);

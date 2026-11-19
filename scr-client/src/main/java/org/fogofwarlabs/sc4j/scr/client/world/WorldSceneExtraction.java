@@ -1,5 +1,6 @@
 package org.fogofwarlabs.sc4j.scr.client.world;
 
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.PlacementPreview;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.WorldInterface;
 import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
@@ -206,6 +207,7 @@ public final class WorldSceneExtraction {
             this.collectCloakViews(gameView, sprites, vision.getViewMask());
 
             ScrImageTypeView imageTable = gameView.requireGameData().getImageTypes();
+            boolean plugins = gameView.hasPlugins();
 
             // Collects the rows from the camera's top tile row and the view height in world pixels.
             int cameraRow = Math.floorDiv((int) Math.floor(renderer.getCameraY()), TerrainTileset.TILE_SIZE);
@@ -245,8 +247,11 @@ public final class WorldSceneExtraction {
                             continue;
                         }
 
+                        SpriteSheet sheet = plugins ? gameView.findImageSheet(image) : null;
+
                         // Skips images whose frame has no drawable rectangle.
-                        if (!renderer.isDrawnFrame(image.getImageTypeId(), image.getDrawnFrameIndex())) {
+                        if (sheet != null ? image.getDrawnFrameIndex() >= sheet.getFrameCount()
+                                          : !renderer.isDrawnFrame(image.getImageTypeId(), image.getDrawnFrameIndex())) {
                             continue;
                         }
 
@@ -266,7 +271,18 @@ public final class WorldSceneExtraction {
                             imageY = renderer.getFrozenCenterY(image.getImageTypeId(), image.getDrawnFrameIndex(), image.getFrozenMapY());
                         }
 
-                        if (modifier == SceneRenderer.DRAW_FUNCTION_UPDATE_RECTANGLE) {
+                        if (sheet != null) {
+                            // A plugin's sheet replaces the installed graphics in every draw function.
+                            scene.drawImageSheet(sheet,
+                                                 image.getImageTypeId(),
+                                                 image.getDrawnFrameIndex(),
+                                                 modifier,
+                                                 image.getModifierData1(),
+                                                 playerColor,
+                                                 imageX,
+                                                 imageY,
+                                                 flipped);
+                        } else if (modifier == SceneRenderer.DRAW_FUNCTION_UPDATE_RECTANGLE) {
                             scene.drawUpdateRectangle(image.getImageTypeId(), image.getDrawnFrameIndex(), imageX, imageY, flipped);
                         } else if (modifier == SpriteImage.MODIFIER_REMAPPING) {
                             // Uses the remapping index retained by the image.

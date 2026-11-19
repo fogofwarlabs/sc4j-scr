@@ -8,6 +8,7 @@ import org.fogofwarlabs.sc4j.engine.content.faction.Faction;
 import org.fogofwarlabs.sc4j.engine.content.type.OrderType;
 import org.fogofwarlabs.sc4j.engine.content.type.UnitType;
 import org.fogofwarlabs.sc4j.engine.player.Player;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.engine.terrain.TerrainGrid;
 import org.fogofwarlabs.sc4j.scr.content.ScrResources;
 import org.fogofwarlabs.sc4j.scr.core.GameSettings;
@@ -17,6 +18,7 @@ import org.fogofwarlabs.sc4j.scr.game.ability.TransportCargo;
 import org.fogofwarlabs.sc4j.scr.game.ability.UnitSpells;
 import org.fogofwarlabs.sc4j.scr.game.combat.ScrShieldLayer;
 import org.fogofwarlabs.sc4j.scr.game.combat.UnitTargeting;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrGamePlugin;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameFrame;
 import org.fogofwarlabs.sc4j.scr.game.order.UnitSelection;
 import org.fogofwarlabs.sc4j.scr.game.path.PathPool;
@@ -25,6 +27,7 @@ import org.fogofwarlabs.sc4j.scr.game.presentation.ImageScriptPreview;
 import org.fogofwarlabs.sc4j.scr.game.production.PlacementEvaluator;
 import org.fogofwarlabs.sc4j.scr.game.production.ScrRequirementSystem;
 import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
+import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpritePool;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameContext;
@@ -473,6 +476,33 @@ public final class ScrGameView implements GameView {
      */
     public @Nullable SpritePool getSpritePool() {
         return this.game.getSpriteSystem().getSpritePool();
+    }
+
+    /**
+     * @return {@code true} if the game has plugins of the mod's game extensions, which may draw images with other graphics ({@link #findImageSheet}),
+     * {@code false} otherwise
+     */
+    public boolean hasPlugins() {
+        return this.game.getPlugins().length != 0;
+    }
+
+    /**
+     * Finds the graphics a sprite image draws instead of its installed GRP: the first sheet a plugin of the game gives
+     * ({@link ScrGamePlugin#findImageSheet}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the indexed sheet the image draws, or {@code null} for its installed graphics
+     */
+    public @Nullable SpriteSheet findImageSheet(@NotNull SpriteImage image) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            SpriteSheet sheet = plugin.findImageSheet(image);
+
+            if (sheet != null) {
+                return sheet;
+            }
+        }
+
+        return null;
     }
 
     /**

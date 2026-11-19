@@ -2,6 +2,7 @@ package org.fogofwarlabs.sc4j.scr.game.trigger.eud;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.scr.game.ai.ComputerPlayerPhase;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrGamePlugin;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.map.MapStringSection;
 import org.fogofwarlabs.sc4j.scr.game.movement.UnitMovement;
@@ -767,7 +768,7 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
 
     /**
      * Creates a {@link ClassicAddressSpace} instance with a world's represented regions and the trigger state of a
-     * context.
+     * context, and hands a read-only view of it to the world's plugins ({@link ScrGamePlugin#onAddressSpaceCreated}).
      *
      * @param triggers the trigger context whose state the game-data block shows, or {@code null}
      * @param world    the world
@@ -1041,6 +1042,17 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
         space.mapRegionsComplete = triggers != null && triggers.getExtendedDeathsMode() != 0 && (!archiveList || archivesKnown);
         space.archiveListAbsent  = !archiveList;
 
+        // The game's plugins observe the complete address space through a read-only view.
+        ScrGamePlugin[] plugins = world.getPlugins();
+
+        if (plugins.length != 0) {
+            ClassicMemoryView view = new ClassicMemoryView(space);
+
+            for (ScrGamePlugin plugin : plugins) {
+                plugin.onAddressSpaceCreated(view);
+            }
+        }
+
         return space;
     }
 
@@ -1119,6 +1131,13 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
     private int layoutVersion;
 
     /**
+     * The write observers ({@link #addWriteObserver}) and the unsigned bases and ends of their ranges, in the order they were added.
+     */
+    private @NotNull ClassicWriteObserver @NotNull [] writeObservers;
+    private long @NotNull [] observedBases;
+    private long @NotNull [] observedEnds;
+
+    /**
      * Creates an empty {@link ClassicAddressSpace} instance.
      */
     public ClassicAddressSpace() {
@@ -1141,6 +1160,10 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
         this.lastHitIndex     = -1;
         this.previousHitIndex = -1;
         this.layoutVersion    = 0;
+
+        this.writeObservers = new ClassicWriteObserver[0];
+        this.observedBases  = new long[0];
+        this.observedEnds   = new long[0];
     }
 
     /**
@@ -1257,6 +1280,64 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
         this.lastHitIndex     = -1;
         this.previousHitIndex = -1;
         this.layoutVersion++;
+    }
+
+    /**
+     * Adds an observer of the aligned DWORD writes to a range ({@link ClassicWriteObserver}).
+     *
+     * @param base     the classic address of the range
+     * @param size     the size of the range in bytes, at least {@code 1}
+     * @param observer the observer
+     * @throws IllegalArgumentException if the size is not positive
+     */
+    void addWriteObserver(int base, int size, @NotNull ClassicWriteObserver observer) {
+        if (size <= 0) {
+            throw Exceptions.newIllegalArgumentException("The observed range size must be positive: {0}", size);
+        }
+
+        int count = this.writeObservers.length;
+
+        this.writeObservers = Arrays.copyOf(this.writeObservers, count + 1);
+        this.observedBases  = Arrays.copyOf(this.observedBases, count + 1);
+        this.observedEnds   = Arrays.copyOf(this.observedEnds, count + 1);
+
+        this.writeObservers[count] = observer;
+        this.observedBases[count]  = base & DWORD_MASK;
+        this.observedEnds[count]   = (base & DWORD_MASK) + size;
+    }
+
+    /**
+     * Tells whether an observer's range holds a byte of an aligned DWORD.
+     *
+     * @param address the aligned classic address
+     * @return {@code true} if a write to the DWORD calls an observer, {@code false} otherwise
+     */
+    private boolean isObserved(int address) {
+        long target = address & DWORD_MASK;
+
+        for (int index = 0; index < this.writeObservers.length; index++) {
+            if (target + Integer.BYTES > this.observedBases[index] && target < this.observedEnds[index]) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Calls the observers whose range holds an aligned DWORD write.
+     *
+     * @param address the aligned classic address
+     * @param value   the DWORD the write stores
+     */
+    private void notifyWrite(int address, int value) {
+        long target = address & DWORD_MASK;
+
+        for (int index = 0; index < this.writeObservers.length; index++) {
+            if (target + Integer.BYTES > this.observedBases[index] && target < this.observedEnds[index]) {
+                this.writeObservers[index].onWrite(address, value);
+            }
+        }
     }
 
     /**
@@ -1447,6 +1528,10 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
         int regionIndex = this.requireRegionIndex(address);
         ClassicRegion region = this.sorted[regionIndex];
 
+        if (this.writeObservers.length != 0) {
+            this.notifyWrite(address, value);
+        }
+
         if (region.isWriteIgnored() && !this.overlapsOverlay(address)) {
             return;
         }
@@ -1595,6 +1680,12 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
                 int offset = (int) ((address & DWORD_MASK) - this.sortedBases[regionIndex]);
 
                 if (this.sortedEnds[regionIndex] - (address & DWORD_MASK) >= Integer.BYTES && !region.isWriteIgnored()) {
+                    if (this.writeObservers.length != 0 && this.isObserved(address)) {
+                        int stored = modifier == TriggerModifiers.SET_TO ? amount : PlayerScores.modify(region.readDword(offset), modifier, amount);
+
+                        this.notifyWrite(address, stored);
+                    }
+
                     region.writeModified(offset, modifier, amount);
 
                     return;

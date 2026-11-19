@@ -39,6 +39,8 @@ import org.fogofwarlabs.sc4j.scr.game.combat.*;
 import org.fogofwarlabs.sc4j.scr.game.creep.CreepField;
 import org.fogofwarlabs.sc4j.scr.game.creep.CreepFramePhase;
 import org.fogofwarlabs.sc4j.scr.game.creep.CreepRecession;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrGameExtensionUtils;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrGamePlugin;
 import org.fogofwarlabs.sc4j.scr.game.frame.*;
 import org.fogofwarlabs.sc4j.scr.game.map.MapSpriteEffectLoader;
 import org.fogofwarlabs.sc4j.scr.game.map.MapUnitLoader;
@@ -262,12 +264,13 @@ public final class Game implements GameSystem, StateHashContributor {
     private boolean replayPlayback;
     private @Nullable PlayerSlots playerSlots;
 
-    /* The engine game, attached after creation, its frame clock, which holds the frame counter, the hook points the SC:R systems call and
-       the SC:R modifier of each stat. */
+    /* The engine game, attached after creation, its frame clock, which holds the frame counter, the hook points the SC:R systems call,
+       the SC:R modifier of each stat and the plugins of the mod's game extensions. */
     private org.fogofwarlabs.sc4j.engine.game.@Nullable Game engineGame;
     private @Nullable FrameClock clock;
     private @Nullable ScrHooks hooks;
     private @Nullable ScrStatModifier @NotNull [] statModifiers;
+    private @NotNull ScrGamePlugin @NotNull [] plugins;
 
     /* Frame counters and world lifecycle. */
     private int turnCount;
@@ -464,6 +467,7 @@ public final class Game implements GameSystem, StateHashContributor {
         this.clock         = null;
         this.hooks         = null;
         this.statModifiers = new ScrStatModifier[0];
+        this.plugins       = new ScrGamePlugin[0];
 
         this.turnCount                  = 0;
         this.commandDispatchMarkerCount = 0;
@@ -715,6 +719,8 @@ public final class Game implements GameSystem, StateHashContributor {
         if (setupData != null) {
             this.gameData = setupData.createGameCopy(game.getContent());
         }
+
+        this.plugins = ScrGameExtensionUtils.createPlugins(this);
     }
 
     private void addModifier(@NotNull GameContent content, @NotNull Stat stat, @NotNull ScrStatModifier modifier) {
@@ -1669,6 +1675,14 @@ public final class Game implements GameSystem, StateHashContributor {
         }
 
         return attached;
+    }
+
+    /**
+     * @return the plugins of the running mod's game extensions, created when the game system attached ({@link ScrGameExtensionUtils}); empty
+     * without extensions
+     */
+    public @NotNull ScrGamePlugin @NotNull [] getPlugins() {
+        return this.plugins;
     }
 
     /**

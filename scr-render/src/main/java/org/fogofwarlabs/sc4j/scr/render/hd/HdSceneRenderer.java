@@ -5,6 +5,8 @@ import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
 import org.fogofwarlabs.sc4j.base.log.Logger;
 import org.fogofwarlabs.sc4j.engine.client.render.GraphicsDevice;
 import org.fogofwarlabs.sc4j.engine.client.render.ShaderProgram;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteFrame;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.data.format.dat.ImagesDat;
 import org.fogofwarlabs.sc4j.scr.data.format.image.AnimFile;
 import org.fogofwarlabs.sc4j.scr.data.format.image.AnimLights;
@@ -22,7 +24,9 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.IntUnaryOperator;
 
 import static org.lwjgl.opengl.GL33C.*;
@@ -154,6 +158,14 @@ public final class HdSceneRenderer implements SceneRenderer {
      * The solid-color alpha of stacked shadows.
      */
     private static final float STACKED_SHADOW_ALPHA = 0.5f;
+    /**
+     * The palette selections of an override sheet's textures: the static player colors and the live player color rows.
+     */
+    private static final int SHEET_PALETTE_SELECTIONS = PLAYER_COLOR + PLAYER_COLOR_ROWS;
+    /**
+     * The number of override sheets whose textures are kept; one more releases them all.
+     */
+    private static final int MAXIMUM_SHEETS = 64;
     /**
      * The multiply-color alpha of visible cloaked images.
      */
@@ -518,6 +530,10 @@ public final class HdSceneRenderer implements SceneRenderer {
      * Images drawn after the fog of a scene (click markers), drawn over the fogged world: image, frame, modifier, data, color, x, y, flipped.
      */
     private final @NotNull List<int @NotNull []> postFogImages;
+    /**
+     * The RGBA textures of the override sheets' frames ({@link #drawImageSheet}), per frame and palette selection, {@code 0} until drawn.
+     */
+    private final @NotNull Map<SpriteSheet, int @NotNull []> sheetTextures;
     private boolean fogRequested;
     private int fogVisionMask;
     private int fogVisibleLevel;
@@ -651,6 +667,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         this.fogTileFlags    = null;
         this.postFogImages   = new ArrayList<>();
+        this.sheetTextures   = new HashMap<>();
         this.fogRequested    = false;
         this.fogVisionMask   = 0;
         this.fogVisibleLevel = OverlayPass.DEFAULT_VISIBLE_LEVEL;
@@ -1430,6 +1447,213 @@ public final class HdSceneRenderer implements SceneRenderer {
         }
 
         this.drawSceneImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+    }
+
+    /**
+     * Draws one image of a sprite with the frames of an override sheet instead of the image's installed graphics: the SD frame through the classic
+     * palette of the player color, scaled to the world size with nearest filtering and unlit. Update rectangles and images drawn after the fog draw
+     * the installed graphics.
+     *
+     * @param sheet        the indexed sheet whose frames the image draws, its canvas centered on the image position
+     * @param imageIndex   the image identifier
+     * @param frameIndex   the image frame, a frame of the sheet
+     * @param modifier     the image draw modifier
+     * @param modifierData the image modifier data
+     * @param playerColor  the owner's player color index {@code 0..15}, or {@link #PLAYER_COLOR}{@code + owner}
+     * @param worldX       the canvas center world coordinate
+     * @param worldY       the canvas center world coordinate
+     * @param flipped      whether the image is horizontally flipped
+     * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
+     */
+    @Override
+    public void drawImageSheet(@NotNull SpriteSheet sheet,
+                               int imageIndex, int frameIndex,
+                               int modifier, int modifierData, int playerColor,
+                               int worldX, int worldY, boolean flipped) throws IOException {
+        this.beginScene();
+
+        if (this.fogRequested || modifier == DRAW_FUNCTION_UPDATE_RECTANGLE) {
+            this.drawImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+
+            return;
+        }
+
+        switch (modifier) {
+            case DRAW_FUNCTION_UNSEEN_CLOAKING,
+                 DRAW_FUNCTION_UNSEEN_CLOAKED,
+                 DRAW_FUNCTION_UNSEEN_DECLOAKING -> this.drawSheetFrame(sheet, frameIndex, MODE_CLOAKED, 0, playerColor, worldX, worldY, flipped);
+            case DRAW_FUNCTION_CLOAKING,
+                 DRAW_FUNCTION_CLOAKED,
+                 DRAW_FUNCTION_DECLOAKING -> this.drawSheetFrame(sheet,
+                                                                 frameIndex,
+                                                                 MODE_TRANSLUCENT,
+                                                                 VISIBLE_CLOAK_ALPHA,
+                                                                 playerColor,
+                                                                 worldX,
+                                                                 worldY,
+                                                                 flipped);
+            case DRAW_FUNCTION_DISTORTION -> this.drawSheetFrame(sheet, frameIndex, MODE_WARPED, 0, playerColor, worldX, worldY, flipped);
+            case DRAW_FUNCTION_SHADOW -> {
+                if (this.world.isShadowStacking()) {
+                    this.drawSheetFrame(sheet, frameIndex, MODE_STACKED_SHADOW, STACKED_SHADOW_ALPHA, playerColor, worldX, worldY, flipped);
+                } else {
+                    this.drawSheetFrame(sheet, frameIndex, MODE_SHADOW, 1, playerColor, worldX, worldY, flipped);
+                }
+            }
+            case DRAW_FUNCTION_HALLUCINATION -> this.drawSheetFrame(sheet, frameIndex, MODE_SPRITE, 1, playerColor, worldX, worldY, flipped);
+            case DRAW_FUNCTION_WARP_FLASH -> {
+                float brighten = SceneRenderer.getBrightenAlpha(modifierData);
+
+                if (brighten > 0) {
+                    this.drawSheetFrame(sheet, frameIndex, MODE_BRIGHTEN, brighten, playerColor, worldX, worldY, flipped);
+                }
+            }
+            default -> this.drawSheetFrame(sheet, frameIndex, MODE_SPRITE, 0, playerColor, worldX, worldY, flipped);
+        }
+    }
+
+    /**
+     * Draws a frame of an override sheet at the world size: the frame rectangle placed on the sheet's canvas, which is centered on the image
+     * position and mirrored when flipped.
+     *
+     * @param sheet       the indexed sheet
+     * @param frameIndex  the frame index
+     * @param mode        the draw mode
+     * @param parameter   the mode parameter
+     * @param playerColor the owner's player color index
+     * @param worldX      the canvas center world coordinate
+     * @param worldY      the canvas center world coordinate
+     * @param flipped     whether the image is horizontally flipped
+     * @throws IOException if the sheet has no such frame or no map is loaded
+     */
+    private void drawSheetFrame(@NotNull SpriteSheet sheet, int frameIndex,
+                                int mode, float parameter, int playerColor,
+                                int worldX, int worldY, boolean flipped) throws IOException {
+        if (frameIndex < 0 || frameIndex >= sheet.getFrameCount()) {
+            throw Exceptions.newIOException("The image sheet has no frame {0}.", frameIndex);
+        }
+
+        SpriteFrame frame = sheet.getFrame(frameIndex);
+
+        if (frame.getWidth() <= 0 || frame.getHeight() <= 0) {
+            return;
+        }
+
+        int canvasLeft = worldX - (flipped ? sheet.getWidth() - sheet.getAnchorX() : sheet.getAnchorX());
+        int rectangleLeft = flipped ? canvasLeft + sheet.getWidth() - frame.getX() - frame.getWidth() : canvasLeft + frame.getX();
+        int rectangleTop = worldY - sheet.getAnchorY() + frame.getY();
+        float left = (rectangleLeft - this.cameraX) * this.scale;
+        float top = (rectangleTop - this.cameraY) * this.scale;
+        float right = left + frame.getWidth() * this.scale;
+        float bottom = top + frame.getHeight() * this.scale;
+
+        if (left >= this.world.getViewWidth() || top >= this.world.getViewHeight() || right <= 0 || bottom <= 0) {
+            return;
+        }
+
+        int texture = this.acquireSheetTexture(sheet, frameIndex, playerColor);
+        boolean litSprite = this.lightingEnabled && (mode == MODE_SPRITE || mode == MODE_TRANSLUCENT);
+
+        this.copyTeamColor(playerColor);
+        this.vertexFlip     = flipped ? -1 : 1;
+        this.vertexLighting = litSprite ? 1 : 0;
+
+        this.selectBatch(mode, texture, this.blackTexture, litSprite ? this.defaultLightingTextures : null);
+        this.appendQuad(left, top, right, bottom,
+                        flipped ? 1 : 0, 0, flipped ? 0 : 1, 1,
+                        0, 0, 0, 0,
+                        parameter, 0);
+    }
+
+    /**
+     * Returns the RGBA texture of a frame of an override sheet in a palette selection, creating it on first use: each nonzero palette index in its
+     * classic color, opaque, index {@code 0} transparent, with nearest filtering.
+     *
+     * @param sheet       the indexed sheet
+     * @param frameIndex  the frame index
+     * @param playerColor the owner's player color index
+     * @return the texture
+     * @throws IOException if no map is loaded
+     */
+    private int acquireSheetTexture(@NotNull SpriteSheet sheet, int frameIndex, int playerColor) throws IOException {
+        int[] textures = this.sheetTextures.get(sheet);
+
+        if (textures == null) {
+            if (this.sheetTextures.size() >= MAXIMUM_SHEETS) {
+                this.flush();
+                this.deleteSheetTextures();
+            }
+
+            textures = new int[sheet.getFrameCount() * SHEET_PALETTE_SELECTIONS];
+            this.sheetTextures.put(sheet, textures);
+        }
+
+        int slot = frameIndex * SHEET_PALETTE_SELECTIONS + Math.clamp(playerColor, 0, SHEET_PALETTE_SELECTIONS - 1);
+
+        if (textures[slot] != 0) {
+            return textures[slot];
+        }
+
+        byte[] palette = this.world.copyPlayerColorPalette(playerColor);
+
+        if (palette == null) {
+            throw Exceptions.newIOException("The image sheet needs a loaded map palette.");
+        }
+
+        SpriteFrame frame = sheet.getFrame(frameIndex);
+        int pixelCount = frame.getWidth() * frame.getHeight();
+        byte[] indices = new byte[pixelCount];
+        ByteBuffer upload = MemoryUtil.memAlloc(pixelCount * OverlayPass.RGBA_BYTES);
+
+        sheet.getColor().copyBytes(frame.getPixelOffset(), indices, 0, pixelCount);
+
+        try {
+            for (byte value : indices) {
+                int index = value & BYTE_MASK;
+
+                if (index == 0) {
+                    upload.putInt(0);
+                } else {
+                    upload.put(palette, index * OverlayPass.RGBA_BYTES, OverlayPass.RGBA_BYTES - 1).put(OverlayPass.OPAQUE_ALPHA);
+                }
+            }
+
+            upload.flip();
+            this.flush();
+
+            int name = glGenTextures();
+
+            glBindTexture(GL_TEXTURE_2D, name);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, frame.getWidth(), frame.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, upload);
+
+            textures[slot]    = name;
+            this.batchTexture = 0;
+
+            return name;
+        } finally {
+            MemoryUtil.memFree(upload);
+        }
+    }
+
+    private void deleteSheetTextures() {
+        for (int[] textures : this.sheetTextures.values()) {
+            for (int texture : textures) {
+                if (texture != 0) {
+                    IgnoreException.execute(
+                            () -> glDeleteTextures(texture)
+                    );
+                }
+            }
+        }
+
+        this.sheetTextures.clear();
+        this.batchTexture = 0;
     }
 
     private void drawSceneImage(int imageIndex, int frameIndex,
@@ -2424,6 +2648,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         IgnoreException.execute(
                 this::deleteSceneTarget,
+                this::deleteSheetTextures,
                 this::deleteTileTextures,
                 this::closePasses,
                 this::deleteDrawObjects,

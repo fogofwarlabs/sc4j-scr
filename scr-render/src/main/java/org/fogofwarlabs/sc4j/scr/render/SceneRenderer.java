@@ -1,5 +1,6 @@
 package org.fogofwarlabs.sc4j.scr.render;
 
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -271,6 +272,28 @@ public interface SceneRenderer {
      * @throws IOException if the image cannot be loaded or its modifier is not drawn by this backend
      */
     void drawImage(int imageIndex, int frameIndex, int modifier, int modifierData, int playerColor, int worldX, int worldY, boolean flipped) throws IOException;
+
+    /**
+     * Draws one image of a sprite with the frames of an override sheet instead of the image's installed graphics, with the image's draw function.
+     * The default draws the installed graphics ({@link #drawImage}).
+     *
+     * @param sheet        the indexed sheet whose frames the image draws, its canvas centered on the image position
+     * @param imageIndex   the image identifier
+     * @param frameIndex   the image frame, a frame of the sheet
+     * @param modifier     the image draw modifier
+     * @param modifierData the image modifier data
+     * @param playerColor  the owner's player color index {@code 0..15}, or {@link #PLAYER_COLOR}{@code + owner}
+     * @param worldX       the canvas center world coordinate
+     * @param worldY       the canvas center world coordinate
+     * @param flipped      whether the image is horizontally flipped
+     * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
+     */
+    default void drawImageSheet(@NotNull SpriteSheet sheet,
+                                int imageIndex, int frameIndex,
+                                int modifier, int modifierData, int playerColor,
+                                int worldX, int worldY, boolean flipped) throws IOException {
+        this.drawImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+    }
 
     /**
      * Draws an image of draw function {@code 10} (a shadow). Without Shadow Stacking the draw builder dims the shadow of a warping-in sprite: when
