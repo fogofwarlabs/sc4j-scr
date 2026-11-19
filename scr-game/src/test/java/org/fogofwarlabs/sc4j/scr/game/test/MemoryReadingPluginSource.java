@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.function.Executable;
 
 /**
- * A game extension of the tests, named by the test fixtures' service resource, that creates a plugin only while a thread counts with it
+ * A game extension of the tests, named by the service file of the tests, that creates a plugin only while a thread counts with it
  * ({@link #count}): the plugin observes every write of the EUD address space and reads the memory around each written DWORD. Without counting it
  * creates no plugin, so the other tests run without one.
  */
