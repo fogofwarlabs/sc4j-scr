@@ -48,6 +48,7 @@ public final class ProviderPeer {
     private int roundTripTime;
 
     private int turnAcknowledgement;
+    private int firstTurn;
     private int departureReason;
     private int departureTurn;
     private int stallTime;
@@ -83,6 +84,7 @@ public final class ProviderPeer {
         this.roundTripTime  = 0;
 
         this.turnAcknowledgement = 0;
+        this.firstTurn           = 0;
         this.departureReason     = 0;
         this.departureTurn       = 0;
         this.stallTime           = 0;
@@ -223,6 +225,22 @@ public final class ProviderPeer {
 
     void setTurnAcknowledgement(int turnAcknowledgement) {
         this.turnAcknowledgement = turnAcknowledgement;
+    }
+
+    /**
+     * @return the first turn the player takes part in, as its join or its player information named it
+     */
+    public int getFirstTurn() {
+        return this.firstTurn;
+    }
+
+    /**
+     * Sets the first turn the player takes part in.
+     *
+     * @param firstTurn the unsigned 16-bit turn
+     */
+    void setFirstTurn(int firstTurn) {
+        this.firstTurn = firstTurn;
     }
 
     /**
