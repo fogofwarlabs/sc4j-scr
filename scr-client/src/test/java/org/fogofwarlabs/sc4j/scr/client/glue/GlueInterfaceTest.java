@@ -44,8 +44,9 @@ import java.util.*;
 
 /**
  * Checks that the glue shows the campaign-link error over the campaign screen it opens when a next scenario cannot be loaded, and that
- * the main menu, its popups and the custom game screen draw the stored reference frames on a hidden context with frozen time, the main menu
- * also at display scales 1.5 and 2 (the same framebuffer in fewer logical units).
+ * the main menu, its popups and the custom game screen draw the stored reference frames on a hidden context with frozen time and the fixed
+ * running version {@link BeaconLinkGlueScenario#RUNNING_VERSION}, the main menu also at display scales 1.5 and 2 (the same framebuffer in
+ * fewer logical units).
  * <p>
  * The reference frames are stored as SHA-256 digests of the read-back pixels (the frames hold installation artwork, which the
  * repository does not keep); every drawn frame is also written to {@code build/glue-screenshots} for inspection. The digests are those
@@ -104,9 +105,9 @@ final class GlueInterfaceTest {
     private static @NotNull Map<String, String> createReferenceDigests() {
         Map<String, String> digests = new LinkedHashMap<>();
 
-        digests.put(MAIN_MENU_FRAME, "8be4d58da5ab4f1d9fc3ce8190a66dadbc6aa5431c14535bdd2324af73ecdaaf");
-        digests.put(OPTIONS_POPUP_FRAME, "f7583af6e6ae74de4a5aa662de7d948be4857cf7398f98b9c5f27c53d1805499");
-        digests.put(ERROR_POPUP_FRAME, "754d4ed165fba12108d51060b73fc17aa32b1644f197ef9fca3e4e8e4e448291");
+        digests.put(MAIN_MENU_FRAME, "a1943e92f888d856f99b9faeb44a2148d327e53110536d31ac454e334e52eea5");
+        digests.put(OPTIONS_POPUP_FRAME, "81ae64420c2180d5c76a3e4af4e0048b05479f810645e8474e65c921940daa6c");
+        digests.put(ERROR_POPUP_FRAME, "0977472a5a024df78dc9ad292892d1fe6db46d70e1f6a87ae0ed38ea35b4df17");
         digests.put(CUSTOM_GAME_FRAME, "fe4c8125a8ef978ca8d2818bd52ae0813c86de481ff6db9621044104f850541f");
 
         for (float scale : DISPLAY_SCALES) {

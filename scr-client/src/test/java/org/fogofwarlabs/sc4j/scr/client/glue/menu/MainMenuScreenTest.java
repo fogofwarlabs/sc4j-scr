@@ -32,7 +32,8 @@ import java.util.Map;
  * Checks that the main menu names the run's player at the top right in place of the login button, as the account's {@code Name#tag}, or
  * shows the login button for a run without an account that chose no ID, SD at 640x480 in English and HD at 1920x1080 in Korean, that the
  * status panel in the top right frame shows the release state and the Beacon.Link state (up to date, an update available, Beacon.Link
- * offline), and that Single Player opens the campaigns at once, playing with the character file of the account.
+ * offline), and that Single Player opens the campaigns at once, playing with the character file of the account. A frame without a given
+ * release status shows the fixed running version {@link BeaconLinkGlueScenario#RUNNING_VERSION}.
  * <p>
  * The reference frames are stored as SHA-256 digests of the read-back pixels (the frames hold installation artwork, which the repository does
  * not keep); every drawn frame is also written to {@code build/glue-screenshots}. The digests are those of the reference machine's OpenGL
@@ -69,10 +70,10 @@ final class MainMenuScreenTest {
      * The digests of the reference frames.
      */
     private static final @NotNull Map<String, String> REFERENCE_DIGESTS = Map.of(
-            ACCOUNT_FRAME + "640x480-enUS", "8475f2985bafc49cc001bee15be75ed44c082c0219a29e7e279b171594ce8613",
-            ACCOUNT_FRAME + "1920x1080-koKR", "8a540d67d9a765a76d86a7e5695912c45d2b6337b50d1ee49a2c42af62ef0525",
-            GUEST_FRAME + "640x480-enUS", "671a2684288abb08bfcac80aec7e65ca78cab5df37734dcceeeeb784de680933",
-            GUEST_FRAME + "1920x1080-koKR", "ba4947399bada5ce6c27f6c9eb5b1fffae358858b78b15f9c3d7d937472d60e3",
+            ACCOUNT_FRAME + "640x480-enUS", "b27d8777397a202077b461b170fb06f4bb7b4736cf56074dfcebaefcb95fcde0",
+            ACCOUNT_FRAME + "1920x1080-koKR", "b7020da0dac09ae76ed02abb4331d50f2c6b4ef73c99f920624a017aa0193b16",
+            GUEST_FRAME + "640x480-enUS", "4a69615a754b5a8141d6280eb6fe3282b372f0d0d2d7340c63c79823b9cce494",
+            GUEST_FRAME + "1920x1080-koKR", "15b8db1e6ab5316451d047e0cc50050e7cd8592e497dd7e9af1a576816eec3b0",
             UP_TO_DATE_FRAME + "640x480-enUS", "0806d7719edb4b45ad607079c3887b6799dbedd5de886304265b9cd4cd4a1add",
             UP_TO_DATE_FRAME + "1920x1080-koKR", "88177bde0966526affa8367ee784826e8a03d528befef296a9387230510a1439",
             UPDATE_FRAME + "640x480-enUS", "53bc6d5f0eba77dc317fa5fcacfadde9af2b87c2da4fd195f250e78295ba5342",
