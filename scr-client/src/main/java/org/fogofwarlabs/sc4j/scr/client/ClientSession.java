@@ -1682,6 +1682,14 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
+     * @return {@code true} if this session runs a live game whose local player is an observer ({@link LiveGame#isLocalObserver()}),
+     * {@code false} otherwise
+     */
+    public boolean isLocalObserver() {
+        return this.liveGame != null && this.liveGame.isLocalObserver();
+    }
+
+    /**
      * @return {@code true} if the last step awaited a network player's turn without running a frame, {@code false} otherwise
      */
     public boolean isWaitingForTurns() {
@@ -2255,8 +2263,9 @@ public final class ClientSession implements AutoCloseable {
     /**
      * Creates the engine game session of the started game through the engine {@link GameSessionFactory}: the session shows the game through this
      * session's {@link ScrGameView}, and the replay session's game loop applies its command source ({@link CommandPoint#MOD_LOOP}), which asks the
-     * recorded stream ({@link ReplaySession#getController()}) alone. Replay playback is a replay session; a live game is a local or network session
-     * of its own command path, the local player's commands queued into the outgoing turn ({@link LocalCommandSink}).
+     * recorded stream ({@link ReplaySession#getController()}) alone. Replay playback and an observer's game, which have no engine player of their
+     * own, are replay sessions; a player's live game is a local or network session of its own command path, the local player's commands queued
+     * into the outgoing turn ({@link LocalCommandSink}).
      *
      * @param replaySession the started replay session
      * @return the created {@link GameSession} instance
@@ -2268,7 +2277,7 @@ public final class ClientSession implements AutoCloseable {
         List<PlayerController> controllers = List.of(replaySession.getController());
         LiveGame live = this.liveGame;
 
-        if (live == null) {
+        if (live == null || live.isLocalObserver()) {
             return factory.createReplay(engineGame, controllers);
         }
 

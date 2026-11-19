@@ -2118,8 +2118,8 @@ public final class LanLobby implements GameLobby {
     /**
      * Creates a {@link LobbyResolution.Table} instance of the lobby table the game start resolves from a game settings
      * message, the lobby records and the lobby data. Every record keeps its player id, an open record that names the player
-     * who released it too, so the game's player records carry it. The table is a new game's: a saved game's start gives an
-     * id only to a human ({@link #createSavedGamePlayers}).
+     * who released it too, so the game's player records carry it. The observer records keep the ids and names of their
+     * observers. The table is a new game's: a saved game's start gives an id only to a human ({@link #createSavedGamePlayers}).
      *
      * @param gameSettings the game settings message {@code 0x4a}
      * @param records      the twelve lobby records
@@ -2149,6 +2149,15 @@ public final class LanLobby implements GameLobby {
             table.templateRace[index] = gameSettings[SETTINGS_TEMPLATE_RACES_OFFSET + index] & BYTE_MASK;
             table.savedType[index]    = gameSettings[SETTINGS_SAVED_TYPES_OFFSET + index] & BYTE_MASK;
             table.templateTeam[index] = index < PlayerTable.PLAYABLE_PLAYER_SLOTS ? gameSettings[SETTINGS_FORCES_OFFSET + index] & BYTE_MASK : 0;
+        }
+
+        for (int observer = 0; observer < PlayerTable.OBSERVER_SLOTS; observer++) {
+            MeleeGameSetup.PlayerRecord record = records[PlayerTable.PLAYABLE_PLAYER_SLOTS + observer];
+
+            if (record.getType() == PlayerTypes.OBSERVER) {
+                table.observerId[observer]   = record.getPlayerId();
+                table.observerName[observer] = record.getName();
+            }
         }
 
         byte[] customColors = Arrays.copyOfRange(lobbyData, LOBBY_DATA_CUSTOM_COLORS, LOBBY_DATA_SIZE);

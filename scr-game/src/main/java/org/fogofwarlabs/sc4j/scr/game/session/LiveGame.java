@@ -305,7 +305,8 @@ public final class LiveGame {
      *
      * @param setup         the lobby
      * @param seed          the game seed
-     * @param localPlayerId the local player's network id in the resolved records
+     * @param localPlayerId the local player's network id in the resolved records, or an observer's network id in the lobby
+     *                      table's observer records ({@link MeleeGameSetup#getObserverSlot})
      * @throws IOException if the header cannot be decoded
      */
     public LiveGame(@NotNull MeleeGameSetup setup, int seed, int localPlayerId) throws IOException {
@@ -317,10 +318,11 @@ public final class LiveGame {
      *
      * @param setup         the lobby
      * @param seed          the game seed
-     * @param localPlayerId the local player's network id in the resolved (and restored) records
+     * @param localPlayerId the local player's network id in the resolved (and restored) records, or an observer's network id in
+     *                      the lobby table's observer records ({@link MeleeGameSetup#getObserverSlot})
      * @param players       the new game's players of the saved slots, or {@code null} to keep the resolved ids
      * @throws IOException           if the header cannot be decoded
-     * @throws IllegalStateException if no resolved record holds {@code localPlayerId}
+     * @throws IllegalStateException if neither a resolved record nor an observer record holds {@code localPlayerId}
      */
     public LiveGame(@NotNull MeleeGameSetup setup, int seed, int localPlayerId, @Nullable SavedGamePlayers players) throws IOException {
         this.setup   = setup;
@@ -346,14 +348,15 @@ public final class LiveGame {
         this.playerSlots.update(this.records, PlayerTable.PLAYABLE_PLAYER_SLOTS);
 
         int local = this.findSlot(localPlayerId);
+        int observer = local < 0 ? setup.getObserverSlot(localPlayerId) : PlayerSlots.NO_SLOT;
 
-        if (local < 0) {
+        if (local < 0 && observer < 0) {
             throw Exceptions.newIllegalStateException("The resolved lobby lost the human player.");
         }
 
         this.commandSlots  = setup.getResolvedCommandSlots();
-        this.localPlayer   = this.commandSlots[local];
-        this.localSlot     = local;
+        this.localPlayer   = local < 0 ? observer : this.commandSlots[local];
+        this.localSlot     = local < 0 ? observer : local;
         this.localPlayerId = localPlayerId;
 
         this.replayLock    = new Object();
@@ -361,6 +364,10 @@ public final class LiveGame {
         this.chatRecords   = new ArrayList<>();
         this.outgoingTurn  = new OutgoingTurnBuffer(MAXIMUM_TURN_BYTES);
         this.loopbackTurns = new LoopbackTurns(this.outgoingTurn);
+
+        if (this.isLocalObserver()) {
+            this.outgoingTurn.useObserverTurns();
+        }
         this.replay        = ReplayFile.create(this.buildHeader(RUNNING_FRAMES, true), this.history, setup.getMapData(),
                                                this.getLimits(), ReplayWriter.encodeVersionBlock(GameRulesVersion.CURRENT_BUILD, 0),
                                                ReplayWriter.CURRENT_FIX_FLAGS);
@@ -431,17 +438,26 @@ public final class LiveGame {
     }
 
     /**
-     * @return the player index of the local human (its start slot)
+     * @return the player index of the local human (its start slot), or the observer slot of an observer
      */
     public int getLocalPlayer() {
         return this.localPlayer;
     }
 
     /**
-     * @return the local human's record and selection slot; the command slot may instead be its force leader
+     * @return the local human's record and selection slot, or the observer slot of an observer; a human's command slot may
+     * instead be its force leader
      */
     public int getLocalSlot() {
         return this.localSlot;
+    }
+
+    /**
+     * @return {@code true} if the local player is an observer, whose local slot is an observer slot ({@link PlayerTable#isObserverSlot}),
+     * {@code false} otherwise
+     */
+    public boolean isLocalObserver() {
+        return PlayerTable.isObserverSlot(this.localSlot);
     }
 
     /**
@@ -1209,13 +1225,13 @@ public final class LiveGame {
      *
      * @param received the player's received turn, the peer its network id
      * @return the description of the mismatch, or {@code null} if the turn matches, starts with no Sync command, or its
-     * sender holds no record
+     * sender holds no record, and always for an observer, whose records take its own slot masks ({@link SyncChecksumUtils#calculateSlotMasks})
      */
     private @Nullable String checkSyncTurn(@NotNull PeerTurn received) {
         SyncRing ring = this.syncRing;
         byte[] turn = received.getTurn();
 
-        if (ring == null || ring.getUpdates() == 0 || turn.length < OutgoingTurnBuffer.SYNC_COMMAND_LENGTH ||
+        if (ring == null || ring.getUpdates() == 0 || this.isLocalObserver() || turn.length < OutgoingTurnBuffer.SYNC_COMMAND_LENGTH ||
             turn[0] != OutgoingTurnBuffer.SYNC_COMMAND) {
             return null;
         }
@@ -1281,13 +1297,13 @@ public final class LiveGame {
         }
 
         DesyncDump dump = ring.createDump(turn, state);
-        MeleeGameSetup.PlayerRecord local = this.records[this.localSlot];
+        String localName = this.isLocalObserver() ? this.setup.getObserverName(this.localSlot) : this.records[this.localSlot].getName();
         StringBuilder header = new StringBuilder();
 
         SyncState.appendLine(header, "SC4J desync dump");
         SyncState.appendLine(header, "build %s", this.desyncBuild);
         SyncState.appendLine(header, "map %s", this.desyncMapName);
-        SyncState.appendLine(header, "local player id %d slot %d \"%s\"", this.localPlayerId, this.localPlayer, local.getName());
+        SyncState.appendLine(header, "local player id %d slot %d \"%s\"", this.localPlayerId, this.localPlayer, localName);
 
         for (int lobbySlot = 0; lobbySlot < PlayerTable.PLAYABLE_PLAYER_SLOTS; lobbySlot++) {
             MeleeGameSetup.PlayerRecord record = this.records[lobbySlot];
@@ -1303,7 +1319,7 @@ public final class LiveGame {
                              HexFormat.of().formatHex(turn, 0, OutgoingTurnBuffer.SYNC_COMMAND_LENGTH), failure);
 
         String fileName = DESYNC_FILE_TIME.format(LocalDateTime.now()) + '_' + toFileNamePart(stripExtension(this.desyncMapName)) + '_' +
-                          toFileNamePart(local.getName()) + DESYNC_FILE_EXTENSION;
+                          toFileNamePart(localName) + DESYNC_FILE_EXTENSION;
         Path file = folder.resolve(fileName);
         String text = header.toString();
 

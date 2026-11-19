@@ -5150,12 +5150,13 @@ public final class Main {
     }
 
     /**
-     * Opens diplomacy rows for the active network players, using game-seeded order and the team and computer restrictions.
+     * Opens diplomacy rows for the active network players, using game-seeded order and the team and computer restrictions. An observer, which
+     * holds no player record, has no diplomacy.
      */
     void openAllianceDialog() {
         ClientSession current = this.session;
 
-        if (current == null || !current.isNetworkGame() || this.consoleView == null) {
+        if (current == null || !current.isNetworkGame() || current.isLocalObserver() || this.consoleView == null) {
             return;
         }
 
@@ -5220,7 +5221,7 @@ public final class Main {
             }
         }
 
-        this.consoleView.getMessagingDialog().open(current.getChatRecipient(), listed, current.areAlliancesAllowed(), false);
+        this.consoleView.getMessagingDialog().open(current.getChatRecipient(), listed, current.areAlliancesAllowed(), current.isLocalObserver());
     }
 
     /**
@@ -5656,7 +5657,8 @@ public final class Main {
             PlayerRelations relations = state.getPlayerTable().getPlayerRelations();
             int local = this.consolePlayer;
 
-            if (relations == null || relations.getAlliance(sender, local) == 0) {
+            // An observer holds no player record, so no player is its ally.
+            if (relations == null || local >= PlayerTable.PLAYER_SLOTS || relations.getAlliance(sender, local) == 0) {
                 continue;
             }
 
@@ -6181,8 +6183,9 @@ public final class Main {
              */
             @Override
             public boolean isLocalPlayerHuman() {
-                // The local player of a live game is a human record; observers are not represented.
-                return this.getLiveGame() != null;
+                LiveGame live = this.getLiveGame();
+
+                return live != null && !live.isLocalObserver();
             }
 
             /**
@@ -6200,7 +6203,9 @@ public final class Main {
              */
             @Override
             public boolean isLocalPlayerObserver() {
-                return false;
+                LiveGame live = this.getLiveGame();
+
+                return live != null && live.isLocalObserver();
             }
 
             /**
