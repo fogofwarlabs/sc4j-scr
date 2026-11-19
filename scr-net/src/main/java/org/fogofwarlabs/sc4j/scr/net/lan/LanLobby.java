@@ -9,6 +9,7 @@ import org.fogofwarlabs.sc4j.scr.content.ScrRaceIds;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkFile;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommandIds;
 import org.fogofwarlabs.sc4j.scr.data.format.text.LegacyTextUtils;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrGameExtensionUtils;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerColorRows;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTypes;
@@ -59,7 +60,8 @@ public final class LanLobby implements GameLobby {
     /**
      * The lobby protocol version the host requires in the joined-game command, a 16-bit number read from the resource
      * {@code lan-lobby.properties} next to this class ({@code 5} in the SC:R mod, as native SC:R). A host refuses a joiner with another
-     * version, so a mod built from the SC:R mod's sources sets its own version there to keep apart from SC:R mod players on a LAN.
+     * version, so a mod built from the SC:R mod's sources sets its own version there to keep apart from SC:R mod players on a LAN; a mod whose
+     * game extensions provide memory ({@link ScrGameExtensionUtils#providesMemory()}) must.
      */
     public static final int JOIN_VERSION = readJoinVersion();
     /**
@@ -223,6 +225,10 @@ public final class LanLobby implements GameLobby {
      * The key of {@link #JOIN_VERSION} in the lobby settings.
      */
     private static final @NotNull String JOIN_VERSION_KEY = "joinVersion";
+    /**
+     * The lobby protocol version of the SC:R mod and native SC:R.
+     */
+    private static final int SCR_JOIN_VERSION = 5;
 
     /**
      * The ready command of the ready room ({@code 0x54}, handled inline by the lobby dispatcher).
@@ -1495,6 +1501,11 @@ public final class LanLobby implements GameLobby {
             throw Exceptions.newIllegalStateException("The {0} of {1} is not a 16-bit number: {2}", JOIN_VERSION_KEY, LOBBY_SETTINGS_RESOURCE, text);
         }
 
+        if (version == SCR_JOIN_VERSION && ScrGameExtensionUtils.providesMemory()) {
+            throw Exceptions.newIllegalStateException("The game extensions provide memory, so the {0} of {1} must differ from the SC:R version {2}.",
+                                                      JOIN_VERSION_KEY, LOBBY_SETTINGS_RESOURCE, SCR_JOIN_VERSION);
+        }
+
         return version;
     }
 
@@ -2033,6 +2044,15 @@ public final class LanLobby implements GameLobby {
         this.mapTransfer.setFolders(folders);
     }
 
+    /**
+     * Sets the mod's downloader of the lobby's maps ({@link LanMapTransfer#setDownloader}); the lobby updates it with every update.
+     *
+     * @param downloader the downloader, or {@code null} for the transfer of message {@code 0x4f}
+     */
+    public void setMapDownloader(@Nullable LanMapDownloader downloader) {
+        this.mapTransfer.setDownloader(downloader);
+    }
+
 
     /**
      * Sets the started bit to refuse subsequent joins and queues the host's start command.
@@ -2365,6 +2385,12 @@ public final class LanLobby implements GameLobby {
      * Call it after {@link ProviderSession#update()}.
      */
     public void update() {
+        LanMapDownloader downloader = this.mapTransfer.getDownloader();
+
+        if (downloader != null) {
+            downloader.update();
+        }
+
         for (ProviderSession.Event event = this.session.pollEvent(); event != null; event = this.session.pollEvent()) {
             if (event.getType() == ProviderSession.EVENT_PLAYER_JOINED && this.host) {
                 this.sendGameSettings(event.getPlayerIdentifier());
@@ -2737,6 +2763,13 @@ public final class LanLobby implements GameLobby {
     public void closeMapTransfer() {
         this.mapTransfer.close(this.sharedMap);
         this.sharedMap = null;
+    }
+
+    /**
+     * Closes the mod's downloader of the lobby's maps, if any ({@link LanMapTransfer#closeDownloader}).
+     */
+    public void closeMapDownloader() {
+        this.mapTransfer.closeDownloader();
     }
 
     /**

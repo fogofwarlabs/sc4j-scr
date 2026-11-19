@@ -3,6 +3,7 @@ package org.fogofwarlabs.sc4j.scr.data.format.mpq;
 import org.fogofwarlabs.sc4j.base.binary.LittleEndianUtils;
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.log.Logger;
+import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -99,9 +100,13 @@ public final class MpqArchive {
     private static final int SECTOR_SHIFT_MASK = 0x1F;
     private static final int COMPRESSION_FLAGS_MASK = 0xFF00;
     /**
-     * The largest accepted file size.
+     * The largest accepted {@code staredit\scenario.chk}: the map list skips a map whose scenario is larger.
      */
-    private static final int MAXIMUM_FILE_SIZE = 0x10000000;
+    private static final int MAXIMUM_SCENARIO_SIZE = 0x10000000;
+    /**
+     * The largest file size an array holds.
+     */
+    private static final int MAXIMUM_FILE_SIZE = Integer.MAX_VALUE - Long.BYTES;
     /**
      * The page size of the unbuffered retry read.
      */
@@ -959,9 +964,12 @@ public final class MpqArchive {
         int fileSize = this.blockEntries[entryOffset + BLOCK_FILE_SIZE_VALUE];
         int flags = this.blockEntries[entryOffset + BLOCK_FLAGS_VALUE];
 
+        if (fileName.equalsIgnoreCase(ChkFile.ARCHIVE_ENTRY) && Integer.compareUnsigned(fileSize, MAXIMUM_SCENARIO_SIZE) > 0) {
+            throw Exceptions.newIOException("The scenario size 0x{0} exceeds the map list limit: {1}", Integer.toHexString(fileSize), fileName);
+        }
+
         if (Integer.compareUnsigned(fileSize, MAXIMUM_FILE_SIZE) > 0) {
-            throw Exceptions.newIOException("The file size 0x{0} exceeds the original map reader limit: {1}",
-                                            Integer.toHexString(fileSize), fileName);
+            throw Exceptions.newIOException("The file size 0x{0} exceeds the largest readable file: {1}", Integer.toHexString(fileSize), fileName);
         }
 
         if (this.sectorSize == 0) {

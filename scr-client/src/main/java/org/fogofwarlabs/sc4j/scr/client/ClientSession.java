@@ -3254,6 +3254,27 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
+     * Copies the current display palette of the game, color cycling applied.
+     *
+     * @param colors receives {@code 256} packed {@code 0x00BBGGRR} colors
+     * @return {@code true} if the colors were copied, {@code false} if the game has no display palette
+     * @throws IndexOutOfBoundsException if the array holds fewer than {@code 256} colors
+     */
+    public boolean copyDisplayPalette(int @NotNull [] colors) {
+        PaletteAnimation palette = this.runtime == null ? null : this.runtime.getDisplayPalette();
+
+        if (palette == null) {
+            return false;
+        }
+
+        for (int index = 0; index < PaletteAnimation.COLOR_COUNT; index++) {
+            colors[index] = palette.getColor(index);
+        }
+
+        return true;
+    }
+
+    /**
      * Advances the runtime palette using the host clock, minimization state and trigger pause state.
      *
      * @param colorCycling whether the palette cycles

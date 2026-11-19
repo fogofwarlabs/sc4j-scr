@@ -25,6 +25,7 @@ import java.util.zip.CRC32;
  * <p>
  * Owners pair idle players missing bytes with idle holders. Transfers retain newest-first player and file order, resume from reported byte counts,
  * and verify the complete checksum before writing. Mismatched chunks stop the sender and report progress; checksum mismatches restart from zero.
+ * A mod's downloader ({@link #setDownloader}) can take over the download of a missing map instead of the chunks.
  * <p>
  * Local files are searched in the configured map folders ({@link MapFolders}): the first file of the transfer's size and checksum, whatever
  * its name ({@link #createFileMatch}). A download is saved into their save folder, by default the {@link #DOWNLOAD_FOLDER} subfolder of the
@@ -296,6 +297,20 @@ public final class LanMapTransfer {
         }
 
         /**
+         * @return the checksum
+         */
+        public int getChecksum() {
+            return this.checksum;
+        }
+
+        /**
+         * @return the received name a download is saved under, empty when a local copy was found
+         */
+        public @NotNull String getName() {
+            return this.name;
+        }
+
+        /**
          * @return the flags ({@link #FLAG_READY}, {@link #FLAG_SENDING}, {@link #FLAG_RECEIVING}, or {@link #FLAG_FAILED})
          */
         public int getFlags() {
@@ -394,6 +409,7 @@ public final class LanMapTransfer {
     private int nextIdentifier;
 
     private @NotNull MapFolders folders;
+    private @Nullable LanMapDownloader downloader;
 
     /**
      * Creates a {@link LanMapTransfer} instance.
@@ -411,7 +427,8 @@ public final class LanMapTransfer {
         this.transfers      = new ArrayList<>();
         this.nextIdentifier = 0;
 
-        this.folders = new MapFolders(List.of(), null);
+        this.folders    = new MapFolders(List.of(), null);
+        this.downloader = null;
     }
 
     /**
@@ -452,6 +469,29 @@ public final class LanMapTransfer {
         this.folders = folders;
     }
 
+    /**
+     * @return the mod's downloader of missing maps, {@code null} when the chunks carry them
+     */
+    public @Nullable LanMapDownloader getDownloader() {
+        return this.downloader;
+    }
+
+    /**
+     * Sets the mod's downloader of missing maps: it gets the files shared before and after this call, and the maps whose information arrives
+     * after it.
+     *
+     * @param downloader the downloader, or {@code null} for the chunks
+     */
+    public void setDownloader(@Nullable LanMapDownloader downloader) {
+        this.downloader = downloader;
+
+        if (downloader != null) {
+            for (SharedFile shared : this.sharedFiles) {
+                downloader.share(shared);
+            }
+        }
+    }
+
 
     /**
      * Shares a file as its owner: its name must be shorter than {@code 0x80} bytes and the file must load with a size other than {@code 0}.
@@ -483,6 +523,12 @@ public final class LanMapTransfer {
         SharedFile shared = new SharedFile(this.nextIdentifier++ & BYTE_MASK, contents.length, calculateChecksum(contents, contents.length), path);
 
         this.sharedFiles.add(shared);
+
+        LanMapDownloader current = this.downloader;
+
+        if (current != null) {
+            current.share(shared);
+        }
 
         return shared;
     }
@@ -678,7 +724,7 @@ public final class LanMapTransfer {
      * Handles an information (at least {@code 10} bytes, size not {@code 0}, a valid name that fits a map folder's path and passes the
      * file name check): a new transfer; the local copy is searched (the shared file when the local player owns it, else
      * the first file of the same size and checksum in the map folders, whatever its name) and loaded, else the transfer
-     * keeps the name for the download; then the status goes to the owner.
+     * keeps the name for the download; then the status goes to the owner, unless the downloader took the download over.
      *
      * @param sender the transfer's owner
      * @param data   the information
@@ -746,6 +792,12 @@ public final class LanMapTransfer {
 
             LOGGER.info("LAN MAP MISSING: " + name + " (" + Integer.toUnsignedString(size) + " bytes, crc " + Integer.toHexString(transfer.checksum) +
                         "), downloading from player " + sender);
+
+            LanMapDownloader current = this.downloader;
+
+            if (current != null && current.download(transfer)) {
+                return;
+            }
         }
 
         this.sendStatus(transfer);
@@ -944,6 +996,77 @@ public final class LanMapTransfer {
     }
 
     /**
+     * Sets the bytes a downloader holds of a map it downloads, for the download percent; at most one less than the size.
+     *
+     * @param transfer the transfer the downloader took over
+     * @param bytes    the bytes held
+     */
+    public void reportProgress(@NotNull Transfer transfer, int bytes) {
+        if (this.transfers.contains(transfer) && transfer.file == null) {
+            transfer.bytes = Math.clamp(bytes, 0, transfer.size - 1);
+        }
+    }
+
+    /**
+     * Completes a download a downloader took over with the whole file: a file of the transfer's size and checksum is saved as a received one
+     * and the status with every byte goes to the owner; another file hands the map back to the chunks ({@link #downloadNatively}).
+     *
+     * @param transfer the transfer the downloader took over
+     * @param contents the downloaded file
+     * @return {@code true} if the file was saved, {@code false} otherwise
+     */
+    public boolean completeDownload(@NotNull Transfer transfer, byte @NotNull [] contents) {
+        if (!this.transfers.contains(transfer) || transfer.file != null) {
+            return false;
+        }
+
+        if (contents.length != transfer.size || calculateChecksum(contents, contents.length) != transfer.checksum) {
+            LOGGER.warning("LAN MAP DOWNLOAD: file " + transfer.identifier + " does not match its information, downloading it in chunks");
+            this.downloadNatively(transfer);
+
+            return false;
+        }
+
+        System.arraycopy(contents, 0, transfer.data, 0, contents.length);
+        transfer.bytes = transfer.size;
+
+        if (!this.writeDownloadedFile(transfer)) {
+            transfer.flags = FLAG_FAILED;
+
+            return false;
+        }
+
+        this.sendStatus(transfer);
+
+        return true;
+    }
+
+    /**
+     * Hands a download a downloader took over back to the chunks: the transfer holds no byte, and its status goes to the owner.
+     *
+     * @param transfer the transfer the downloader took over
+     */
+    public void downloadNatively(@NotNull Transfer transfer) {
+        if (!this.transfers.contains(transfer) || transfer.file != null) {
+            return;
+        }
+
+        transfer.bytes = 0;
+        this.sendStatus(transfer);
+    }
+
+    /**
+     * Closes the downloader, if any; the transfers it took over stay where they are.
+     */
+    public void closeDownloader() {
+        LanMapDownloader current = this.downloader;
+
+        if (current != null) {
+            current.close();
+        }
+    }
+
+    /**
      * Sends the status to the transfer's owner.
      *
      * @param transfer the transfer
@@ -1020,7 +1143,7 @@ public final class LanMapTransfer {
 
     /**
      * Ends the transfers when the local player leaves the game: the players of the lobby's map, if it is shared, are sent a
-     * cancel, newest first; then every transfer and shared file is dropped without another message.
+     * cancel, newest first; then every transfer and shared file is dropped without another message, and the downloader is closed.
      *
      * @param lobbyMap the lobby's shared map, {@code null} if the local player shares none
      */
@@ -1033,5 +1156,6 @@ public final class LanMapTransfer {
 
         this.transfers.clear();
         this.sharedFiles.clear();
+        this.closeDownloader();
     }
 }

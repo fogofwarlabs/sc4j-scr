@@ -693,7 +693,8 @@ public final class UnitDamage {
 
                 if (candidate == target && distance <= inner) {
                     candidates[0] = candidate;
-                                    count = 1;
+
+                    count = 1;
 
                     break;
                 }

@@ -778,7 +778,8 @@ public final class ComputerTerrain {
 
             if (value != 0 && best <= value) {
                 this.searchResults[resultIndex] = region;
-                                                  best = value;
+
+                best = value;
             }
         }
 

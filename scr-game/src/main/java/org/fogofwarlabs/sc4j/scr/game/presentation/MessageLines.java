@@ -977,7 +977,8 @@ public final class MessageLines {
             TerminatedStringUtils.putText(text, start, end - start, this.lines, line * LINE_SIZE, LINE_SIZE);
 
             this.deadlines[line] = deadline;
-                                   start = end;
+
+            start = end;
         }
     }
 
@@ -1101,7 +1102,8 @@ public final class MessageLines {
             this.styles[line]       = pieceStyle;
             this.colors[line]       = pieceColor;
             this.triggerFlags[line] = (byte) triggerFlag;
-                                      line = advanceLine(line);
+
+            line = advanceLine(line);
 
             int nextStyle = pieceStyle;
 

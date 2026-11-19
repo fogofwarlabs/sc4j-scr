@@ -819,7 +819,8 @@ final class ComputerRegions {
         }
 
         this.firstMilitaryRecords[index] = record;
-                                           record.regionIndex = index;
+
+        record.regionIndex = index;
 
         if (ground) {
             this.militaryCounts[index]++;

@@ -1886,7 +1886,8 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * Adds the retained scheduling, evaluation and map trigger state to a diagnostic hash.
+     * Adds the retained scheduling, evaluation and map trigger state and the regions of the memory sources
+     * ({@link ClassicAddressSpace#computeProvidedStateHash}) to a diagnostic hash.
      *
      * @param hash the preceding diagnostic hash
      * @return the hash including retained scheduling effects
@@ -1998,6 +1999,11 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
 
         for (TriggerLocation location : this.locations) {
             hash = HASH_MULTIPLIER * hash + location.getElevationFlags();
+        }
+
+        // The regions of the memory sources; nothing without them.
+        if (this.extendedDeathsOperations instanceof ClassicAddressSpace space) {
+            hash = space.computeProvidedStateHash(hash);
         }
 
         return hash;

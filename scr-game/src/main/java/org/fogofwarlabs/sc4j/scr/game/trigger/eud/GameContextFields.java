@@ -2,6 +2,7 @@ package org.fogofwarlabs.sc4j.scr.game.trigger.eud;
 
 import org.fogofwarlabs.sc4j.base.binary.LittleEndianUtils;
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
+import org.fogofwarlabs.sc4j.scr.content.ScrRaceIds;
 import org.fogofwarlabs.sc4j.scr.data.format.dat.UnitsDat;
 import org.fogofwarlabs.sc4j.scr.game.player.*;
 import org.fogofwarlabs.sc4j.scr.game.state.ContextExpansion;
@@ -16,7 +17,7 @@ import java.util.List;
 /**
  * Serves game-context bytes through live simulation owners, game-start snapshots and retained context storage.
  * Frame, tileset, unit availability, expansion ({@link ContextExpansion}), pauses and start locations remain live.
- * Local player, lobby types, races, colors and forces are captured once. Color rows use their current owner; local alert
+ * Local player, lobby types, races, colors, forces and the console race are captured once. Color rows use their current owner; local alert
  * bytes are delegated to {@link LocalView}. Other bytes retain their stored values, among them the local relation table,
  * which the selection images rebuild ({@link GameContext#getLocalRelation}).
  */
@@ -117,7 +118,7 @@ final class GameContextFields {
 
     /**
      * Stores the game-start snapshots into the world's context storage, once per game: the local player, the player types,
-     * races, colors and forces.
+     * races, colors, forces and the console race.
      *
      * @param localPlayer the local player, or {@code -1} when unknown
      */
@@ -151,6 +152,24 @@ final class GameContextFields {
         if (forces != null) {
             System.arraycopy(forces, 0, this.storage, GameStructureView.PLAYER_FORCES_OFFSET, forces.length);
         }
+
+        this.storage[GameStructureView.CONSOLE_RACE_OFFSET] = (byte) this.findConsoleRace();
+    }
+
+    /**
+     * Finds the console race of the game start: Terran for a replay or an observer, otherwise the stored race of the local
+     * player.
+     *
+     * @return the console race
+     */
+    private int findConsoleRace() {
+        int localPlayer = LittleEndianUtils.readInt32(this.storage, GameStructureView.LOCAL_PLAYER_OFFSET);
+
+        if (this.world.getLocalVision().isReplayOrObserver() || localPlayer < 0 || localPlayer >= PlayerTable.PLAYER_SLOTS) {
+            return ScrRaceIds.TERRAN;
+        }
+
+        return this.storage[GameStructureView.PLAYER_RACES_OFFSET + localPlayer] & BYTE_MASK;
     }
 
     /**

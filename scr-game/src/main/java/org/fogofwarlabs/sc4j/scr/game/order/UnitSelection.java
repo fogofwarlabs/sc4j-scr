@@ -1051,7 +1051,8 @@ public final class UnitSelection {
                 }
 
                 selected[selectedCount++] = poolIndex;
-                                            markedChanged = true;
+
+                markedChanged = true;
             }
 
             if (operation != SelectionRequest.Operation.REMOVE) {

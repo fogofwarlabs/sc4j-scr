@@ -5,8 +5,11 @@ import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
 import org.fogofwarlabs.sc4j.engine.client.dialog.DialogKey;
 import org.fogofwarlabs.sc4j.engine.client.host.PointerClip;
 import org.fogofwarlabs.sc4j.engine.client.hud.MinimapPings;
+import org.fogofwarlabs.sc4j.engine.client.render.Texture;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogDefinition;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteFrame;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.ChatPrompt;
 import org.fogofwarlabs.sc4j.scr.client.cursor.GameCursor;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
@@ -45,6 +48,7 @@ import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogControlUtils;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogImportUtils;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitTypeFlags;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.presentation.InterfaceTimers;
 import org.fogofwarlabs.sc4j.scr.game.presentation.MessageLines;
@@ -111,6 +115,18 @@ public final class ConsoleView implements AutoCloseable {
      */
     public static final int MINIMAP_PIXEL_SCALE_INDEX = 6;
 
+    /**
+     * The console dialogs a placement moves, in the order of {@link ConsoleLayout#createPlacedLayout}.
+     */
+    private static final ScrConsolePlacement.Dialog @NotNull [] PLACED_DIALOGS = {
+            ScrConsolePlacement.Dialog.COMMAND_CARD, ScrConsolePlacement.Dialog.SELECTION, ScrConsolePlacement.Dialog.RESOURCES,
+            ScrConsolePlacement.Dialog.PORTRAIT, ScrConsolePlacement.Dialog.MINIMAP, ScrConsolePlacement.Dialog.MENU
+    };
+    /**
+     * The bytes of an RGBA pixel and the index of its alpha byte.
+     */
+    private static final int RGBA_BYTES = 4;
+    private static final int RGBA_ALPHA = 3;
     private static final int CHAT_ALL_LABEL_CONTROL = 3;
     private static final int CHAT_ALLIES_LABEL_CONTROL = 2;
     private static final int CHAT_OBSERVERS_LABEL_CONTROL = 4;
@@ -424,6 +440,14 @@ public final class ConsoleView implements AutoCloseable {
     private static final @NotNull String BLINK_SHEET = "game/blink.dds.grp";
 
     private static final @NotNull String RESOURCE_SHEET = "game/icons.dds.grp";
+    /**
+     * The number of palette colors of the resource icons a plugin draws.
+     */
+    private static final int RESOURCE_ICON_COLORS = 256;
+    /**
+     * The alpha of a shown pixel of a resource icon a plugin draws.
+     */
+    private static final int RESOURCE_ICON_ALPHA = 0xFF000000;
 
     /**
      * The leaderboard refresh timer identifier.
@@ -747,6 +771,48 @@ public final class ConsoleView implements AutoCloseable {
     private boolean replayPaused;
     private int consoleTexture;
     /**
+     * The console placement of the game's plugins ({@link #setPlacement}), or {@code null} for the installed console.
+     */
+    private @Nullable ScrConsolePlacement placement;
+    /**
+     * The HD layout of the interface width, before the placement moves its dialogs.
+     */
+    private @Nullable ConsoleLayout hdLayout;
+    /**
+     * The layout with the placement's dialog and control moves, the layout it was moved from, the placement and its change count.
+     */
+    private @Nullable ConsoleLayout placedLayout;
+    private @Nullable ConsoleLayout placedBase;
+    private @Nullable ScrConsolePlacement placedFrom;
+    private long placedChange;
+    /**
+     * The text box placed by the placement, the text box it was placed from, the interface width and the placement change count.
+     */
+    private @Nullable DialogLayout placedTextBox;
+    private @Nullable DialogLayout placedTextBoxBase;
+    private float placedTextBoxWidth;
+    private long placedTextBoxChange;
+    /**
+     * The layer that draws the console dialogs through the placement's mask, and what begins the drawing into the target again
+     * ({@link #setTargetResumer}).
+     */
+    private final @NotNull ConsoleMaskLayer maskLayer;
+    private @Nullable Runnable targetResumer;
+    /**
+     * The standard-definition console art drawn through the placement's mask, its race, its texture and the placement change count of its texels.
+     */
+    private @Nullable InterfaceImage maskedArt;
+    private int maskedArtRace;
+    private int maskedArtTexture;
+    private long maskedArtChange;
+    /**
+     * The resource icons a plugin draws instead of the installed ones ({@link #setResourceIcons}), the palette of their textures and the textures
+     * uploaded so far, one per frame.
+     */
+    private @Nullable SpriteSheet resourceIcons;
+    private final int @NotNull [] resourceIconPalette;
+    private @Nullable Texture @NotNull [] resourceIconTextures;
+    /**
      * The renderer's layer textures: terrain with creep, fog (one texel per tile) and dots.
      */
     private int minimapTerrainTexture;
@@ -938,6 +1004,25 @@ public final class ConsoleView implements AutoCloseable {
         this.replayEndFrame        = 0L;
         this.replayPaused          = false;
         this.consoleTexture        = 0;
+        this.placement             = null;
+        this.hdLayout              = null;
+        this.placedLayout          = null;
+        this.placedBase            = null;
+        this.placedFrom            = null;
+        this.placedChange          = -1;
+        this.placedTextBox         = null;
+        this.placedTextBoxBase     = null;
+        this.placedTextBoxWidth    = -1;
+        this.placedTextBoxChange   = -1;
+        this.maskLayer             = new ConsoleMaskLayer();
+        this.targetResumer         = null;
+        this.maskedArt             = null;
+        this.maskedArtRace         = -1;
+        this.maskedArtTexture      = 0;
+        this.maskedArtChange       = -1;
+        this.resourceIcons         = null;
+        this.resourceIconPalette   = new int[RESOURCE_ICON_COLORS];
+        this.resourceIconTextures  = new Texture[0];
         this.minimapTerrainTexture = 0;
         this.minimapFogTexture     = 0;
         this.minimapDotTexture     = 0;
@@ -1116,6 +1201,114 @@ public final class ConsoleView implements AutoCloseable {
     public void setGluText(@NotNull GluText gluText) {
         this.replayPanel = new ReplayPanel(this.text, gluText);
         this.gluText     = gluText;
+    }
+
+    /**
+     * Sets how the game's plugins place the console: the dialogs and controls it moves, the text box included, are drawn and hit at their moved
+     * places, and with a mask the console art and the console dialogs are drawn, and the console art hit, only where the mask shows them; the
+     * leaderboard, the resource display and the countdown over the game screen are drawn whole.
+     *
+     * @param placement the placement, or {@code null} for the installed console
+     */
+    public void setPlacement(@Nullable ScrConsolePlacement placement) {
+        this.placement = placement;
+    }
+
+    /**
+     * Sets what begins the drawing into the frame's target again, its clip included, after the console dialogs were drawn into the mask layer.
+     * Without it the dialogs are drawn unmasked.
+     *
+     * @param resumer begins the drawing into the target, or {@code null}
+     */
+    public void setTargetResumer(@Nullable Runnable resumer) {
+        this.targetResumer = resumer;
+    }
+
+    /**
+     * Sets the resource icons the game's plugins draw instead of the installed ones: the resource display and the leaderboard draw a frame of the
+     * sheet at its offset in the frame box from the icon's place, each pixel but index {@code 0} in the palette.
+     *
+     * @param icons   the indexed sheet, or {@code null} for the installed icons
+     * @param palette the display palette, colors packed {@code 0x00BBGGRR}, copied by this call
+     */
+    public void setResourceIcons(@Nullable SpriteSheet icons, int @NotNull [] palette) {
+        int count = Math.min(palette.length, this.resourceIconPalette.length);
+
+        if (icons == this.resourceIcons && (icons == null || Arrays.equals(palette, 0, count, this.resourceIconPalette, 0, count))) {
+            return;
+        }
+
+        this.releaseResourceIcons();
+        System.arraycopy(palette, 0, this.resourceIconPalette, 0, count);
+
+        this.resourceIcons        = icons;
+        this.resourceIconTextures = new Texture[icons == null ? 0 : icons.getFrameCount()];
+    }
+
+    /**
+     * Finds the frame a plugin draws for a resource icon ({@link #setResourceIcons}).
+     *
+     * @param icon the resource icon frame
+     * @return the frame, or {@code null} for the installed icon
+     */
+    private @Nullable SpriteFrame findResourceIcon(int icon) {
+        SpriteSheet icons = this.resourceIcons;
+
+        return icons == null || icon < 0 || icon >= icons.getFrameCount() ? null : icons.getFrame(icon);
+    }
+
+    /**
+     * Draws the frame a plugin draws for a resource icon ({@link #findResourceIcon}) at its offset in the frame box from a place, uploading its
+     * texture on first use. Draws nothing for a frame without pixels.
+     *
+     * @param icon      the resource icon frame
+     * @param frame     the frame of the sheet
+     * @param positionX the interface left of the icon's place
+     * @param positionY the interface top of the icon's place
+     */
+    private void drawResourceIcon(int icon, @NotNull SpriteFrame frame, float positionX, float positionY) {
+        SpriteSheet icons = this.resourceIcons;
+
+        if (icons == null || frame.getWidth() == 0 || frame.getHeight() == 0) {
+            return;
+        }
+
+        Texture texture = this.resourceIconTextures[icon];
+
+        if (texture == null) {
+            int[] colors = new int[frame.getWidth() * frame.getHeight()];
+
+            for (int offset = 0; offset < colors.length; offset++) {
+                int index = icons.getColor().getValue(frame.getPixelOffset() + offset);
+                int color = this.resourceIconPalette[index];
+                int red = color & COLOR_CHANNEL_MASK;
+                int green = color >>> Byte.SIZE & COLOR_CHANNEL_MASK;
+                int blue = color >>> Short.SIZE & COLOR_CHANNEL_MASK;
+
+                // Palette colors are packed 0x00BBGGRR, texture colors 0xAARRGGBB.
+                colors[offset] = index == 0 ? 0 : RESOURCE_ICON_ALPHA | red << Short.SIZE | green << Byte.SIZE | blue;
+            }
+
+            texture                         = this.painter.uploadTexture(frame.getWidth(), frame.getHeight(), colors);
+            this.resourceIconTextures[icon] = texture;
+        }
+
+        this.painter.drawTexture(texture, positionX + frame.getX(), positionY + frame.getY(), frame.getWidth(), frame.getHeight(), WHITE_RGBA);
+    }
+
+    /**
+     * Releases the uploaded textures of the resource icons a plugin draws.
+     */
+    private void releaseResourceIcons() {
+        for (int index = 0; index < this.resourceIconTextures.length; index++) {
+            Texture texture = this.resourceIconTextures[index];
+
+            if (texture != null) {
+                IgnoreException.execute(texture::close);
+            }
+
+            this.resourceIconTextures[index] = null;
+        }
     }
 
     /**
@@ -1344,7 +1537,7 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     private @NotNull ConsoleDialog getTextBoxDialog(@NotNull ConsoleLayout console) throws IOException {
-        DialogLayout placed = this.placePopup(this.getTextBoxLayout(), console);
+        DialogLayout placed = this.placeTextBox(this.getTextBoxLayout(), console);
         ConsoleDialog textBox = this.textBox;
 
         if (textBox == null || textBox.getLayout() != placed) {
@@ -1381,6 +1574,14 @@ public final class ConsoleView implements AutoCloseable {
 
         if (console == null || art == null || this.layoutReplay) {
             return false;
+        }
+
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        if (shownPlacement != null && shownPlacement.isMasked()) {
+            float column = console.toInterfaceX(screenX) - InterfaceTransform.getCenteredDialogLeft(console.getInterfaceWidth());
+
+            return shownPlacement.isShown((int) Math.floor(column), (int) Math.floor(console.toInterfaceY(screenY)));
         }
 
         return art.isHit(console.toInterfaceX(screenX), console.toInterfaceY(screenY));
@@ -1928,22 +2129,28 @@ public final class ConsoleView implements AutoCloseable {
             // W = trunc(clamp(aspect, 4/3, 16/9) * 480), from the shared viewport.
             float interfaceWidth = viewport.getInterfaceWidth();
 
-            if (interfaceWidth != this.layoutWidth) {
-                this.layout = HdConsoleLayout.createLayout(this.sdLayout, interfaceWidth, this.hdVariant);
+            if (interfaceWidth != this.layoutWidth || this.hdLayout == null) {
+                this.hdLayout = HdConsoleLayout.createLayout(this.sdLayout, interfaceWidth, this.hdVariant);
 
                 art.placePieces(interfaceWidth, this.hdVariant);
 
                 this.layoutWidth = interfaceWidth;
             }
 
-            console = this.layout;
+            console = this.hdLayout;
         }
+
+        console     = this.placeDialogs(console);
+        this.layout = console;
 
         console.setViewport(viewport);
 
         float scale = console.getScale();
+        ScrConsolePlacement shownPlacement = this.placement;
 
-        if (this.hdScale == 0) {
+        if (shownPlacement != null && shownPlacement.isMasked()) {
+            this.drawMaskedArt(console, loaded, race, shownPlacement);
+        } else if (this.hdScale == 0) {
             this.renderer.drawTexture(this.consoleTexture,
                                       console.toScreenX(art.getLeft(ConsoleArt.LEFT_PIECE)), console.toScreenY(art.getTop(ConsoleArt.LEFT_PIECE)),
                                       art.getWidth(ConsoleArt.LEFT_PIECE) * scale, art.getHeight(ConsoleArt.LEFT_PIECE) * scale,
@@ -1958,15 +2165,44 @@ public final class ConsoleView implements AutoCloseable {
             }
         }
 
-        this.drawGameTimer(model, console, loaded);
-        this.drawApm(console, loaded);
-        this.drawLeaderboard(model, viewport, loaded);
-        this.drawMinimap(model, console, loaded, viewLeft, viewTop, viewWidth, viewHeight);
-        this.drawResources(model, console, viewport, loaded);
-        this.drawCountdown(model, console, viewport);
-        this.drawSelection(model, console, loaded);
-        this.drawPortrait(model, console);
-        this.drawConsoleButtons(console, loaded);
+        Runnable resumer = this.targetResumer;
+        boolean layered = shownPlacement != null && shownPlacement.isMasked() && resumer != null;
+
+        // The leaderboard, the resource display and the countdown are drawn over the game screen, not through the mask.
+        if (layered) {
+            this.drawLeaderboard(model, viewport, loaded);
+            this.drawResources(model, console, viewport, loaded);
+            this.drawCountdown(model, console, viewport);
+            this.maskLayer.begin(this.renderer);
+        }
+
+        try {
+            this.drawGameTimer(model, console, loaded);
+            this.drawApm(console, loaded);
+
+            if (!layered) {
+                this.drawLeaderboard(model, viewport, loaded);
+            }
+
+            this.drawMinimap(model, console, loaded, viewLeft, viewTop, viewWidth, viewHeight);
+
+            if (!layered) {
+                this.drawResources(model, console, viewport, loaded);
+                this.drawCountdown(model, console, viewport);
+            }
+
+            this.drawSelection(model, console, loaded);
+            this.drawPortrait(model, console);
+            this.drawConsoleButtons(console, loaded);
+
+            if (layered) {
+                this.drawCommandCard(model, console, loaded);
+            }
+        } finally {
+            if (layered) {
+                this.maskLayer.end(this.renderer, resumer, console, shownPlacement);
+            }
+        }
 
         if (this.visionDialog.isOpen()) {
             this.drawVisionDialog(console, loaded);
@@ -1980,7 +2216,10 @@ public final class ConsoleView implements AutoCloseable {
             this.drawMessagingDialog(console, loaded);
         }
 
-        this.drawCommandCard(model, console, loaded);
+        if (!layered) {
+            this.drawCommandCard(model, console, loaded);
+        }
+
         this.drawMessages(console);
         this.updateTooltip(model, console);
         this.tooltip.draw(console);
@@ -2128,7 +2367,8 @@ public final class ConsoleView implements AutoCloseable {
             DialogLayout.Control control = resources.getControl(counter.getControlIdentifier());
             int icon = counter.getIcon();
             InterfaceAssets.ScaledImage image = this.getSheetImage(loaded, RESOURCE_SHEET, icon);
-            int iconWidth = image.getInterfaceWidth();
+            SpriteFrame replaced = this.findResourceIcon(icon);
+            int iconWidth = replaced == null ? image.getInterfaceWidth() : replaced.getX() + replaced.getWidth();
             int textWidth = (int) Math.ceil(font.measure(counter.getText(), true)) + RESOURCE_TEXT_CLIP_PIXEL;
             // The slot edges are integers, so the placed item edges are integers too.
             int iconX = (int) layout.placeItem(control.getX(), control.getX() + control.getWidth(), iconWidth + RESOURCE_TEXT_GAP + textWidth);
@@ -2137,10 +2377,15 @@ public final class ConsoleView implements AutoCloseable {
             int penX = iconX + iconWidth + RESOURCE_TEXT_GAP;
 
             this.painter.begin(viewport, loaded);
-            this.painter.drawImageFrame(this.painter.getSheetFrame(RESOURCE_SHEET, icon),
-                                        iconX, iconY,
-                                        iconWidth, image.getInterfaceHeight(),
-                                        WHITE_RGBA);
+
+            if (replaced == null) {
+                this.painter.drawImageFrame(this.painter.getSheetFrame(RESOURCE_SHEET, icon),
+                                            iconX, iconY,
+                                            iconWidth, image.getInterfaceHeight(),
+                                            WHITE_RGBA);
+            } else {
+                this.drawResourceIcon(icon, replaced, iconX, iconY);
+            }
 
             InterfaceText.draw(this.renderer,
                                viewport,
@@ -2281,8 +2526,16 @@ public final class ConsoleView implements AutoCloseable {
                                      int frame) throws IOException {
         InterfaceAssets.ScaledImage image = this.getSheetImage(loaded, RESOURCE_SHEET, frame);
         int y = control.getY() + (control.getHeight() - image.getInterfaceHeight() + 1) / 2;
+        SpriteFrame replaced = this.findResourceIcon(frame);
 
         this.painter.begin(transform, loaded);
+
+        if (replaced != null) {
+            this.drawResourceIcon(frame, replaced, control.getX(), y);
+
+            return;
+        }
+
         this.painter.drawImageFrame(this.painter.getSheetFrame(RESOURCE_SHEET, frame),
                                     control.getX(), y,
                                     image.getInterfaceWidth(), image.getInterfaceHeight(),
@@ -4974,6 +5227,164 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
+     * Moves the dialogs of a layout and their controls to the places the placement gives them, in the classic screen centered in the interface
+     * width, and the hidden dialogs and controls out of the interface.
+     *
+     * @param base the layout of the interface width
+     * @return the layout with the dialogs placed, the same layout while the placement is unchanged, or {@code base} without a placed dialog
+     */
+    private @NotNull ConsoleLayout placeDialogs(@NotNull ConsoleLayout base) {
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        if (shownPlacement == null) {
+            return base;
+        }
+
+        if (this.placedLayout != null && this.placedBase == base && this.placedFrom == shownPlacement &&
+            this.placedChange == shownPlacement.getChangeCount()) {
+            return this.placedLayout;
+        }
+
+        DialogLayout[] dialogs = {base.getCommandButtons(), base.getSelectionPanel(), base.getResources(), base.getPortrait(), base.getMinimap(),
+                                  base.getMenu()};
+        boolean placed = false;
+
+        for (int index = 0; index < dialogs.length; index++) {
+            DialogLayout dialog = placeDialog(dialogs[index], PLACED_DIALOGS[index], shownPlacement, base.getInterfaceWidth());
+
+                             placed |= dialog != dialogs[index];
+            dialogs[index] = dialog;
+        }
+
+        this.placedLayout = placed ? base.createPlacedLayout(dialogs[0], dialogs[1], dialogs[2], dialogs[3], dialogs[4], dialogs[5]) : base;
+        this.placedBase   = base;
+        this.placedFrom   = shownPlacement;
+        this.placedChange = shownPlacement.getChangeCount();
+
+        return this.placedLayout;
+    }
+
+    /**
+     * Places the text box where the placement moves it, in the classic screen centered in the interface width, or as a popup.
+     *
+     * @param textBox the installed text box
+     * @param console the console layout
+     * @return the placed text box, the same layout while its placement is unchanged
+     */
+    private @NotNull DialogLayout placeTextBox(@NotNull DialogLayout textBox, @NotNull ConsoleLayout console) {
+        ScrConsolePlacement shownPlacement = this.placement;
+        ScrConsolePlacement.Dialog dialog = ScrConsolePlacement.Dialog.TEXT_BOX;
+
+        if (shownPlacement == null || !shownPlacement.isDialogMoved(dialog) && !shownPlacement.isDialogHidden(dialog) &&
+                                      shownPlacement.getPlacedControls(dialog).length == 0) {
+            return this.placePopup(textBox, console);
+        }
+
+        if (this.placedTextBox == null || this.placedTextBoxBase != textBox || this.placedTextBoxWidth != console.getInterfaceWidth() ||
+            this.placedTextBoxChange != shownPlacement.getChangeCount()) {
+            this.placedTextBox       = placeDialog(textBox, dialog, shownPlacement, console.getInterfaceWidth());
+            this.placedTextBoxBase   = textBox;
+            this.placedTextBoxWidth  = console.getInterfaceWidth();
+            this.placedTextBoxChange = shownPlacement.getChangeCount();
+        }
+
+        return this.placedTextBox;
+    }
+
+    /**
+     * Places one dialog and its controls: a moved dialog or control at its place in the classic screen centered in the interface width, a hidden one
+     * past the interface's right edge, where it is neither drawn nor hit; the controls of a hidden dialog are hidden with it.
+     *
+     * @param layout         the dialog
+     * @param dialog         the dialog's name in the placement
+     * @param placement      the placement
+     * @param interfaceWidth the interface width
+     * @return the placed dialog, or {@code layout} when neither it nor a control of it is placed
+     */
+    private static @NotNull DialogLayout placeDialog(@NotNull DialogLayout layout,
+                                                     ScrConsolePlacement.@NotNull Dialog dialog,
+                                                     @NotNull ScrConsolePlacement placement,
+                                                     float interfaceWidth) {
+        int center = InterfaceTransform.getCenteredDialogLeft(interfaceWidth);
+        int hiddenLeft = (int) Math.ceil(interfaceWidth);
+        int[] controls = placement.getPlacedControls(dialog);
+        int left = layout.getX();
+        int top = layout.getY();
+
+        if (placement.isDialogHidden(dialog)) {
+            return layout.createPlacedLayout(hiddenLeft, top, identifier -> null);
+        }
+
+        if (placement.isDialogMoved(dialog)) {
+            left = placement.getDialogLeft(dialog) + center;
+            top  = placement.getDialogTop(dialog);
+        } else if (controls.length == 0) {
+            return layout;
+        }
+
+        int dialogTop = top;
+
+        return layout.createPlacedLayout(left, top, identifier -> {
+            if (placement.isControlHidden(dialog, identifier)) {
+                return new int[]{hiddenLeft, dialogTop};
+            }
+
+            if (placement.isControlMoved(dialog, identifier)) {
+                return new int[]{placement.getControlLeft(dialog, identifier) + center, placement.getControlTop(dialog, identifier)};
+            }
+
+            return null;
+        });
+    }
+
+    /**
+     * Draws the standard-definition console art of a race through the placement's mask, in the classic screen centered in the interface width.
+     *
+     * @param console   the console layout
+     * @param loaded    the interface assets
+     * @param race      the race: {@code 0} Zerg, {@code 1} Terran, {@code 2} Protoss
+     * @param placement the masked placement
+     * @throws IOException if the art cannot be decoded
+     */
+    private void drawMaskedArt(@NotNull ConsoleLayout console, @NotNull InterfaceAssets loaded, int race, @NotNull ScrConsolePlacement placement) throws IOException {
+        if (this.maskedArt == null || this.maskedArtRace != race) {
+            this.maskedArt       = loaded.decodeConsole(race);
+            this.maskedArtRace   = race;
+            this.maskedArtChange = -1;
+        }
+
+        InterfaceImage image = this.maskedArt;
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int top = ConsoleLayout.INTERFACE_HEIGHT - height;
+
+        if (this.maskedArtTexture == 0 || this.maskedArtChange != placement.getChangeCount()) {
+            byte[] rgba = image.getRgba().clone();
+
+            for (int row = 0; row < height; row++) {
+                for (int column = 0; column < width; column++) {
+                    if (!placement.isShown(column * ConsoleLayout.INTERFACE_WIDTH / width, top + row)) {
+                        rgba[(row * width + column) * RGBA_BYTES + RGBA_ALPHA] = 0;
+                    }
+                }
+            }
+
+            if (this.maskedArtTexture != 0) {
+                this.renderer.deleteTexture(this.maskedArtTexture);
+            }
+
+            this.maskedArtTexture = this.renderer.createTexture(width, height, rgba);
+            this.maskedArtChange  = placement.getChangeCount();
+        }
+
+        float scale = console.getScale();
+
+        this.renderer.drawTexture(this.maskedArtTexture, console.toScreenX(InterfaceTransform.getCenteredDialogLeft(console.getInterfaceWidth())),
+                                  console.toScreenY(top), ConsoleLayout.INTERFACE_WIDTH * scale, height * scale, WHITE_RGBA);
+    }
+
+
+    /**
      * Releases the console art and its textures. The hit test reports no console until the next draw loads the art again.
      */
     private void releaseConsoleArt() {
@@ -4995,9 +5406,23 @@ public final class ConsoleView implements AutoCloseable {
             );
         }
 
-        this.consoleTexture = 0;
-        this.layoutWidth    = -1;
-        this.consoleArt     = null;
+        if (this.maskedArtTexture != 0) {
+            IgnoreException.execute(
+                    () -> this.renderer.deleteTexture(this.maskedArtTexture)
+            );
+        }
+
+        IgnoreException.execute(
+                this.maskLayer::release,
+                this::releaseResourceIcons
+        );
+
+        this.consoleTexture   = 0;
+        this.maskedArtTexture = 0;
+        this.maskedArtChange  = -1;
+        this.layoutWidth      = -1;
+        this.hdLayout         = null;
+        this.consoleArt       = null;
     }
 
     private void releaseTextures() {

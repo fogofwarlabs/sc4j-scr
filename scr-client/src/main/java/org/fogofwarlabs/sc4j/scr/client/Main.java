@@ -25,6 +25,7 @@ import org.fogofwarlabs.sc4j.engine.client.video.VideoClipDecoder;
 import org.fogofwarlabs.sc4j.engine.client.world.*;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.BeaconLink;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.audio.*;
 import org.fogofwarlabs.sc4j.scr.client.configuration.*;
 import org.fogofwarlabs.sc4j.scr.client.cursor.GameCursor;
@@ -71,6 +72,8 @@ import org.fogofwarlabs.sc4j.scr.data.format.text.LegacyTextUtils;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogControlUtils;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.map.MapStringSection;
 import org.fogofwarlabs.sc4j.scr.game.player.Player;
@@ -436,6 +439,10 @@ public final class Main {
      * The divisor that halves a length to its center in floating point.
      */
     private static final float CENTER_FLOAT_DIVISOR = 2.0f;
+    /**
+     * The packed color that draws a texture unchanged.
+     */
+    private static final int OPAQUE_WHITE_COLOR = 0xFFFFFFFF;
 
     /**
      * The fraction of a length at its center.
@@ -1121,6 +1128,13 @@ public final class Main {
 
     final @NotNull CameraTargetScroll centerViewScroll;
 
+    /**
+     * The textures of the drawn screen overlay and of the console dialog pictures ({@link #drawScreenOverlay}), and the palette of this frame.
+     */
+    private final @NotNull ScreenOverlayTexture screenOverlay;
+    private final @NotNull ScreenOverlayTexture consoleSurfaces;
+    private final int @NotNull [] screenOverlayCycled;
+
     private int seekSequenceIndex;
 
     private final @NotNull DoublePressDetector doubleClicks;
@@ -1402,6 +1416,10 @@ public final class Main {
         this.keyStates = new byte[LocalKeyStates.SIZE];
 
         this.centerViewScroll = new CameraTargetScroll(CENTER_VIEW_ALIGNMENT, CENTER_VIEW_SPEED, scrollSteps);
+
+        this.screenOverlay       = new ScreenOverlayTexture(PaletteAnimation.COLOR_COUNT);
+        this.consoleSurfaces     = new ScreenOverlayTexture(PaletteAnimation.COLOR_COUNT);
+        this.screenOverlayCycled = new int[PaletteAnimation.COLOR_COUNT];
 
         this.seekSequenceIndex = -1;
 
@@ -4578,15 +4596,7 @@ public final class Main {
 
             ClientCamera camera = this.requireSession().getCamera();
 
-            if (this.sdInterfaceFramebuffer != 0) {
-                this.getInterfaceRenderer().begin(this.sdInterfaceFramebuffer, this.sdInterfaceWidth, this.sdInterfaceHeight,
-                                                  this.framebufferWidth, this.framebufferHeight);
-            } else {
-                this.getInterfaceRenderer().begin(this.framebufferWidth, this.framebufferHeight);
-            }
-
-            this.getInterfaceRenderer().setClip(Math.round(this.gameViewport.getGameLeft()), 0,
-                                                Math.round(this.gameViewport.getGameWidth()), this.viewHeight);
+            this.beginConsoleTarget();
 
             if (this.debugView) {
                 this.debugOverlay.draw(this.requireSession().getView(), this.getInterfaceRenderer(), new DebugOverlay.View() {
@@ -4639,7 +4649,28 @@ public final class Main {
             this.consoleView.setMultiplayerGame(this.requireSession().isLive() && this.requireSession().isNetworkGame());
             this.consoleView.setShowTimer(this.options.getInterfaceSettings().isGameTimer());
             this.updateApmDisplay(perspective == CommandCard.Perspective.NATIVE_REPLAY);
-            this.consoleView.draw(this.consoleModel, this.gameViewport, camera);
+
+            ScrGameView gameView = this.requireSession().getView();
+            boolean plugins = gameView.hasPlugins();
+            ScrConsolePlacement placement = plugins ? gameView.findConsolePlacement() : null;
+
+            if (plugins) {
+                this.drawScreenOverlay(gameView.findScreenOverlay(), this.screenOverlay);
+            }
+
+            if (!plugins || !gameView.isConsoleHidden()) {
+                SpriteSheet resourceIcons = plugins ? gameView.findResourceIcons() : null;
+                boolean iconPalette = resourceIcons != null && this.requireSession().copyDisplayPalette(this.screenOverlayCycled);
+
+                this.consoleView.setPlacement(placement);
+                this.consoleView.setResourceIcons(iconPalette ? resourceIcons : null, this.screenOverlayCycled);
+                this.consoleView.setTargetResumer(this::beginConsoleTarget);
+                this.consoleView.draw(this.consoleModel, this.gameViewport, camera);
+
+                if (placement != null) {
+                    this.drawScreenOverlay(placement.getSurfaces(), this.consoleSurfaces);
+                }
+            }
 
             if (this.debugView) {
                 this.drawUnitInspection();
@@ -4652,6 +4683,44 @@ public final class Main {
         } catch (IOException | RuntimeException exception) {
             this.setAssetWarning("Console: " + exception);
         }
+    }
+
+    /**
+     * Begins the interface drawing of the console: into the SD interface layer while one is drawn, else over the window, limited to the game screen.
+     */
+    private void beginConsoleTarget() {
+        if (this.sdInterfaceFramebuffer != 0) {
+            this.getInterfaceRenderer().begin(this.sdInterfaceFramebuffer, this.sdInterfaceWidth, this.sdInterfaceHeight,
+                                              this.framebufferWidth, this.framebufferHeight);
+        } else {
+            this.getInterfaceRenderer().begin(this.framebufferWidth, this.framebufferHeight);
+        }
+
+        this.getInterfaceRenderer().setClip(Math.round(this.gameViewport.getGameLeft()), 0,
+                                            Math.round(this.gameViewport.getGameWidth()), this.viewHeight);
+    }
+
+    /**
+     * Draws a screen overlay of a plugin: the classic screen scaled to the view height and centered in the game screen, each shown pixel in the
+     * display palette, the others transparent.
+     *
+     * @param overlay the overlay, or {@code null} for none
+     * @param texture the texture that shows the overlay
+     */
+    private void drawScreenOverlay(@Nullable ScrScreenOverlay overlay, @NotNull ScreenOverlayTexture texture) {
+        InterfaceRenderer interfaceRenderer = this.getInterfaceRenderer();
+
+        if (overlay == null || overlay.getShownCount() == 0 || interfaceRenderer == null ||
+            !this.requireSession().copyDisplayPalette(this.screenOverlayCycled)) {
+            return;
+        }
+
+        int drawn = texture.update(interfaceRenderer, overlay, this.screenOverlayCycled);
+        float scale = (float) this.viewHeight / overlay.getHeight();
+        float drawnWidth = overlay.getWidth() * scale;
+        float left = this.gameViewport.getGameLeft() + (this.gameViewport.getGameWidth() - drawnWidth) / CENTER_FLOAT_DIVISOR;
+
+        interfaceRenderer.drawTexture(drawn, left, 0, drawnWidth, this.viewHeight, OPAQUE_WHITE_COLOR);
     }
 
     /**
