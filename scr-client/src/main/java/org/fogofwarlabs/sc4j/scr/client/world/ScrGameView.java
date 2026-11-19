@@ -506,6 +506,43 @@ public final class ScrGameView implements GameView {
     }
 
     /**
+     * Finds the frame a sprite image draws instead of its own: the first frame a plugin of the game gives ({@link ScrGamePlugin#findImageFrame}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the frame index, or {@code -1} for the image's own frame
+     */
+    public int findImageFrame(@NotNull SpriteImage image) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            int frame = plugin.findImageFrame(image);
+
+            if (frame >= 0) {
+                return frame;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Finds the draw function a sprite image draws with instead of its own: the first draw function a plugin of the game gives
+     * ({@link ScrGamePlugin#findImageDrawFunction}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the draw function, or {@code -1} for the image's own
+     */
+    public int findImageDrawFunction(@NotNull SpriteImage image) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            int drawFunction = plugin.findImageDrawFunction(image);
+
+            if (drawFunction >= 0) {
+                return drawFunction;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
      * @return the path pool of the game, whose paths the debug overlay draws, or {@code null} before it exists
      */
     public @Nullable PathPool getPathPool() {

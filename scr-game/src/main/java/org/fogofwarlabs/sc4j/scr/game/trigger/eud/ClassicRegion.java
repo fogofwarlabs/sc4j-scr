@@ -50,6 +50,16 @@ public interface ClassicRegion {
     }
 
     /**
+     * Tells whether the region is served from the emulation's own storage: zero-initialized memory or a write-protected value that no game
+     * state holds, which a memory source may serve instead ({@link ClassicMemorySource}).
+     *
+     * @return {@code true} if the region is emulation storage, {@code false} otherwise
+     */
+    default boolean isEmulatorStorage() {
+        return false;
+    }
+
+    /**
      * Returns a count that grows with every write that changes the region's bytes, for regions that track their changes so
      * readers can keep what they derived from unchanged bytes ({@link #findChangeSince}).
      *

@@ -1,6 +1,7 @@
 package org.fogofwarlabs.sc4j.scr.game.extension;
 
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
+import org.fogofwarlabs.sc4j.scr.game.trigger.eud.ClassicMemorySource;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -8,8 +9,8 @@ import java.util.List;
 import java.util.ServiceLoader;
 
 /**
- * Creates the plugins of the {@link ScrGameExtension} implementations that the jar of the running mod names. They are found once per class
- * loader, with the class loader of {@link ScrGameExtension}, so a mod jar in its own class loader finds its own implementations.
+ * Creates the plugins and memory sources of the {@link ScrGameExtension} implementations that the jar of the running mod names. They are found
+ * once per class loader, with the class loader of {@link ScrGameExtension}, so a mod jar in its own class loader finds its own implementations.
  */
 public final class ScrGameExtensionUtils {
     private static final @NotNull List<@NotNull ScrGameExtension> EXTENSIONS =
@@ -36,6 +37,36 @@ public final class ScrGameExtensionUtils {
         }
 
         return plugins.toArray(new ScrGamePlugin[0]);
+    }
+
+    /**
+     * Lets every extension that provides memory create its memory source of a game ({@link ScrGameExtension#createMemorySource}).
+     *
+     * @param game the game, when its SC:R system attaches
+     * @return the created memory sources in extension order, empty without extensions that provide memory
+     */
+    public static @NotNull ClassicMemorySource @NotNull [] createMemorySources(@NotNull Game game) {
+        List<ClassicMemorySource> sources = new ArrayList<>();
+
+        for (ScrGameExtension extension : EXTENSIONS) {
+            ClassicMemorySource source = extension.providesMemory() ? extension.createMemorySource(game) : null;
+
+            if (source != null) {
+                sources.add(source);
+            }
+        }
+
+        return sources.toArray(new ClassicMemorySource[0]);
+    }
+
+    /**
+     * Tells whether an extension of the running mod provides EUD memory ({@link ScrGameExtension#providesMemory()}), so the mod runs games
+     * SC:R does not run.
+     *
+     * @return {@code true} if an extension provides memory, {@code false} otherwise
+     */
+    public static boolean providesMemory() {
+        return EXTENSIONS.stream().anyMatch(ScrGameExtension::providesMemory);
     }
 
     private ScrGameExtensionUtils() {

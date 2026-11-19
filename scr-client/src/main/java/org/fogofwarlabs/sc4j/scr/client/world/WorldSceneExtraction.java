@@ -241,7 +241,10 @@ public final class WorldSceneExtraction {
                     }
 
                     try {
-                        int modifier = getViewModifier(image.getModifier(), cloakView, burrowed);
+                        int drawFunction = plugins ? gameView.findImageDrawFunction(image) : -1;
+                        int modifier = getViewModifier(drawFunction >= 0 ? drawFunction : image.getModifier(), cloakView, burrowed);
+                        int pluginFrame = plugins ? gameView.findImageFrame(image) : -1;
+                        int frame = pluginFrame >= 0 ? pluginFrame : image.getDrawnFrameIndex();
 
                         if (cloakView == CLOAK_VIEW_HIDDEN && burrowed && imageTable.getDrawIfCloaked(image.getImageTypeId()) == 0) {
                             continue;
@@ -250,8 +253,8 @@ public final class WorldSceneExtraction {
                         SpriteSheet sheet = plugins ? gameView.findImageSheet(image) : null;
 
                         // Skips images whose frame has no drawable rectangle.
-                        if (sheet != null ? image.getDrawnFrameIndex() >= sheet.getFrameCount()
-                                          : !renderer.isDrawnFrame(image.getImageTypeId(), image.getDrawnFrameIndex())) {
+                        if (sheet != null ? frame >= sheet.getFrameCount()
+                                          : !renderer.isDrawnFrame(image.getImageTypeId(), frame)) {
                             continue;
                         }
 
@@ -268,14 +271,14 @@ public final class WorldSceneExtraction {
 
                         // The frozen canvas center comes from the classic frame rectangle; both backends center their canvas there.
                         if ((image.getFlags() & SpriteImage.FLAG_Y_FROZEN) != 0) {
-                            imageY = renderer.getFrozenCenterY(image.getImageTypeId(), image.getDrawnFrameIndex(), image.getFrozenMapY());
+                            imageY = renderer.getFrozenCenterY(image.getImageTypeId(), frame, image.getFrozenMapY());
                         }
 
                         if (sheet != null) {
                             // A plugin's sheet replaces the installed graphics in every draw function.
                             scene.drawImageSheet(sheet,
                                                  image.getImageTypeId(),
-                                                 image.getDrawnFrameIndex(),
+                                                 frame,
                                                  modifier,
                                                  image.getModifierData1(),
                                                  playerColor,
@@ -283,11 +286,11 @@ public final class WorldSceneExtraction {
                                                  imageY,
                                                  flipped);
                         } else if (modifier == SceneRenderer.DRAW_FUNCTION_UPDATE_RECTANGLE) {
-                            scene.drawUpdateRectangle(image.getImageTypeId(), image.getDrawnFrameIndex(), imageX, imageY, flipped);
+                            scene.drawUpdateRectangle(image.getImageTypeId(), frame, imageX, imageY, flipped);
                         } else if (modifier == SpriteImage.MODIFIER_REMAPPING) {
                             // Uses the remapping index retained by the image.
                             scene.drawRemappedImage(image.getImageTypeId(),
-                                                    image.getDrawnFrameIndex(),
+                                                    frame,
                                                     image.getColorRemappingIndex(),
                                                     playerColor,
                                                     imageX,
@@ -300,10 +303,10 @@ public final class WorldSceneExtraction {
                                                    ? primary.getModifierData1()
                                                    : -1;
 
-                            scene.drawShadowImage(image.getImageTypeId(), image.getDrawnFrameIndex(), primaryWarpFrame, imageX, imageY, flipped);
+                            scene.drawShadowImage(image.getImageTypeId(), frame, primaryWarpFrame, imageX, imageY, flipped);
                         } else {
                             scene.drawImage(image.getImageTypeId(),
-                                            image.getDrawnFrameIndex(),
+                                            frame,
                                             modifier,
                                             image.getModifierData1(),
                                             playerColor,

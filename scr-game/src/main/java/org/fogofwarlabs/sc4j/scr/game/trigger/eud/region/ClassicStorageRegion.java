@@ -178,7 +178,7 @@ public final class ClassicStorageRegion implements ClassicRegion {
             int base = EMULATOR_STORAGE[index];
             boolean writeIgnored = Arrays.stream(WRITE_PROTECTED).anyMatch(protectedBase -> protectedBase == base);
 
-            regions.add(new ClassicStorageRegion(base, new byte[EMULATOR_STORAGE[index + 1]], writeIgnored));
+            regions.add(new ClassicStorageRegion(base, new byte[EMULATOR_STORAGE[index + 1]], writeIgnored, true));
         }
 
         return regions;
@@ -204,6 +204,7 @@ public final class ClassicStorageRegion implements ClassicRegion {
     private final int base;
     private final byte @NotNull [] storage;
     private final boolean writeIgnored;
+    private final boolean emulatorStorage;
 
 
     /**
@@ -234,9 +235,14 @@ public final class ClassicStorageRegion implements ClassicRegion {
      * @param writeIgnored whether writes to the region are ignored
      */
     public ClassicStorageRegion(int base, byte @NotNull [] storage, boolean writeIgnored) {
-        this.base         = base;
-        this.storage      = storage;
-        this.writeIgnored = writeIgnored;
+        this(base, storage, writeIgnored, false);
+    }
+
+    private ClassicStorageRegion(int base, byte @NotNull [] storage, boolean writeIgnored, boolean emulatorStorage) {
+        this.base            = base;
+        this.storage         = storage;
+        this.writeIgnored    = writeIgnored;
+        this.emulatorStorage = emulatorStorage;
     }
 
 
@@ -264,6 +270,16 @@ public final class ClassicStorageRegion implements ClassicRegion {
     @Override
     public boolean isWriteIgnored() {
         return this.writeIgnored;
+    }
+
+    /**
+     * Tells whether the region is served from the emulation's own storage ({@link #createEmulatorStorageRegions()}).
+     *
+     * @return {@code true} if the region is emulation storage, {@code false} otherwise
+     */
+    @Override
+    public boolean isEmulatorStorage() {
+        return this.emulatorStorage;
     }
 
 

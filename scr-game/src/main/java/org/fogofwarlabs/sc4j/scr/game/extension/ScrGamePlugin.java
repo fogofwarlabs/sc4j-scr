@@ -31,4 +31,24 @@ public interface ScrGamePlugin {
     default @Nullable SpriteSheet findImageSheet(@NotNull SpriteImage image) {
         return null;
     }
+
+    /**
+     * Finds the frame a sprite image draws instead of its own drawn frame, in its installed graphics or in its sheet ({@link #findImageSheet}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the frame index, or {@code -1} for the image's own frame
+     */
+    default int findImageFrame(@NotNull SpriteImage image) {
+        return -1;
+    }
+
+    /**
+     * Finds the draw function a sprite image draws with instead of its own ({@link SpriteImage#getModifier()}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the draw function, or {@code -1} for the image's own
+     */
+    default int findImageDrawFunction(@NotNull SpriteImage image) {
+        return -1;
+    }
 }
