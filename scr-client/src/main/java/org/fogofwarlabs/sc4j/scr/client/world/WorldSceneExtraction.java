@@ -420,12 +420,14 @@ public final class WorldSceneExtraction {
                     this.foliageResources = Arrays.copyOf(this.foliageResources, this.foliageResources.length * FOLIAGE_CAPACITY_GROWTH_FACTOR);
                 }
 
-                this.foliageResources[count * FOLIAGE_RESOURCE_FIELDS + FOLIAGE_RESOURCE_X]      =
-                        unit.getPositionX() / TerrainTileset.TILE_SIZE - columns / PLACEMENT_CENTER_DIVISOR;
-                this.foliageResources[count * FOLIAGE_RESOURCE_FIELDS + FOLIAGE_RESOURCE_Y]      =
-                        unit.getPositionY() / TerrainTileset.TILE_SIZE - rows / PLACEMENT_CENTER_DIVISOR;
-                this.foliageResources[count * FOLIAGE_RESOURCE_FIELDS + FOLIAGE_RESOURCE_WIDTH]  = columns;
-                this.foliageResources[count * FOLIAGE_RESOURCE_FIELDS + FOLIAGE_RESOURCE_HEIGHT] = rows;
+                int resourceOffset = count * FOLIAGE_RESOURCE_FIELDS;
+                int tileX = unit.getPositionX() / TerrainTileset.TILE_SIZE - columns / PLACEMENT_CENTER_DIVISOR;
+                int tileY = unit.getPositionY() / TerrainTileset.TILE_SIZE - rows / PLACEMENT_CENTER_DIVISOR;
+
+                this.foliageResources[resourceOffset + FOLIAGE_RESOURCE_X]      = tileX;
+                this.foliageResources[resourceOffset + FOLIAGE_RESOURCE_Y]      = tileY;
+                this.foliageResources[resourceOffset + FOLIAGE_RESOURCE_WIDTH]  = columns;
+                this.foliageResources[resourceOffset + FOLIAGE_RESOURCE_HEIGHT] = rows;
 
                 count++;
             }

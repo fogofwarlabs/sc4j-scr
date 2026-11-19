@@ -3,6 +3,7 @@ package org.fogofwarlabs.sc4j.scr.data.format.mpq;
 import org.fogofwarlabs.sc4j.base.binary.LittleEndianUtils;
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.log.Logger;
+import org.fogofwarlabs.sc4j.scr.data.extension.ScrDataExtensionUtils;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,6 +54,14 @@ public final class MpqArchive {
      * The English (United States) locale identifier, the fallback game-language locale.
      */
     public static final int ENGLISH_LOCALE = 0x409;
+    /**
+     * The largest {@code staredit\scenario.chk} the native map list accepts; it skips a map whose scenario is larger.
+     */
+    public static final int NATIVE_MAXIMUM_SCENARIO_SIZE = 0x10000000;
+    /**
+     * The largest file size an array holds.
+     */
+    public static final int MAXIMUM_FILE_SIZE = Integer.MAX_VALUE - Long.BYTES;
 
     private static final long DWORD_MASK = 0xFFFFFFFFL;
     private static final @NotNull Logger LOGGER = Logger.of(MpqArchive.class);
@@ -99,14 +108,6 @@ public final class MpqArchive {
     private static final int BASE_SECTOR_SIZE = 0x200;
     private static final int SECTOR_SHIFT_MASK = 0x1F;
     private static final int COMPRESSION_FLAGS_MASK = 0xFF00;
-    /**
-     * The largest accepted {@code staredit\scenario.chk}: the map list skips a map whose scenario is larger.
-     */
-    private static final int MAXIMUM_SCENARIO_SIZE = 0x10000000;
-    /**
-     * The largest file size an array holds.
-     */
-    private static final int MAXIMUM_FILE_SIZE = Integer.MAX_VALUE - Long.BYTES;
     /**
      * The page size of the unbuffered retry read.
      */
@@ -964,7 +965,7 @@ public final class MpqArchive {
         int fileSize = this.blockEntries[entryOffset + BLOCK_FILE_SIZE_VALUE];
         int flags = this.blockEntries[entryOffset + BLOCK_FLAGS_VALUE];
 
-        if (fileName.equalsIgnoreCase(ChkFile.ARCHIVE_ENTRY) && Integer.compareUnsigned(fileSize, MAXIMUM_SCENARIO_SIZE) > 0) {
+        if (fileName.equalsIgnoreCase(ChkFile.ARCHIVE_ENTRY) && Integer.compareUnsigned(fileSize, ScrDataExtensionUtils.getMaximumScenarioSize()) > 0) {
             throw Exceptions.newIOException("The scenario size 0x{0} exceeds the map list limit: {1}", Integer.toHexString(fileSize), fileName);
         }
 

@@ -107,9 +107,9 @@ final class FogCellGridTest {
 
                     for (int cell = 0; cell < CELLS_PER_TILE; cell++) {
                         int level = Math.floorDiv(from * FIXED_ONE + cell * (to - from) * (FIXED_ONE / CELLS_PER_TILE), FIXED_ONE) & PLAYER_MASK;
+                        int cellIndex = (row * CELLS_PER_TILE + cellRow) * cellColumns + column * CELLS_PER_TILE + cell;
 
-                        cells[(row * CELLS_PER_TILE + cellRow) * cellColumns + column * CELLS_PER_TILE + cell] =
-                                calculateReferenceAlpha(Math.min(level, MAXIMUM_LEVEL), cap);
+                        cells[cellIndex] = calculateReferenceAlpha(Math.min(level, MAXIMUM_LEVEL), cap);
                     }
                 }
             }

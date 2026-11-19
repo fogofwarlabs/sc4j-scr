@@ -135,8 +135,9 @@ final class PlayerTechnologyTest {
 
         for (int player = 0; player < PlayerTable.PLAYER_SLOTS; player++) {
             for (int technologyIndex = 0; technologyIndex < PlayerTechnology.CLASSIC_TECHNOLOGY_COUNT; technologyIndex++) {
-                section[player * PlayerTechnology.CLASSIC_TECHNOLOGY_COUNT + technologyIndex] =
-                        (byte) (player == UNAVAILABLE_PLAYER && technologyIndex == UNAVAILABLE_TECHNOLOGY ? UNAVAILABLE : AVAILABLE);
+                int sectionIndex = player * PlayerTechnology.CLASSIC_TECHNOLOGY_COUNT + technologyIndex;
+
+                section[sectionIndex] = (byte) (player == UNAVAILABLE_PLAYER && technologyIndex == UNAVAILABLE_TECHNOLOGY ? UNAVAILABLE : AVAILABLE);
             }
         }
 

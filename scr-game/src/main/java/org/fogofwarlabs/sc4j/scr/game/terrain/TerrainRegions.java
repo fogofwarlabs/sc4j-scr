@@ -705,9 +705,10 @@ public final class TerrainRegions implements RegionGraph {
             this.neighboringComponentCounts[region] = data.get(entry + SAVED_COMPONENT_NEIGHBORS);
             this.zeroNeighborCounts[region]         = data.get(entry + SAVED_ZERO_NEIGHBORS);
 
+            int inlineNeighborStart = region * INLINE_NEIGHBOR_COUNT;
+
             for (int neighbor = 0; neighbor < INLINE_NEIGHBOR_COUNT; neighbor++) {
-                this.inlineNeighborRegions[region * INLINE_NEIGHBOR_COUNT + neighbor] =
-                        data.getShort(entry + SAVED_INLINE_NEIGHBORS + neighbor * Short.BYTES);
+                this.inlineNeighborRegions[inlineNeighborStart + neighbor] = data.getShort(entry + SAVED_INLINE_NEIGHBORS + neighbor * Short.BYTES);
             }
         }
 

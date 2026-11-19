@@ -14,11 +14,10 @@ import java.util.ServiceLoader;
  * class loader of {@link ScrNetworkExtension}, so a mod jar in its own class loader finds its own implementations.
  */
 public final class ScrNetworkExtensionUtils {
-    private static final @NotNull List<@NotNull ScrNetworkExtension> EXTENSIONS =
-            ServiceLoader.load(ScrNetworkExtension.class, ScrNetworkExtension.class.getClassLoader())
-                         .stream()
-                         .map(ServiceLoader.Provider::get)
-                         .toList();
+    private static final @NotNull List<@NotNull ScrNetworkExtension> EXTENSIONS = ServiceLoader.load(ScrNetworkExtension.class, ScrNetworkExtension.class.getClassLoader())
+                                                                                               .stream()
+                                                                                               .map(ServiceLoader.Provider::get)
+                                                                                               .toList();
 
     /**
      * Creates the map downloader of a lobby: the first one an extension creates ({@link ScrNetworkExtension#createMapDownloader}).

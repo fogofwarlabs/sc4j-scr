@@ -371,8 +371,8 @@ public final class GameSetup {
      * @return the created engine {@link org.fogofwarlabs.sc4j.engine.game.GameSetup} instance
      */
     public org.fogofwarlabs.sc4j.engine.game.@NotNull GameSetup createEngineSetup() {
-        org.fogofwarlabs.sc4j.engine.game.GameSetup.Builder setup =
-                new org.fogofwarlabs.sc4j.engine.game.GameSetup.Builder(new MapReference("", new byte[0]));
+        MapReference map = new MapReference("", new byte[0]);
+        org.fogofwarlabs.sc4j.engine.game.GameSetup.Builder setup = new org.fogofwarlabs.sc4j.engine.game.GameSetup.Builder(map);
 
         for (int slotIdentifier = 0; slotIdentifier < this.players.length; slotIdentifier++) {
             Player player = this.players[slotIdentifier];
