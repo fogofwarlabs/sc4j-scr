@@ -286,6 +286,16 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
+     * Finds the participant of the game that an address of the game names.
+     *
+     * @param address the address, as the provider session knows its peers
+     * @return the participant, or {@code null} if the address names no participant of the game
+     */
+    public synchronized @Nullable LinkParticipant findParticipant(@NotNull InetSocketAddress address) {
+        return this.book.findParticipant(address);
+    }
+
+    /**
      * Lists the games found on the network, except the one this client hosts.
      *
      * @return the games

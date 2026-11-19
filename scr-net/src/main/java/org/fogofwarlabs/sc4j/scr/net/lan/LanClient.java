@@ -15,6 +15,7 @@ import org.fogofwarlabs.sc4j.scr.game.trigger.ScrTriggerSystem;
 import org.fogofwarlabs.sc4j.scr.net.discovery.LanDiscovery;
 import org.fogofwarlabs.sc4j.scr.net.discovery.LanGameInformation;
 import org.fogofwarlabs.sc4j.scr.net.discovery.LanPresenceInformation;
+import org.fogofwarlabs.sc4j.scr.net.extension.ScrNetworkExtensionUtils;
 import org.fogofwarlabs.sc4j.scr.net.provider.ProviderPeer;
 import org.fogofwarlabs.sc4j.scr.net.provider.ProviderSession;
 import org.fogofwarlabs.sc4j.scr.net.proxy.GameProxySocket;
@@ -723,6 +724,7 @@ public final class LanClient implements AutoCloseable {
         // The lobby counts its slots, and the advertisement follows them.
         this.lobby = new LanLobby(created, LanClient::getCurrentTick, setup, this.playerName, new byte[LanLobby.PLAYER_BLOCK_SIZE]);
         this.lobby.setMapFolders(this.mapFolders);
+        this.lobby.setMapDownloader(ScrNetworkExtensionUtils.createMapDownloader(this, this.lobby));
         this.lobby.setTurnRate(this.turnRate);
         this.lobby.shareMap(map.getPath());
         this.advertise();
@@ -793,6 +795,7 @@ public final class LanClient implements AutoCloseable {
         // The lobby counts its slots, and the advertisement follows them.
         this.lobby = new LanLobby(created, LanClient::getCurrentTick, lobbySetup, this.playerName, new byte[LanLobby.PLAYER_BLOCK_SIZE]);
         this.lobby.setMapFolders(this.mapFolders);
+        this.lobby.setMapDownloader(ScrNetworkExtensionUtils.createMapDownloader(this, this.lobby));
         this.lobby.setTurnRate(this.turnRate);
         this.advertise();
 
@@ -905,6 +908,7 @@ public final class LanClient implements AutoCloseable {
                 }
 
                 this.lobby.setMapFolders(this.mapFolders);
+                this.lobby.setMapDownloader(ScrNetworkExtensionUtils.createMapDownloader(this, this.lobby));
 
                 LanGameInformation joined = this.getGameInformation();
 
@@ -1182,6 +1186,12 @@ public final class LanClient implements AutoCloseable {
 
 
     private void closeSession() {
+        LanLobby current = this.lobby;
+
+        if (current != null) {
+            current.closeMapDownloader();
+        }
+
         LanGameAdvertisement hosted = this.advertisement;
         LanGameInformation game = hosted == null ? null : hosted.getGameInformation();
 

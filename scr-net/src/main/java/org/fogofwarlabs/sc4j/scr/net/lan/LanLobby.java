@@ -2044,6 +2044,15 @@ public final class LanLobby implements GameLobby {
         this.mapTransfer.setFolders(folders);
     }
 
+    /**
+     * Sets the mod's downloader of the lobby's maps ({@link LanMapTransfer#setDownloader}); the lobby updates it with every update.
+     *
+     * @param downloader the downloader, or {@code null} for the transfer of message {@code 0x4f}
+     */
+    public void setMapDownloader(@Nullable LanMapDownloader downloader) {
+        this.mapTransfer.setDownloader(downloader);
+    }
+
 
     /**
      * Sets the started bit to refuse subsequent joins and queues the host's start command.
@@ -2376,6 +2385,12 @@ public final class LanLobby implements GameLobby {
      * Call it after {@link ProviderSession#update()}.
      */
     public void update() {
+        LanMapDownloader downloader = this.mapTransfer.getDownloader();
+
+        if (downloader != null) {
+            downloader.update();
+        }
+
         for (ProviderSession.Event event = this.session.pollEvent(); event != null; event = this.session.pollEvent()) {
             if (event.getType() == ProviderSession.EVENT_PLAYER_JOINED && this.host) {
                 this.sendGameSettings(event.getPlayerIdentifier());
@@ -2748,6 +2763,13 @@ public final class LanLobby implements GameLobby {
     public void closeMapTransfer() {
         this.mapTransfer.close(this.sharedMap);
         this.sharedMap = null;
+    }
+
+    /**
+     * Closes the mod's downloader of the lobby's maps, if any ({@link LanMapTransfer#closeDownloader}).
+     */
+    public void closeMapDownloader() {
+        this.mapTransfer.closeDownloader();
     }
 
     /**
