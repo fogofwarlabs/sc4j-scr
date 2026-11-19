@@ -47,6 +47,10 @@ public final class GameStructureView implements GameContextBytes {
      */
     public static final int TILESET_OFFSET = 0xEC;
     /**
+     * The offset of the console race byte.
+     */
+    public static final int CONSOLE_RACE_OFFSET = 0xF2;
+    /**
      * The offset of the player color index DWORDs, one per playable player.
      */
     public static final int PLAYER_COLORS_OFFSET = 0x12C;

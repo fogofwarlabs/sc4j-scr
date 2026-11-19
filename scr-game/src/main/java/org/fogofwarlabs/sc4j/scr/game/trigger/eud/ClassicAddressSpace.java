@@ -1038,6 +1038,8 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
             space.addAll(ClassicStormArchives.create(world.getGameContext().getCodeConstants().getStormArchives(), mapPath, mapFile, next));
         }
 
+        ClassicConsoleAreasUtils.fill(space, world.getGameContext().getContextStorage()[GameStructureView.CONSOLE_RACE_OFFSET]);
+
         // The map-dependent regions are complete with the trigger nodes when the archive list is built or not made at all.
         space.mapRegionsComplete = triggers != null && triggers.getExtendedDeathsMode() != 0 && (!archiveList || archivesKnown);
         space.archiveListAbsent  = !archiveList;

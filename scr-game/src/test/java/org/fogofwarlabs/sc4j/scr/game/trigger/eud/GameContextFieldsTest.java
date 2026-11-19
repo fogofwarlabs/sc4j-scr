@@ -172,4 +172,22 @@ final class GameContextFieldsTest {
         Assertions.assertEquals(RANDOM_SEED, world.getRandom().getState());
         Assertions.assertEquals(0, world.getRandom().getTotalRandomCounts());
     }
+
+    @ParameterizedTest
+    @CsvSource({"false,2", "true,1"})
+    void snapshot_stores_the_console_race_of_the_local_player_or_terran_for_a_replay(boolean replay, int consoleRace) {
+        Game world = createGame();
+        byte[] lobbyTypes = new byte[PlayerTable.PLAYABLE_PLAYER_SLOTS];
+        byte[] lobbyRaces = new byte[PlayerTable.PLAYABLE_PLAYER_SLOTS];
+
+        Arrays.fill(lobbyTypes, (byte) PlayerTypes.HUMAN);
+        Arrays.fill(lobbyRaces, (byte) ScrRaceIds.ZERG);
+        lobbyRaces[LOBBY_SLOT] = (byte) ScrRaceIds.PROTOSS;
+        world.getGameContext().setLobby(LOBBY_SLOT, lobbyTypes, lobbyRaces);
+        world.setReplayPlayback(replay);
+
+        GameContextFields fields = new GameContextFields(world, LOCAL_PLAYER);
+
+        Assertions.assertEquals(consoleRace, fields.readByte(GameStructureView.CONSOLE_RACE_OFFSET));
+    }
 }
