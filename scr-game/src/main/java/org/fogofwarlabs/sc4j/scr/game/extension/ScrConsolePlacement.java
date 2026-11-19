@@ -3,11 +3,16 @@ package org.fogofwarlabs.sc4j.scr.game.extension;
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
- * How a plugin places the console of a classic screen: the top-left corners of console dialogs moved in the classic screen, the dialogs not shown,
- * the mask of the pixels where the console is shown, and the pictures the dialogs show over it ({@link #getSurfaces()}). A dialog that is neither
- * moved nor hidden keeps its place; without a mask the whole console is shown. The change count grows with every move, every hidden dialog and
- * every mask change.
+ * How a plugin places the console of a classic screen: the top-left corners of console dialogs and of their controls moved in the classic screen,
+ * the dialogs and controls not shown, the mask of the pixels where the console and its dialogs are shown, and the pictures the dialogs show over it
+ * ({@link #getSurfaces()}). A dialog or control that is neither moved nor hidden keeps its place in its dialog; a control is named by its
+ * identifier in the dialog's definition. Without a mask the whole console is shown. The change count grows with every move, every hidden dialog or
+ * control and every mask change.
  */
 public final class ScrConsolePlacement {
     /**
@@ -37,23 +42,48 @@ public final class ScrConsolePlacement {
         /**
          * The menu button.
          */
-        MENU
+        MENU,
+        /**
+         * The text box of the chat.
+         */
+        TEXT_BOX
+    }
+
+    /**
+     * The place of one control: moved to a corner, hidden, or both.
+     */
+    private static final class ControlPlace {
+        private boolean moved;
+        private boolean hidden;
+        private int left;
+        private int top;
+
+        /**
+         * Creates a {@link ControlPlace} instance that is neither moved nor hidden.
+         */
+        private ControlPlace() {
+            this.moved  = false;
+            this.hidden = false;
+            this.left   = 0;
+            this.top    = 0;
+        }
     }
 
     private final int width;
     private final int height;
+    private final @NotNull ScrScreenOverlay surfaces;
     private final boolean @NotNull [] moved;
     private final boolean @NotNull [] hidden;
     private final int @NotNull [] lefts;
     private final int @NotNull [] tops;
     private final boolean @NotNull [] mask;
-    private final @NotNull ScrScreenOverlay surfaces;
+    private final @NotNull Map<Dialog, Map<Integer, ControlPlace>> controls;
 
     private boolean masked;
     private long changeCount;
 
     /**
-     * Creates a {@link ScrConsolePlacement} instance with no moved dialog, no mask and no surface pixel.
+     * Creates a {@link ScrConsolePlacement} instance with no moved dialog or control, no mask and no surface pixel.
      *
      * @param width  the screen width in pixels
      * @param height the screen height in pixels
@@ -68,6 +98,7 @@ public final class ScrConsolePlacement {
         this.lefts    = new int[Dialog.values().length];
         this.tops     = new int[Dialog.values().length];
         this.mask     = new boolean[width * height];
+        this.controls = new EnumMap<>(Dialog.class);
 
         this.masked      = false;
         this.changeCount = 0;
@@ -88,7 +119,7 @@ public final class ScrConsolePlacement {
     }
 
     /**
-     * @return the number of dialog moves and mask changes so far
+     * @return the number of dialog and control moves, hidden dialogs and controls and mask changes so far
      */
     public long getChangeCount() {
         return this.changeCount;
@@ -133,7 +164,7 @@ public final class ScrConsolePlacement {
 
     /**
      * @param dialog the dialog
-     * @return whether the dialog is hidden
+     * @return {@code true} if the dialog is hidden, {@code false} otherwise
      */
     public boolean isDialogHidden(@NotNull Dialog dialog) {
         return this.hidden[dialog.ordinal()];
@@ -141,7 +172,7 @@ public final class ScrConsolePlacement {
 
     /**
      * @param dialog the dialog
-     * @return whether the dialog is moved; a hidden dialog may be moved too
+     * @return {@code true} if the dialog is moved, a hidden dialog included, {@code false} otherwise
      */
     public boolean isDialogMoved(@NotNull Dialog dialog) {
         return this.moved[dialog.ordinal()];
@@ -170,7 +201,96 @@ public final class ScrConsolePlacement {
     }
 
     /**
-     * @return whether the console is shown only where the mask shows it
+     * Moves a control of a dialog and shows it.
+     *
+     * @param dialog  the dialog
+     * @param control the control identifier
+     * @param left    the screen column of its left edge
+     * @param top     the screen row of its top edge
+     */
+    public void moveControl(@NotNull Dialog dialog, int control, int left, int top) {
+        ControlPlace place = this.placeControl(dialog, control);
+
+        if (place.moved && !place.hidden && place.left == left && place.top == top) {
+            return;
+        }
+
+        place.moved  = true;
+        place.hidden = false;
+        place.left   = left;
+        place.top    = top;
+        this.changeCount++;
+    }
+
+    /**
+     * Hides a control of a dialog: it is neither drawn nor hit.
+     *
+     * @param dialog  the dialog
+     * @param control the control identifier
+     */
+    public void hideControl(@NotNull Dialog dialog, int control) {
+        ControlPlace place = this.placeControl(dialog, control);
+
+        if (place.hidden) {
+            return;
+        }
+
+        place.hidden = true;
+        this.changeCount++;
+    }
+
+    /**
+     * @param dialog the dialog
+     * @return the identifiers of the dialog's moved or hidden controls, in the order they were first placed
+     */
+    public int @NotNull [] getPlacedControls(@NotNull Dialog dialog) {
+        return this.controls.getOrDefault(dialog, Map.of()).keySet().stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
+     * @param dialog  the dialog
+     * @param control the control identifier
+     * @return {@code true} if the control is hidden, {@code false} otherwise
+     */
+    public boolean isControlHidden(@NotNull Dialog dialog, int control) {
+        ControlPlace place = this.controls.getOrDefault(dialog, Map.of()).get(control);
+
+        return place != null && place.hidden;
+    }
+
+    /**
+     * @param dialog  the dialog
+     * @param control the control identifier
+     * @return {@code true} if the control is moved, a hidden control included, {@code false} otherwise
+     */
+    public boolean isControlMoved(@NotNull Dialog dialog, int control) {
+        ControlPlace place = this.controls.getOrDefault(dialog, Map.of()).get(control);
+
+        return place != null && place.moved;
+    }
+
+    /**
+     * @param dialog  the dialog
+     * @param control the identifier of a moved control
+     * @return the screen column of its left edge
+     * @throws IllegalStateException if the control is not moved
+     */
+    public int getControlLeft(@NotNull Dialog dialog, int control) {
+        return this.requireMoved(dialog, control).left;
+    }
+
+    /**
+     * @param dialog  the dialog
+     * @param control the identifier of a moved control
+     * @return the screen row of its top edge
+     * @throws IllegalStateException if the control is not moved
+     */
+    public int getControlTop(@NotNull Dialog dialog, int control) {
+        return this.requireMoved(dialog, control).top;
+    }
+
+    /**
+     * @return {@code true} if the console is shown only where the mask shows it, {@code false} otherwise
      */
     public boolean isMasked() {
         return this.masked;
@@ -217,5 +337,19 @@ public final class ScrConsolePlacement {
         if (!this.moved[dialog.ordinal()]) {
             throw Exceptions.newIllegalStateException("The dialog {0} is not moved.", dialog);
         }
+    }
+
+    private @NotNull ControlPlace placeControl(@NotNull Dialog dialog, int control) {
+        return this.controls.computeIfAbsent(dialog, key -> new LinkedHashMap<>()).computeIfAbsent(control, identifier -> new ControlPlace());
+    }
+
+    private @NotNull ControlPlace requireMoved(@NotNull Dialog dialog, int control) {
+        ControlPlace place = this.controls.getOrDefault(dialog, Map.of()).get(control);
+
+        if (place == null || !place.moved) {
+            throw Exceptions.newIllegalStateException("The control {0} of the dialog {1} is not moved.", control, dialog);
+        }
+
+        return place;
     }
 }

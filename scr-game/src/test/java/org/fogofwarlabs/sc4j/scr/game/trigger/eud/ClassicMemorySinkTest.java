@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Checks that a memory source serves memory only where the SC:R mod serves no game state: it replaces whole emulation storage regions, unbound
- * buffers among them, and covers addresses without a native region, it is refused over game state, part of an emulation storage region, native memory without a region and the
- * map-dependent range, and its bytes enter the state hash.
+ * buffers among them, and covers addresses without a native region; it is refused over game state, part of an emulation storage region, native
+ * memory without a region and the map-dependent range; and its bytes enter the state hash.
  */
 final class ClassicMemorySinkTest {
     /**
@@ -33,6 +33,15 @@ final class ClassicMemorySinkTest {
      */
     private static final int UNBOUND_BUFFER = 0xE770B0;
     private static final int UNBOUND_SIZE = 0x12DA;
+    /**
+     * The first node of a node list and its size.
+     */
+    private static final int FIRST_NODE = 0x0082F280;
+    private static final int NODE_SIZE = 0x31A;
+    /**
+     * The offset of the buffer address in a node.
+     */
+    private static final int NODE_BUFFER = 0x10;
     private static final int VALUE = 0x12345678;
     private static final int HASH_SEED = 7;
 
@@ -77,6 +86,29 @@ final class ClassicMemorySinkTest {
 
         Assertions.assertEquals(VALUE, space.readDword(UNBOUND_BUFFER));
         Assertions.assertEquals(VALUE, space.readDword(UNBOUND_BUFFER + UNBOUND_SIZE));
+    }
+
+    @Test
+    void a_provided_region_replaces_a_node_and_keeps_what_the_sink_read_from_it() {
+        ClassicAddressSpace space = new ClassicAddressSpace();
+
+        space.addAll(ClassicDynamicRegionsUtils.create(null));
+
+        ClassicMemorySink sink = new ClassicMemorySink(space);
+        byte[] node = new byte[NODE_SIZE];
+
+        Assertions.assertTrue(space.findRegion(FIRST_NODE).isEmulatorStorage());
+        Assertions.assertEquals(NODE_SIZE, sink.read(FIRST_NODE, node, 0, node.length));
+        Assertions.assertEquals(0, sink.read(NATIVE_GAP, node, 0, Integer.BYTES));
+
+        int buffer = space.readDword(FIRST_NODE + NODE_BUFFER);
+
+        sink.add(new ClassicStorageRegion(FIRST_NODE, node));
+        space.writeDword(FIRST_NODE + Integer.BYTES, VALUE);
+
+        Assertions.assertNotEquals(0, buffer);
+        Assertions.assertEquals(buffer, space.readDword(FIRST_NODE + NODE_BUFFER));
+        Assertions.assertEquals(VALUE, space.readDword(FIRST_NODE + Integer.BYTES));
     }
 
     @Test

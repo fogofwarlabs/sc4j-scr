@@ -4595,15 +4595,7 @@ public final class Main {
 
             ClientCamera camera = this.requireSession().getCamera();
 
-            if (this.sdInterfaceFramebuffer != 0) {
-                this.getInterfaceRenderer().begin(this.sdInterfaceFramebuffer, this.sdInterfaceWidth, this.sdInterfaceHeight,
-                                                  this.framebufferWidth, this.framebufferHeight);
-            } else {
-                this.getInterfaceRenderer().begin(this.framebufferWidth, this.framebufferHeight);
-            }
-
-            this.getInterfaceRenderer().setClip(Math.round(this.gameViewport.getGameLeft()), 0,
-                                                Math.round(this.gameViewport.getGameWidth()), this.viewHeight);
+            this.beginConsoleTarget();
 
             if (this.debugView) {
                 this.debugOverlay.draw(this.requireSession().getView(), this.getInterfaceRenderer(), new DebugOverlay.View() {
@@ -4666,6 +4658,7 @@ public final class Main {
 
             if (!plugins || !gameView.isConsoleHidden()) {
                 this.consoleView.setPlacement(placement);
+                this.consoleView.setTargetResumer(this::beginConsoleTarget);
                 this.consoleView.draw(this.consoleModel, this.gameViewport, camera);
 
                 if (placement != null) {
@@ -4684,6 +4677,21 @@ public final class Main {
         } catch (IOException | RuntimeException exception) {
             this.setAssetWarning("Console: " + exception);
         }
+    }
+
+    /**
+     * Begins the interface drawing of the console: into the SD interface layer while one is drawn, else over the window, limited to the game screen.
+     */
+    private void beginConsoleTarget() {
+        if (this.sdInterfaceFramebuffer != 0) {
+            this.getInterfaceRenderer().begin(this.sdInterfaceFramebuffer, this.sdInterfaceWidth, this.sdInterfaceHeight,
+                                              this.framebufferWidth, this.framebufferHeight);
+        } else {
+            this.getInterfaceRenderer().begin(this.framebufferWidth, this.framebufferHeight);
+        }
+
+        this.getInterfaceRenderer().setClip(Math.round(this.gameViewport.getGameLeft()), 0,
+                                            Math.round(this.gameViewport.getGameWidth()), this.viewHeight);
     }
 
     /**

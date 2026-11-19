@@ -9,8 +9,8 @@ import org.jetbrains.annotations.NotNull;
  * <p>
  * A source serves memory only where the SC:R mod serves no game state ({@link ClassicMemorySink#add}): over addresses no region serves and that
  * have no native region either, where an access fails the game, and over regions of the emulation's own storage
- * ({@link ClassicRegion#isEmulatorStorage()}), which hold zero or a write-protected value. Every address a game state region serves stays as it
- * is, so a map that runs without the source runs the same with it.
+ * ({@link ClassicRegion#isEmulatorStorage()}), which hold zero, a write-protected value or the emulation's own bytes and no state of the game.
+ * Every address a game state region serves stays as it is.
  */
 public interface ClassicMemorySource {
     /**

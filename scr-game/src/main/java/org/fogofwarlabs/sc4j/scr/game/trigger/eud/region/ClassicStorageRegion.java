@@ -185,6 +185,17 @@ public final class ClassicStorageRegion implements ClassicRegion {
     }
 
     /**
+     * Creates a {@link ClassicStorageRegion} instance of the emulation's own storage ({@link #isEmulatorStorage()}) over the given storage.
+     *
+     * @param base    the classic base
+     * @param storage the bytes the region serves, retained (writes change them)
+     * @return the created {@link ClassicStorageRegion} instance
+     */
+    public static @NotNull ClassicStorageRegion createEmulatorStorageRegion(int base, byte @NotNull [] storage) {
+        return new ClassicStorageRegion(base, storage, false, true);
+    }
+
+    /**
      * Creates {@link ClassicRegion} instances for the 4-byte self regions of the emulation's container objects (element-pointer arrays and entry
      * tables): the base is a dummy allocation and the host the object's own zeroed QWORD; nothing else writes it.
      *

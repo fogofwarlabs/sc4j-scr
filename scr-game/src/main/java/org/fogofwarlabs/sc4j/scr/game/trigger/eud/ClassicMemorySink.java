@@ -30,4 +30,17 @@ public final class ClassicMemorySink {
     public void add(@NotNull ClassicRegion region) {
         this.space.provide(region);
     }
+
+    /**
+     * Reads bytes the address space serves, regions added so far included, without failing the game.
+     *
+     * @param address     the classic address of the first byte
+     * @param destination the receiving array
+     * @param offset      the first index written
+     * @param length      the number of bytes
+     * @return the number of bytes read, {@code length} unless the read stopped at an address no region serves
+     */
+    public int read(int address, byte @NotNull [] destination, int offset, int length) {
+        return new ClassicMemoryView(this.space).read(address, destination, offset, length);
+    }
 }

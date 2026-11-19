@@ -113,13 +113,12 @@ public final class ConsoleView implements AutoCloseable {
     public static final int MINIMAP_PIXEL_SCALE_INDEX = 6;
 
     /**
-     * The console dialogs a placement moves, in the order of {@link ConsoleLayout#createMovedLayout}, and the number of their offsets.
+     * The console dialogs a placement moves, in the order of {@link ConsoleLayout#createPlacedLayout}.
      */
     private static final ScrConsolePlacement.Dialog @NotNull [] PLACED_DIALOGS = {
             ScrConsolePlacement.Dialog.COMMAND_CARD, ScrConsolePlacement.Dialog.SELECTION, ScrConsolePlacement.Dialog.RESOURCES,
             ScrConsolePlacement.Dialog.PORTRAIT, ScrConsolePlacement.Dialog.MINIMAP, ScrConsolePlacement.Dialog.MENU
     };
-    private static final int PLACED_OFFSET_COUNT = 2 * PLACED_DIALOGS.length;
     /**
      * The bytes of an RGBA pixel and the index of its alpha byte.
      */
@@ -769,11 +768,25 @@ public final class ConsoleView implements AutoCloseable {
      */
     private @Nullable ConsoleLayout hdLayout;
     /**
-     * The layout with the placement's dialog moves, the layout it was moved from and the dialog offsets it applies.
+     * The layout with the placement's dialog and control moves, the layout it was moved from, the placement and its change count.
      */
     private @Nullable ConsoleLayout placedLayout;
     private @Nullable ConsoleLayout placedBase;
-    private final float @NotNull [] placedOffsets;
+    private @Nullable ScrConsolePlacement placedFrom;
+    private long placedChange;
+    /**
+     * The text box placed by the placement, the text box it was placed from, the interface width and the placement change count.
+     */
+    private @Nullable DialogLayout placedTextBox;
+    private @Nullable DialogLayout placedTextBoxBase;
+    private float placedTextBoxWidth;
+    private long placedTextBoxChange;
+    /**
+     * The layer that draws the console dialogs through the placement's mask, and what begins the drawing into the target again
+     * ({@link #setTargetResumer}).
+     */
+    private final @NotNull ConsoleMaskLayer maskLayer;
+    private @Nullable Runnable targetResumer;
     /**
      * The standard-definition console art drawn through the placement's mask, its race, its texture and the placement change count of its texels.
      */
@@ -977,7 +990,14 @@ public final class ConsoleView implements AutoCloseable {
         this.hdLayout              = null;
         this.placedLayout          = null;
         this.placedBase            = null;
-        this.placedOffsets         = new float[PLACED_OFFSET_COUNT];
+        this.placedFrom            = null;
+        this.placedChange          = -1;
+        this.placedTextBox         = null;
+        this.placedTextBoxBase     = null;
+        this.placedTextBoxWidth    = -1;
+        this.placedTextBoxChange   = -1;
+        this.maskLayer             = new ConsoleMaskLayer();
+        this.targetResumer         = null;
         this.maskedArt             = null;
         this.maskedArtRace         = -1;
         this.maskedArtTexture      = 0;
@@ -1163,13 +1183,23 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
-     * Sets how the game's plugins place the console: the dialogs it moves are drawn and hit at their moved places, and with a mask the console
-     * art is drawn and hit only where the mask shows it.
+     * Sets how the game's plugins place the console: the dialogs and controls it moves, the text box included, are drawn and hit at their moved
+     * places, and with a mask the console art and the console dialogs are drawn, and the console art hit, only where the mask shows them.
      *
      * @param placement the placement, or {@code null} for the installed console
      */
     public void setPlacement(@Nullable ScrConsolePlacement placement) {
         this.placement = placement;
+    }
+
+    /**
+     * Sets what begins the drawing into the frame's target again, its clip included, after the console dialogs were drawn into the mask layer.
+     * Without it the dialogs are drawn unmasked.
+     *
+     * @param resumer begins the drawing into the target, or {@code null}
+     */
+    public void setTargetResumer(@Nullable Runnable resumer) {
+        this.targetResumer = resumer;
     }
 
     /**
@@ -1398,7 +1428,7 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     private @NotNull ConsoleDialog getTextBoxDialog(@NotNull ConsoleLayout console) throws IOException {
-        DialogLayout placed = this.placePopup(this.getTextBoxLayout(), console);
+        DialogLayout placed = this.placeTextBox(this.getTextBoxLayout(), console);
         ConsoleDialog textBox = this.textBox;
 
         if (textBox == null || textBox.getLayout() != placed) {
@@ -2026,15 +2056,37 @@ public final class ConsoleView implements AutoCloseable {
             }
         }
 
-        this.drawGameTimer(model, console, loaded);
-        this.drawApm(console, loaded);
-        this.drawLeaderboard(model, viewport, loaded);
-        this.drawMinimap(model, console, loaded, viewLeft, viewTop, viewWidth, viewHeight);
-        this.drawResources(model, console, viewport, loaded);
-        this.drawCountdown(model, console, viewport);
-        this.drawSelection(model, console, loaded);
-        this.drawPortrait(model, console);
-        this.drawConsoleButtons(console, loaded);
+        Runnable resumer = this.targetResumer;
+        boolean layered = shownPlacement != null && shownPlacement.isMasked() && resumer != null;
+
+        if (layered) {
+            this.drawLeaderboard(model, viewport, loaded);
+            this.maskLayer.begin(this.renderer);
+        }
+
+        try {
+            this.drawGameTimer(model, console, loaded);
+            this.drawApm(console, loaded);
+
+            if (!layered) {
+                this.drawLeaderboard(model, viewport, loaded);
+            }
+
+            this.drawMinimap(model, console, loaded, viewLeft, viewTop, viewWidth, viewHeight);
+            this.drawResources(model, console, viewport, loaded);
+            this.drawCountdown(model, console, viewport);
+            this.drawSelection(model, console, loaded);
+            this.drawPortrait(model, console);
+            this.drawConsoleButtons(console, loaded);
+
+            if (layered) {
+                this.drawCommandCard(model, console, loaded);
+            }
+        } finally {
+            if (layered) {
+                this.maskLayer.end(this.renderer, resumer, console, shownPlacement);
+            }
+        }
 
         if (this.visionDialog.isOpen()) {
             this.drawVisionDialog(console, loaded);
@@ -2048,7 +2100,10 @@ public final class ConsoleView implements AutoCloseable {
             this.drawMessagingDialog(console, loaded);
         }
 
-        this.drawCommandCard(model, console, loaded);
+        if (!layered) {
+            this.drawCommandCard(model, console, loaded);
+        }
+
         this.drawMessages(console);
         this.updateTooltip(model, console);
         this.tooltip.draw(console);
@@ -5042,11 +5097,11 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
-     * Moves the dialogs of a layout to the places the placement gives them, in the classic screen centered in the interface width, and the hidden
-     * dialogs out of the interface.
+     * Moves the dialogs of a layout and their controls to the places the placement gives them, in the classic screen centered in the interface
+     * width, and the hidden dialogs and controls out of the interface.
      *
      * @param base the layout of the interface width
-     * @return the layout with the dialogs moved, the same layout while the moves are unchanged, or {@code base} without a moved dialog
+     * @return the layout with the dialogs placed, the same layout while the placement is unchanged, or {@code base} without a placed dialog
      */
     private @NotNull ConsoleLayout placeDialogs(@NotNull ConsoleLayout base) {
         ScrConsolePlacement shownPlacement = this.placement;
@@ -5055,40 +5110,101 @@ public final class ConsoleView implements AutoCloseable {
             return base;
         }
 
-        int center = InterfaceTransform.getCenteredDialogLeft(base.getInterfaceWidth());
+        if (this.placedLayout != null && this.placedBase == base && this.placedFrom == shownPlacement &&
+            this.placedChange == shownPlacement.getChangeCount()) {
+            return this.placedLayout;
+        }
+
         DialogLayout[] dialogs = {base.getCommandButtons(), base.getSelectionPanel(), base.getResources(), base.getPortrait(), base.getMinimap(),
                                   base.getMenu()};
-        float[] offsets = new float[PLACED_OFFSET_COUNT];
-        boolean moved = false;
+        boolean placed = false;
 
         for (int index = 0; index < dialogs.length; index++) {
-            ScrConsolePlacement.Dialog dialog = PLACED_DIALOGS[index];
+            DialogLayout dialog = placeDialog(dialogs[index], PLACED_DIALOGS[index], shownPlacement, base.getInterfaceWidth());
 
-            if (shownPlacement.isDialogHidden(dialog)) {
-                // A hidden dialog moves past the interface's right edge, where it is neither drawn nor hit.
-                offsets[index * 2] = base.getInterfaceWidth() - dialogs[index].getX();
-                moved              = true;
-            } else if (shownPlacement.isDialogMoved(dialog)) {
-                offsets[index * 2]     = shownPlacement.getDialogLeft(dialog) + center - dialogs[index].getX();
-                offsets[index * 2 + 1] = shownPlacement.getDialogTop(dialog) - dialogs[index].getY();
-                moved                  = true;
-            }
+            placed |= dialog != dialogs[index];
+            dialogs[index] = dialog;
         }
 
-        if (!moved) {
-            return base;
-        }
-
-        if (this.placedLayout == null || this.placedBase != base || !Arrays.equals(offsets, this.placedOffsets)) {
-            this.placedLayout = base.createMovedLayout(base.getInterfaceWidth(), base.getConsoleTop(), offsets[0], offsets[1], offsets[2], offsets[3],
-                                                       offsets[4], offsets[5], offsets[6], offsets[7], offsets[8], offsets[9], offsets[10],
-                                                       offsets[11]);
-            this.placedBase   = base;
-
-            System.arraycopy(offsets, 0, this.placedOffsets, 0, offsets.length);
-        }
+        this.placedLayout = placed ? base.createPlacedLayout(dialogs[0], dialogs[1], dialogs[2], dialogs[3], dialogs[4], dialogs[5]) : base;
+        this.placedBase   = base;
+        this.placedFrom   = shownPlacement;
+        this.placedChange = shownPlacement.getChangeCount();
 
         return this.placedLayout;
+    }
+
+    /**
+     * Places the text box where the placement moves it, in the classic screen centered in the interface width, or as a popup.
+     *
+     * @param textBox the installed text box
+     * @param console the console layout
+     * @return the placed text box, the same layout while its placement is unchanged
+     */
+    private @NotNull DialogLayout placeTextBox(@NotNull DialogLayout textBox, @NotNull ConsoleLayout console) {
+        ScrConsolePlacement shownPlacement = this.placement;
+        ScrConsolePlacement.Dialog dialog = ScrConsolePlacement.Dialog.TEXT_BOX;
+
+        if (shownPlacement == null || !shownPlacement.isDialogMoved(dialog) && !shownPlacement.isDialogHidden(dialog) &&
+                                      shownPlacement.getPlacedControls(dialog).length == 0) {
+            return this.placePopup(textBox, console);
+        }
+
+        if (this.placedTextBox == null || this.placedTextBoxBase != textBox || this.placedTextBoxWidth != console.getInterfaceWidth() ||
+            this.placedTextBoxChange != shownPlacement.getChangeCount()) {
+            this.placedTextBox       = placeDialog(textBox, dialog, shownPlacement, console.getInterfaceWidth());
+            this.placedTextBoxBase   = textBox;
+            this.placedTextBoxWidth  = console.getInterfaceWidth();
+            this.placedTextBoxChange = shownPlacement.getChangeCount();
+        }
+
+        return this.placedTextBox;
+    }
+
+    /**
+     * Places one dialog and its controls: a moved dialog or control at its place in the classic screen centered in the interface width, a hidden one
+     * past the interface's right edge, where it is neither drawn nor hit; the controls of a hidden dialog are hidden with it.
+     *
+     * @param layout         the dialog
+     * @param dialog         the dialog's name in the placement
+     * @param placement      the placement
+     * @param interfaceWidth the interface width
+     * @return the placed dialog, or {@code layout} when neither it nor a control of it is placed
+     */
+    private static @NotNull DialogLayout placeDialog(@NotNull DialogLayout layout,
+                                                     ScrConsolePlacement.@NotNull Dialog dialog,
+                                                     @NotNull ScrConsolePlacement placement,
+                                                     float interfaceWidth) {
+        int center = InterfaceTransform.getCenteredDialogLeft(interfaceWidth);
+        int hiddenLeft = (int) Math.ceil(interfaceWidth);
+        int[] controls = placement.getPlacedControls(dialog);
+        int left = layout.getX();
+        int top = layout.getY();
+
+        if (placement.isDialogHidden(dialog)) {
+            return layout.createPlacedLayout(hiddenLeft, top, identifier -> null);
+        }
+
+        if (placement.isDialogMoved(dialog)) {
+            left = placement.getDialogLeft(dialog) + center;
+            top  = placement.getDialogTop(dialog);
+        } else if (controls.length == 0) {
+            return layout;
+        }
+
+        int dialogTop = top;
+
+        return layout.createPlacedLayout(left, top, identifier -> {
+            if (placement.isControlHidden(dialog, identifier)) {
+                return new int[]{hiddenLeft, dialogTop};
+            }
+
+            if (placement.isControlMoved(dialog, identifier)) {
+                return new int[]{placement.getControlLeft(dialog, identifier) + center, placement.getControlTop(dialog, identifier)};
+            }
+
+            return null;
+        });
     }
 
     /**
@@ -5166,6 +5282,10 @@ public final class ConsoleView implements AutoCloseable {
                     () -> this.renderer.deleteTexture(this.maskedArtTexture)
             );
         }
+
+        IgnoreException.execute(
+                this.maskLayer::release
+        );
 
         this.consoleTexture   = 0;
         this.maskedArtTexture = 0;
