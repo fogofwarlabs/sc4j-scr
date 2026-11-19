@@ -829,7 +829,13 @@ public final class BeaconLinkProvider implements NetworkProvider {
             LinkParticipant participant = member.getKey();
             InetSocketAddress current = this.book.findAddress(participant);
 
-            if (participant.equals(self) || participant.equals(host) || member.getValue().equals(current)) {
+            if (participant.equals(self) || participant.equals(host)) {
+                continue;
+            }
+
+            if (member.getValue().equals(current)) {
+                this.reopenChannel(participant);
+
                 continue;
             }
 
@@ -838,6 +844,26 @@ public final class BeaconLinkProvider implements NetworkProvider {
             } else if (!this.book.put(participant, member.getValue())) {
                 LOGGER.warning("BEACON.LINK MEMBER ADDRESS IGNORED: " + participant + " at " + member.getValue());
             }
+        }
+    }
+
+    /**
+     * Opens a new channel to a member whose channel closed.
+     *
+     * @param participant the member
+     */
+    private void reopenChannel(@NotNull LinkParticipant participant) {
+        ParticipantChannel channel = this.session.getOverlay().getChannel(participant);
+
+        if (channel != null && channel.getState() != ChannelState.CLOSED) {
+            return;
+        }
+
+        try {
+            // noinspection resource
+            this.session.getOverlay().addParticipant(participant);
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            LOGGER.warning("BEACON.LINK CHANNEL NOT REOPENED: " + participant + ": " + exception.getMessage());
         }
     }
 
