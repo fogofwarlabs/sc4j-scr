@@ -23,7 +23,7 @@ final class LaunchHelpUtils {
         System.out.println("--environment-effects on|off sets SC:R's Environment Effects, the HD foliage (graphics.environmentEffects, default on).");
         System.out.println("--smooth-turning on|off sets SC:R's Smooth Unit Turning (graphics.smoothTurning, default on):" +
                            " off draws HD units in the classic direction steps.");
-        System.out.println("--vsync on|off|adaptive waits for the display refresh (SC:R VSync; default on, hidden windows never wait);" +
+        System.out.println("--vsync on|off|adaptive waits for the display refresh (SC:R VSync; default off, hidden windows never wait);" +
                            " --max-fps N limits the frame rate (SC:R FPSLimit; 0 = no limit, the default). Game speed does not depend on either.");
         System.out.println("--audio remastered|classic selects the sound set (sound/ or SD/sound/), independent of the renderer;" +
                            " the default is remastered.");
