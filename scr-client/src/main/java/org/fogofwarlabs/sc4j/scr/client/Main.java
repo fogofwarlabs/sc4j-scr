@@ -402,6 +402,10 @@ public final class Main {
     private static final int UPLOAD_WINDOW_HEIGHT = 1;
 
     private static final double MAXIMUM_INPUT_DELTA_SECONDS = 0.1;
+    /**
+     * The most interface ticks one pass runs; a longer pause between passes drops the remaining ticks.
+     */
+    private static final int MAXIMUM_INTERFACE_TICKS = 4;
     private static final double ICONIFIED_WINDOW_WAIT_SECONDS = 0.05;
     private static final int LAUNCH_COMMAND_READY_FRAME = 5;
 
@@ -1038,9 +1042,9 @@ public final class Main {
     private @Nullable SoundTable soundTable;
 
     /**
-     * Whether this pass permits an interface scroll tick.
+     * The interface scroll ticks this pass runs.
      */
-    private boolean interfaceTickDue;
+    private int interfaceTicksDue;
 
     /**
      * The SD interface layer being drawn ({@link #drawSdInterface}), or {@code 0}.
@@ -1366,7 +1370,7 @@ public final class Main {
 
         this.soundTable = null;
 
-        this.interfaceTickDue = false;
+        this.interfaceTicksDue = 0;
 
         this.sdInterfaceFramebuffer = 0;
         this.sdInterfaceWidth       = 0;
@@ -2154,10 +2158,12 @@ public final class Main {
         this.refreshPointer();
         this.advanceInputScript();
 
-        this.interfaceTickDue = this.session != null &&
-                                this.requireSession().getPresentation().getInterfaceLink().getLocalInterface().advanceInterfaceTick(
-                                        (int) UiClockUtils.getHostTimeMilliseconds()
-                                );
+        this.interfaceTicksDue = this.session == null
+                                 ? 0
+                                 : this.requireSession().getPresentation().getInterfaceLink().getLocalInterface().advanceInterfaceTicks(
+                                         (int) UiClockUtils.getHostTimeMilliseconds(),
+                                         MAXIMUM_INTERFACE_TICKS
+                                 );
         this.applyWindowMode();
         // A live game with a short override frame draws at the throttle's interval, never more often than the user's frame rate limit, and never
         // waits for the display or the host's pacing.
@@ -2949,7 +2955,7 @@ public final class Main {
         // The client's animated zoom (wheel zoom, /zoom) advances on real time before the scroll reads the camera.
         this.requireSession().getCamera().advanceZoom(elapsedSeconds);
 
-        if (this.interfaceTickDue) {
+        for (int tick = 0; tick < this.interfaceTicksDue; tick++) {
             this.tickCameraScroll();
         }
 
@@ -3033,7 +3039,7 @@ public final class Main {
             this.renderer.setPaletteColors(cycledPalette);
         }
 
-        if (this.interfaceTickDue && this.centerViewScroll.isActive() && !this.isSinglePlayerPaused()) {
+        for (int tick = 0; tick < this.interfaceTicksDue && this.centerViewScroll.isActive() && !this.isSinglePlayerPaused(); tick++) {
             this.tickCenterView();
         }
 
