@@ -648,8 +648,9 @@ public final class InterfaceText {
             }
 
             shifts[shift++] = jump;
-                              pen += jump;
-                              start = index + 1;
+
+            pen += jump;
+            start = index + 1;
         }
 
         return shifts;

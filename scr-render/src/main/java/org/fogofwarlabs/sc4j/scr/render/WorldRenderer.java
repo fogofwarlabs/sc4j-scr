@@ -1381,7 +1381,8 @@ public final class WorldRenderer implements AutoCloseable {
             lightingTables[tableIndex]          = loadedAssets.getLightingTable(tableIndex);
             this.lightingRowOffsets[tableIndex] = lightingRows;
             this.lightingRowCounts[tableIndex]  = lightingTables[tableIndex].length / RenderAssets.PALETTE_ENTRIES;
-                                                  lightingRows += this.lightingRowCounts[tableIndex];
+
+            lightingRows += this.lightingRowCounts[tableIndex];
         }
 
         ByteBuffer lighting = MemoryUtil.memAlloc(RenderAssets.PALETTE_ENTRIES * lightingRows);

@@ -1223,8 +1223,9 @@ public final class ComputerTowns {
 
             gas[GAS_FIRST] = gas[GAS_SECOND];
             gas[GAS_SECOND] = swap;
-                              nearest = second;
-                              second = first;
+
+            nearest = second;
+            second = first;
         }
 
         if (Integer.compareUnsigned(third, second) < 0) {
@@ -1232,7 +1233,8 @@ public final class ComputerTowns {
 
             gas[GAS_SECOND] = gas[GAS_THIRD];
             gas[GAS_THIRD] = swap;
-                             second = third;
+
+            second = third;
         }
 
         if (Integer.compareUnsigned(second, nearest) < 0) {

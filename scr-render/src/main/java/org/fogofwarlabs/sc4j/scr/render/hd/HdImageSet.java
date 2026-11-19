@@ -370,7 +370,8 @@ public final class HdImageSet implements AutoCloseable {
                         HdImageTextures textures = this.createTextures(image, prepared);
 
                         this.images[image] = textures;
-                                             this.loadUploadNanoseconds += System.nanoTime() - uploadStarted;
+
+                        this.loadUploadNanoseconds += System.nanoTime() - uploadStarted;
                     } catch (IOException exception) {
                         this.missingImages[image] = true;
                         LOGGER.warning("HD image {0} is unavailable: {1}", image, exception.getMessage());
@@ -485,7 +486,8 @@ public final class HdImageSet implements AutoCloseable {
                     HdImageTextures textures = this.createTextures(image, prepared);
 
                     this.images[image] = textures;
-                                         this.loadUploadNanoseconds += System.nanoTime() - uploadStarted;
+
+                    this.loadUploadNanoseconds += System.nanoTime() - uploadStarted;
                 } catch (IOException exception) {
                     this.missingImages[image] = true;
                     LOGGER.warning("HD image {0} is unavailable: {1}", image, exception.getMessage());
@@ -579,7 +581,8 @@ public final class HdImageSet implements AutoCloseable {
             HdImageTextures uploadedTextures = this.createTextures(image, prepared);
 
             this.images[image] = uploadedTextures;
-                                 textures = uploadedTextures;
+
+            textures = uploadedTextures;
 
             this.uploadNanoseconds += System.nanoTime() - started;
         }

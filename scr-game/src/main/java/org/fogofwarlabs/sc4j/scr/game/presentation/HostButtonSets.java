@@ -199,6 +199,7 @@ public final class HostButtonSets {
         this.counts[set] = count & WORD_MASK;
         this.buttons[set] = buttons;
         this.connected[set] = connected & WORD_MASK;
-                            this.replaced = true;
+
+        this.replaced = true;
     }
 }

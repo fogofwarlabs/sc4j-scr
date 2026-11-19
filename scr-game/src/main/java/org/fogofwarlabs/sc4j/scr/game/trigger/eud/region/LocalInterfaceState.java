@@ -408,7 +408,8 @@ public final class LocalInterfaceState {
         this.getInterfaceSelectedPoolIndex(slot);
 
         this.interfaceSelection[slot] = poolIndex;
-                                        this.written = true;
+
+        this.written = true;
     }
 
     /**
