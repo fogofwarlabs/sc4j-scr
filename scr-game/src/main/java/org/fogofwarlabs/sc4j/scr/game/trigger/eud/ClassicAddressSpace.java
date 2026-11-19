@@ -1001,14 +1001,14 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
                 space.addAll(space.buttonSets.getRegions());
             }
 
-            // The type-7 regions wider than a DWORD serve their 1.16 records unless a domain region shows them.
+            // The type-7 regions wider than a DWORD serve their 1.16 records, the emulation's own copies, unless a domain region shows them.
             for (int index = 0; index < NativeCodeConstants.SNAPSHOT_REGIONS.length; index += NativeRegionLayout.REGION_ROW_SIZE) {
                 int base = NativeCodeConstants.SNAPSHOT_REGIONS[index];
                 int size = NativeCodeConstants.SNAPSHOT_REGIONS[index + 1];
                 byte[] bytes = world.getGameContext().getCodeConstants().getSnapshot(base, size);
 
                 if (bytes != null && space.isFree(base, size)) {
-                    space.add(new ClassicStorageRegion(base, bytes));
+                    space.add(ClassicStorageRegion.createEmulatorStorageRegion(base, bytes));
                 }
             }
         }

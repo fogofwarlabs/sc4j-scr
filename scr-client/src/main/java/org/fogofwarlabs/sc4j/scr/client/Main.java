@@ -25,6 +25,7 @@ import org.fogofwarlabs.sc4j.engine.client.video.VideoClipDecoder;
 import org.fogofwarlabs.sc4j.engine.client.world.*;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.BeaconLink;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.audio.*;
 import org.fogofwarlabs.sc4j.scr.client.configuration.*;
 import org.fogofwarlabs.sc4j.scr.client.cursor.GameCursor;
@@ -71,14 +72,14 @@ import org.fogofwarlabs.sc4j.scr.data.format.text.LegacyTextUtils;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogControlUtils;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.map.MapStringSection;
 import org.fogofwarlabs.sc4j.scr.game.player.Player;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerRelations;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTypes;
-import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
-import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.presentation.*;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayCommandDescription;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayCommandExecutor;
@@ -4648,6 +4649,7 @@ public final class Main {
             this.consoleView.setMultiplayerGame(this.requireSession().isLive() && this.requireSession().isNetworkGame());
             this.consoleView.setShowTimer(this.options.getInterfaceSettings().isGameTimer());
             this.updateApmDisplay(perspective == CommandCard.Perspective.NATIVE_REPLAY);
+
             ScrGameView gameView = this.requireSession().getView();
             boolean plugins = gameView.hasPlugins();
             ScrConsolePlacement placement = plugins ? gameView.findConsolePlacement() : null;
@@ -4657,7 +4659,11 @@ public final class Main {
             }
 
             if (!plugins || !gameView.isConsoleHidden()) {
+                SpriteSheet resourceIcons = plugins ? gameView.findResourceIcons() : null;
+                boolean iconPalette = resourceIcons != null && this.requireSession().copyDisplayPalette(this.screenOverlayCycled);
+
                 this.consoleView.setPlacement(placement);
+                this.consoleView.setResourceIcons(iconPalette ? resourceIcons : null, this.screenOverlayCycled);
                 this.consoleView.setTargetResumer(this::beginConsoleTarget);
                 this.consoleView.draw(this.consoleModel, this.gameViewport, camera);
 

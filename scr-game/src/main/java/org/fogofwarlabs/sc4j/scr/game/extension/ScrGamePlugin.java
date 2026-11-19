@@ -81,6 +81,17 @@ public interface ScrGamePlugin {
     }
 
     /**
+     * Finds the resource icons the console draws instead of its installed ones: an indexed sheet whose frames the resource icon frames select,
+     * {@code 0} minerals, {@code 1} to {@code 3} gas and {@code 4} to {@code 6} supply of the Zerg, Terran and Protoss. Each frame is drawn at
+     * its offset in the frame box from the icon's place. The same sheet is returned while the icons are unchanged.
+     *
+     * @return the indexed sheet, or {@code null} for the installed icons
+     */
+    default @Nullable SpriteSheet findResourceIcons() {
+        return null;
+    }
+
+    /**
      * Finds how the plugin places the console: moved dialogs, the shown console pixels and the dialog pictures.
      *
      * @return the placement, or {@code null} for the installed console

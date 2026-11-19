@@ -595,6 +595,23 @@ public final class ScrGameView implements GameView {
     }
 
     /**
+     * Finds the resource icons the console draws: the first sheet a plugin of the game gives ({@link ScrGamePlugin#findResourceIcons}).
+     *
+     * @return the indexed sheet, or {@code null} for the installed icons
+     */
+    public @Nullable SpriteSheet findResourceIcons() {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            SpriteSheet icons = plugin.findResourceIcons();
+
+            if (icons != null) {
+                return icons;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Finds how the console is placed: the first placement a plugin of the game gives ({@link ScrGamePlugin#findConsolePlacement}).
      *
      * @return the placement, or {@code null} for the installed console
