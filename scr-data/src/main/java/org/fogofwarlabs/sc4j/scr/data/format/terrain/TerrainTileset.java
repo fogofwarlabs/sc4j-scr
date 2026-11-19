@@ -217,9 +217,10 @@ public final class TerrainTileset {
         short[] megatiles = new short[groups.length / CV5_RECORD_SIZE * GROUP_TILES];
 
         for (int group = 0; group < groups.length / CV5_RECORD_SIZE; group++) {
+            int megatilesOffset = group * CV5_RECORD_SIZE + CV5_MEGATILES_OFFSET;
+
             for (int tile = 0; tile < GROUP_TILES; tile++) {
-                megatiles[group * GROUP_TILES + tile] =
-                        (short) LittleEndianUtils.readUnsigned16(groups, group * CV5_RECORD_SIZE + CV5_MEGATILES_OFFSET + tile * Short.BYTES);
+                megatiles[group * GROUP_TILES + tile] = (short) LittleEndianUtils.readUnsigned16(groups, megatilesOffset + tile * Short.BYTES);
             }
         }
 

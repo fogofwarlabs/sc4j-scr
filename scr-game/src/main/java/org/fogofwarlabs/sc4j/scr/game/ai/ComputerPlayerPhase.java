@@ -1127,9 +1127,9 @@ public final class ComputerPlayerPhase {
                                                      references);
         }
 
-        this.firstFreeWorkerRecord =
-                ComputerUnitRecord.decodeSaveLink(this.workerRecords,
-                                                  workers.getInt(UNIT_RECORD_CAPACITY * ComputerUnitRecord.SAVED_WORKER_SIZE));
+        int firstFreeWorkerLink = workers.getInt(UNIT_RECORD_CAPACITY * ComputerUnitRecord.SAVED_WORKER_SIZE);
+
+        this.firstFreeWorkerRecord = ComputerUnitRecord.decodeSaveLink(this.workerRecords, firstFreeWorkerLink);
 
         for (int index = 0; index < UNIT_RECORD_CAPACITY; index++) {
             this.buildingRecords[index].readSaveBuilding(buildings, index * ComputerUnitRecord.SAVED_BUILDING_SIZE,
@@ -1141,9 +1141,9 @@ public final class ComputerPlayerPhase {
             this.saveMetadata.readBuilding(buildings, index * ComputerUnitRecord.SAVED_BUILDING_SIZE, index);
         }
 
-        this.firstFreeBuildingRecord =
-                ComputerUnitRecord.decodeSaveLink(this.buildingRecords,
-                                                  buildings.getInt(UNIT_RECORD_CAPACITY * ComputerUnitRecord.SAVED_BUILDING_SIZE));
+        int firstFreeBuildingLink = buildings.getInt(UNIT_RECORD_CAPACITY * ComputerUnitRecord.SAVED_BUILDING_SIZE);
+
+        this.firstFreeBuildingRecord = ComputerUnitRecord.decodeSaveLink(this.buildingRecords, firstFreeBuildingLink);
 
         for (int index = 0; index < TOWN_CAPACITY; index++) {
             this.towns[index].readSaveRecord(towns, index * ComputerTown.SAVED_SIZE,
@@ -1157,8 +1157,9 @@ public final class ComputerPlayerPhase {
         this.firstFreeTown = ComputerTown.decodeSaveLink(this.towns, towns.getInt(TOWN_CAPACITY * ComputerTown.SAVED_SIZE));
 
         for (int owner = 0; owner < this.firstTowns.length; owner++) {
-            this.firstTowns[owner] =
-                    ComputerTown.decodeSaveLink(this.towns, heads.getInt(owner * ComputerMilitary.SAVED_LIST_VIEW_SIZE + Integer.BYTES));
+            int firstTownLink = heads.getInt(owner * ComputerMilitary.SAVED_LIST_VIEW_SIZE + Integer.BYTES);
+
+            this.firstTowns[owner] = ComputerTown.decodeSaveLink(this.towns, firstTownLink);
         }
     }
 

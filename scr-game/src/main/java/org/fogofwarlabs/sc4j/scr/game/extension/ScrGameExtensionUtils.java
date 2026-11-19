@@ -13,11 +13,10 @@ import java.util.ServiceLoader;
  * once per class loader, with the class loader of {@link ScrGameExtension}, so a mod jar in its own class loader finds its own implementations.
  */
 public final class ScrGameExtensionUtils {
-    private static final @NotNull List<@NotNull ScrGameExtension> EXTENSIONS =
-            ServiceLoader.load(ScrGameExtension.class, ScrGameExtension.class.getClassLoader())
-                         .stream()
-                         .map(ServiceLoader.Provider::get)
-                         .toList();
+    private static final @NotNull List<@NotNull ScrGameExtension> EXTENSIONS = ServiceLoader.load(ScrGameExtension.class, ScrGameExtension.class.getClassLoader())
+                                                                                            .stream()
+                                                                                            .map(ServiceLoader.Provider::get)
+                                                                                            .toList();
 
     /**
      * Lets every extension create its plugin of a game ({@link ScrGameExtension#createPlugin}).

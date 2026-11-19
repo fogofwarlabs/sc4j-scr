@@ -1445,11 +1445,12 @@ public final class WorldRenderer implements AutoCloseable {
         this.paletteGrayscale = false;
 
         for (int player = 0; player < SceneRenderer.PLAYER_COLOR_ROWS; player++) {
+            int paletteRowOffset = (player + 1) * RenderAssets.PALETTE_BYTES;
+
             for (int index = 0; index < RenderAssets.REMAP_INDEX_COUNT; index++) {
-                this.playerColorRows[player * RenderAssets.REMAP_INDEX_COUNT + index] =
-                        colorRows[(player + 1) * RenderAssets.PALETTE_BYTES +
-                                  (RenderAssets.REMAP_FIRST_INDEX + index) * RenderAssets.PALETTE_ENTRY_SIZE +
-                                  RenderAssets.PALETTE_FOURTH];
+                int entryOffset = paletteRowOffset + (RenderAssets.REMAP_FIRST_INDEX + index) * RenderAssets.PALETTE_ENTRY_SIZE;
+
+                this.playerColorRows[player * RenderAssets.REMAP_INDEX_COUNT + index] = colorRows[entryOffset + RenderAssets.PALETTE_FOURTH];
             }
         }
 

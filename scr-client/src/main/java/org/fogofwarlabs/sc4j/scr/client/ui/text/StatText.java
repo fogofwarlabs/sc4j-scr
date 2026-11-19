@@ -49,8 +49,7 @@ public final class StatText {
      * string tables ({@link #decode}: {@code stat_txt}, {@code gluAll}, {@code network}, {@code RC3} and the campaign names), never to keys, file
      * names, protocol identifiers or text that a map or a player wrote; the domain name {@code battle.net} is kept.
      */
-    public static final @NotNull TextSubstitutionHook PRODUCT_NAME_SUBSTITUTION =
-            text -> NAME_SUBSTITUTION.substitute(REGISTERED_NAME_SUBSTITUTION.substitute(text));
+    public static final @NotNull TextSubstitutionHook PRODUCT_NAME_SUBSTITUTION = text -> NAME_SUBSTITUTION.substitute(REGISTERED_NAME_SUBSTITUTION.substitute(text));
 
     private static final int BUTTON_PREFIX_LENGTH = 2;
     private static final int UNICODE_ESCAPE_LENGTH = 6;
