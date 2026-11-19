@@ -1,8 +1,8 @@
 package org.fogofwarlabs.sc4j.scr.render;
 
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
-import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.data.format.image.AnimFile;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -256,7 +256,7 @@ public final class ClassicSceneRenderer implements SceneRenderer, AutoCloseable 
      * Draws one image of a sprite with the frames of an override sheet instead of the image's installed graphics, with the image's draw function.
      * The baked-remap and warp-texture draws fall back to the palette draw of the sheet's frame.
      *
-     * @param sheet        the indexed sheet whose frames the image draws, its canvas centered on the image position
+     * @param sheet        the indexed frames the image draws, their canvas centered on the image position
      * @param imageIndex   the image identifier
      * @param frameIndex   the image frame, a frame of the sheet
      * @param modifier     the image draw modifier
@@ -268,14 +268,14 @@ public final class ClassicSceneRenderer implements SceneRenderer, AutoCloseable 
      * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
      */
     @Override
-    public void drawImageSheet(@NotNull SpriteSheet sheet,
+    public void drawImageSheet(@NotNull ScrImageSheet sheet,
                                int imageIndex, int frameIndex,
                                int modifier, int modifierData, int playerColor,
                                int worldX, int worldY, boolean flipped) throws IOException {
-        this.renderer.setImageSheet(sheet);
+        this.renderer.setImageSheet(sheet.getFrame(frameIndex));
 
         try {
-            this.drawImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+            this.drawImage(imageIndex, 0, modifier, modifierData, playerColor, worldX, worldY, flipped);
         } finally {
             this.renderer.setImageSheet(null);
         }

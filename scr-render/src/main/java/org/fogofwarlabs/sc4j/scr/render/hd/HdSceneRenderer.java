@@ -13,6 +13,7 @@ import org.fogofwarlabs.sc4j.scr.data.format.image.AnimLights;
 import org.fogofwarlabs.sc4j.scr.data.format.image.DdsFile;
 import org.fogofwarlabs.sc4j.scr.data.format.image.DdsGrpFile;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.render.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,8 +26,10 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 
@@ -164,9 +167,9 @@ public final class HdSceneRenderer implements SceneRenderer {
      */
     private static final int SHEET_PALETTE_SELECTIONS = PLAYER_COLOR + PLAYER_COLOR_ROWS;
     /**
-     * The number of override sheets whose textures are kept; one more releases them all.
+     * The number of override sheet frames whose textures are kept; the frame drawn least recently releases its textures for the next one.
      */
-    private static final int MAXIMUM_SHEETS = 64;
+    private static final int MAXIMUM_SHEET_FRAMES = 256;
     /**
      * The multiply-color alpha of visible cloaked images.
      */
@@ -486,6 +489,16 @@ public final class HdSceneRenderer implements SceneRenderer {
         return program;
     }
 
+    private static void deleteTextures(int @NotNull [] textures) {
+        for (int texture : textures) {
+            if (texture != 0) {
+                IgnoreException.execute(
+                        () -> glDeleteTextures(texture)
+                );
+            }
+        }
+    }
+
 
     private final @NotNull WorldRenderer world;
     private final @NotNull HdRenderAssets assets;
@@ -532,9 +545,10 @@ public final class HdSceneRenderer implements SceneRenderer {
      */
     private final @NotNull List<int @NotNull []> postFogImages;
     /**
-     * The RGBA textures of the override sheets' frames ({@link #drawImageSheet}), per frame and palette selection, {@code 0} until drawn.
+     * The RGBA textures of the override sheets' frames ({@link #drawImageSheet}) per one-frame sheet and palette selection, {@code 0} until drawn;
+     * the frame drawn least recently first.
      */
-    private final @NotNull Map<SpriteSheet, int @NotNull []> sheetTextures;
+    private final @NotNull SequencedMap<SpriteSheet, int @NotNull []> sheetTextures;
     /**
      * The RGBA textures of replaced megatile pictures ({@link #drawTerrain(IntUnaryOperator, IntFunction)}) by megatile index, and the picture
      * each one holds.
@@ -678,7 +692,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         this.fogTileFlags    = null;
         this.postFogImages   = new ArrayList<>();
-        this.sheetTextures   = new HashMap<>();
+        this.sheetTextures   = new LinkedHashMap<>();
         this.megatileTextures = new HashMap<>();
         this.megatilePictures = new HashMap<>();
         this.terrainMegatiles = null;
@@ -1610,7 +1624,7 @@ public final class HdSceneRenderer implements SceneRenderer {
      * palette of the player color, scaled to the world size with nearest filtering and unlit. Update rectangles and images drawn after the fog draw
      * the installed graphics.
      *
-     * @param sheet        the indexed sheet whose frames the image draws, its canvas centered on the image position
+     * @param sheet        the indexed frames the image draws, their canvas centered on the image position
      * @param imageIndex   the image identifier
      * @param frameIndex   the image frame, a frame of the sheet
      * @param modifier     the image draw modifier
@@ -1622,7 +1636,7 @@ public final class HdSceneRenderer implements SceneRenderer {
      * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
      */
     @Override
-    public void drawImageSheet(@NotNull SpriteSheet sheet,
+    public void drawImageSheet(@NotNull ScrImageSheet sheet,
                                int imageIndex, int frameIndex,
                                int modifier, int modifierData, int playerColor,
                                int worldX, int worldY, boolean flipped) throws IOException {
@@ -1634,62 +1648,62 @@ public final class HdSceneRenderer implements SceneRenderer {
             return;
         }
 
+        SpriteSheet frame = sheet.getFrame(frameIndex);
+
         switch (modifier) {
             case DRAW_FUNCTION_UNSEEN_CLOAKING,
                  DRAW_FUNCTION_UNSEEN_CLOAKED,
-                 DRAW_FUNCTION_UNSEEN_DECLOAKING -> this.drawSheetFrame(sheet, frameIndex, MODE_CLOAKED, 0, playerColor, worldX, worldY, flipped);
+                 DRAW_FUNCTION_UNSEEN_DECLOAKING -> this.drawSheetFrame(frame, MODE_CLOAKED, 0, playerColor, worldX, worldY, flipped);
             case DRAW_FUNCTION_CLOAKING,
                  DRAW_FUNCTION_CLOAKED,
-                 DRAW_FUNCTION_DECLOAKING -> this.drawSheetFrame(sheet,
-                                                                 frameIndex,
+                 DRAW_FUNCTION_DECLOAKING -> this.drawSheetFrame(frame,
                                                                  MODE_TRANSLUCENT,
                                                                  VISIBLE_CLOAK_ALPHA,
                                                                  playerColor,
                                                                  worldX,
                                                                  worldY,
                                                                  flipped);
-            case DRAW_FUNCTION_DISTORTION -> this.drawSheetFrame(sheet, frameIndex, MODE_WARPED, 0, playerColor, worldX, worldY, flipped);
+            case DRAW_FUNCTION_DISTORTION -> this.drawSheetFrame(frame, MODE_WARPED, 0, playerColor, worldX, worldY, flipped);
             case DRAW_FUNCTION_SHADOW -> {
                 if (this.world.isShadowStacking()) {
-                    this.drawSheetFrame(sheet, frameIndex, MODE_STACKED_SHADOW, STACKED_SHADOW_ALPHA, playerColor, worldX, worldY, flipped);
+                    this.drawSheetFrame(frame, MODE_STACKED_SHADOW, STACKED_SHADOW_ALPHA, playerColor, worldX, worldY, flipped);
                 } else {
-                    this.drawSheetFrame(sheet, frameIndex, MODE_SHADOW, 1, playerColor, worldX, worldY, flipped);
+                    this.drawSheetFrame(frame, MODE_SHADOW, 1, playerColor, worldX, worldY, flipped);
                 }
             }
-            case DRAW_FUNCTION_HALLUCINATION -> this.drawSheetFrame(sheet, frameIndex, MODE_SPRITE, 1, playerColor, worldX, worldY, flipped);
+            case DRAW_FUNCTION_HALLUCINATION -> this.drawSheetFrame(frame, MODE_SPRITE, 1, playerColor, worldX, worldY, flipped);
             case DRAW_FUNCTION_WARP_FLASH -> {
                 float brighten = SceneRenderer.getBrightenAlpha(modifierData);
 
                 if (brighten > 0) {
-                    this.drawSheetFrame(sheet, frameIndex, MODE_BRIGHTEN, brighten, playerColor, worldX, worldY, flipped);
+                    this.drawSheetFrame(frame, MODE_BRIGHTEN, brighten, playerColor, worldX, worldY, flipped);
                 }
             }
-            default -> this.drawSheetFrame(sheet, frameIndex, MODE_SPRITE, 0, playerColor, worldX, worldY, flipped);
+            default -> this.drawSheetFrame(frame, MODE_SPRITE, 0, playerColor, worldX, worldY, flipped);
         }
     }
 
     /**
-     * Draws a frame of an override sheet at the world size: the frame rectangle placed on the sheet's canvas, which is centered on the image
-     * position and mirrored when flipped.
+     * Draws the frame of a one-frame override sheet at the world size: the frame rectangle placed on the sheet's canvas, which is centered on the
+     * image position and mirrored when flipped.
      *
-     * @param sheet       the indexed sheet
-     * @param frameIndex  the frame index
+     * @param sheet       the one-frame indexed sheet
      * @param mode        the draw mode
      * @param parameter   the mode parameter
      * @param playerColor the owner's player color index
      * @param worldX      the canvas center world coordinate
      * @param worldY      the canvas center world coordinate
      * @param flipped     whether the image is horizontally flipped
-     * @throws IOException if the sheet has no such frame or no map is loaded
+     * @throws IOException if the sheet has no frame or no map is loaded
      */
-    private void drawSheetFrame(@NotNull SpriteSheet sheet, int frameIndex,
+    private void drawSheetFrame(@NotNull SpriteSheet sheet,
                                 int mode, float parameter, int playerColor,
                                 int worldX, int worldY, boolean flipped) throws IOException {
-        if (frameIndex < 0 || frameIndex >= sheet.getFrameCount()) {
-            throw Exceptions.newIOException("The image sheet has no frame {0}.", frameIndex);
+        if (sheet.getFrameCount() == 0) {
+            throw Exceptions.newIOException("The image sheet has no frame.");
         }
 
-        SpriteFrame frame = sheet.getFrame(frameIndex);
+        SpriteFrame frame = sheet.getFrame(0);
 
         if (frame.getWidth() <= 0 || frame.getHeight() <= 0) {
             return;
@@ -1707,7 +1721,7 @@ public final class HdSceneRenderer implements SceneRenderer {
             return;
         }
 
-        int texture = this.acquireSheetTexture(sheet, frameIndex, playerColor);
+        int texture = this.acquireSheetTexture(sheet, playerColor);
         boolean litSprite = this.lightingEnabled && (mode == MODE_SPRITE || mode == MODE_TRANSLUCENT);
 
         this.copyTeamColor(playerColor);
@@ -1722,29 +1736,33 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     /**
-     * Returns the RGBA texture of a frame of an override sheet in a palette selection, creating it on first use: each nonzero palette index in its
-     * classic color, opaque, index {@code 0} transparent, with nearest filtering.
+     * Returns the RGBA texture of the frame of a one-frame override sheet in a palette selection, creating it on first use: each nonzero palette
+     * index in its classic color, opaque, index {@code 0} transparent, with nearest filtering. Past {@value #MAXIMUM_SHEET_FRAMES} sheets, the one
+     * drawn least recently releases its textures.
      *
-     * @param sheet       the indexed sheet
-     * @param frameIndex  the frame index
+     * @param sheet       the one-frame indexed sheet
      * @param playerColor the owner's player color index
      * @return the texture
      * @throws IOException if no map is loaded
      */
-    private int acquireSheetTexture(@NotNull SpriteSheet sheet, int frameIndex, int playerColor) throws IOException {
+    private int acquireSheetTexture(@NotNull SpriteSheet sheet, int playerColor) throws IOException {
         int[] textures = this.sheetTextures.get(sheet);
 
         if (textures == null) {
-            if (this.sheetTextures.size() >= MAXIMUM_SHEETS) {
+            if (this.sheetTextures.size() >= MAXIMUM_SHEET_FRAMES) {
                 this.flush();
-                this.deleteSheetTextures();
+                deleteTextures(this.sheetTextures.pollFirstEntry().getValue());
+
+                this.batchTexture = 0;
             }
 
-            textures = new int[sheet.getFrameCount() * SHEET_PALETTE_SELECTIONS];
+            textures = new int[SHEET_PALETTE_SELECTIONS];
             this.sheetTextures.put(sheet, textures);
+        } else {
+            this.sheetTextures.putLast(sheet, textures);
         }
 
-        int slot = frameIndex * SHEET_PALETTE_SELECTIONS + Math.clamp(playerColor, 0, SHEET_PALETTE_SELECTIONS - 1);
+        int slot = Math.clamp(playerColor, 0, SHEET_PALETTE_SELECTIONS - 1);
 
         if (textures[slot] != 0) {
             return textures[slot];
@@ -1756,7 +1774,7 @@ public final class HdSceneRenderer implements SceneRenderer {
             throw Exceptions.newIOException("The image sheet needs a loaded map palette.");
         }
 
-        SpriteFrame frame = sheet.getFrame(frameIndex);
+        SpriteFrame frame = sheet.getFrame(0);
         int pixelCount = frame.getWidth() * frame.getHeight();
         byte[] indices = new byte[pixelCount];
         ByteBuffer upload = MemoryUtil.memAlloc(pixelCount * OverlayPass.RGBA_BYTES);
@@ -1799,13 +1817,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
     private void deleteSheetTextures() {
         for (int[] textures : this.sheetTextures.values()) {
-            for (int texture : textures) {
-                if (texture != 0) {
-                    IgnoreException.execute(
-                            () -> glDeleteTextures(texture)
-                    );
-                }
-            }
+            deleteTextures(textures);
         }
 
         this.sheetTextures.clear();

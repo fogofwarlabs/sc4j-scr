@@ -2,6 +2,7 @@ package org.fogofwarlabs.sc4j.scr.game.extension;
 
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.trigger.eud.ClassicMemoryView;
 import org.jetbrains.annotations.NotNull;
@@ -23,13 +24,13 @@ public interface ScrGamePlugin {
     }
 
     /**
-     * Finds the graphics a sprite image draws instead of its installed GRP: an indexed sheet whose frames the image's frame index selects. Selection
-     * circles, health bars and the selection tests keep the installed graphics.
+     * Finds the graphics a sprite image draws instead of its installed GRP: indexed frames that the image's frame index selects, decoded when drawn.
+     * Selection circles, health bars and the selection tests keep the installed graphics.
      *
      * @param image an image of a drawn sprite
-     * @return the indexed sheet the image draws, or {@code null} for its installed graphics
+     * @return the frames the image draws, or {@code null} for its installed graphics
      */
-    default @Nullable SpriteSheet findImageSheet(@NotNull SpriteImage image) {
+    default @Nullable ScrImageSheet findImageSheet(@NotNull SpriteImage image) {
         return null;
     }
 

@@ -1,6 +1,6 @@
 package org.fogofwarlabs.sc4j.scr.render;
 
-import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -290,7 +290,7 @@ public interface SceneRenderer {
      * Draws one image of a sprite with the frames of an override sheet instead of the image's installed graphics, with the image's draw function.
      * The default draws the installed graphics ({@link #drawImage}).
      *
-     * @param sheet        the indexed sheet whose frames the image draws, its canvas centered on the image position
+     * @param sheet        the indexed frames the image draws, their canvas centered on the image position
      * @param imageIndex   the image identifier
      * @param frameIndex   the image frame, a frame of the sheet
      * @param modifier     the image draw modifier
@@ -301,7 +301,7 @@ public interface SceneRenderer {
      * @param flipped      whether the image is horizontally flipped
      * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
      */
-    default void drawImageSheet(@NotNull SpriteSheet sheet,
+    default void drawImageSheet(@NotNull ScrImageSheet sheet,
                                 int imageIndex, int frameIndex,
                                 int modifier, int modifierData, int playerColor,
                                 int worldX, int worldY, boolean flipped) throws IOException {

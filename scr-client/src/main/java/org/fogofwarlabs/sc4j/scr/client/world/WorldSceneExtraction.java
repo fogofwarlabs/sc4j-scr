@@ -1,10 +1,10 @@
 package org.fogofwarlabs.sc4j.scr.client.world;
 
-import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.PlacementPreview;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.WorldInterface;
 import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrImageTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrSpriteTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
@@ -250,7 +250,7 @@ public final class WorldSceneExtraction {
                             continue;
                         }
 
-                        SpriteSheet sheet = plugins ? gameView.findImageSheet(image) : null;
+                        ScrImageSheet sheet = plugins ? gameView.findImageSheet(image) : null;
 
                         // Skips images whose frame has no drawable rectangle.
                         if (sheet != null ? frame >= sheet.getFrameCount()

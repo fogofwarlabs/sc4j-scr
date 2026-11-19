@@ -13,6 +13,7 @@ import org.fogofwarlabs.sc4j.engine.terrain.TerrainGrid;
 import org.fogofwarlabs.sc4j.scr.content.ScrResources;
 import org.fogofwarlabs.sc4j.scr.core.GameSettings;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkUnit;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.game.ability.TransportCargo;
 import org.fogofwarlabs.sc4j.scr.game.ability.UnitSpells;
@@ -493,11 +494,11 @@ public final class ScrGameView implements GameView {
      * ({@link ScrGamePlugin#findImageSheet}).
      *
      * @param image an image of a drawn sprite
-     * @return the indexed sheet the image draws, or {@code null} for its installed graphics
+     * @return the frames the image draws, or {@code null} for its installed graphics
      */
-    public @Nullable SpriteSheet findImageSheet(@NotNull SpriteImage image) {
+    public @Nullable ScrImageSheet findImageSheet(@NotNull SpriteImage image) {
         for (ScrGamePlugin plugin : this.game.getPlugins()) {
-            SpriteSheet sheet = plugin.findImageSheet(image);
+            ScrImageSheet sheet = plugin.findImageSheet(image);
 
             if (sheet != null) {
                 return sheet;
