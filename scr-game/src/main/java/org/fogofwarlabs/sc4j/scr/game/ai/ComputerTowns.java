@@ -1222,18 +1222,18 @@ public final class ComputerTowns {
         if (Integer.compareUnsigned(second, first) < 0) {
             Unit swap = gas[GAS_FIRST];
 
-            gas[GAS_FIRST] = gas[GAS_SECOND];
+            gas[GAS_FIRST]  = gas[GAS_SECOND];
             gas[GAS_SECOND] = swap;
 
             nearest = second;
-            second = first;
+            second  = first;
         }
 
         if (Integer.compareUnsigned(third, second) < 0) {
             Unit swap = gas[GAS_SECOND];
 
             gas[GAS_SECOND] = gas[GAS_THIRD];
-            gas[GAS_THIRD] = swap;
+            gas[GAS_THIRD]  = swap;
 
             second = third;
         }

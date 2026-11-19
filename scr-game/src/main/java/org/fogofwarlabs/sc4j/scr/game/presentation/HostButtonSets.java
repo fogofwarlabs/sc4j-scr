@@ -196,8 +196,8 @@ public final class HostButtonSets {
     public void replace(int set, int count, @NotNull Button @Nullable [] buttons, int connected) {
         Objects.checkIndex(set, SET_COUNT);
 
-        this.counts[set] = count & WORD_MASK;
-        this.buttons[set] = buttons;
+        this.counts[set]    = count & WORD_MASK;
+        this.buttons[set]   = buttons;
         this.connected[set] = connected & WORD_MASK;
 
         this.replaced = true;

@@ -186,7 +186,7 @@ public final class ArchonOrders {
                     units[other] = nearest;
 
                     nearestDistance = distance;
-                    nearest = candidate;
+                    nearest         = candidate;
                 }
             }
 

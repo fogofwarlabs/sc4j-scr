@@ -209,7 +209,7 @@ public final class LarvaSpawner {
                         result[UnitPositioning.Y_INDEX] = candidateY;
 
                         bestCount = count;
-                        found = true;
+                        found     = true;
 
                         break;
                     }

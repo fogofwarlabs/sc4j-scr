@@ -773,6 +773,46 @@ public final class MeleeGameSetup {
     }
 
     /**
+     * Reads the observer slot of a network player: the slot of the observer record the player holds in the lobby table, a later
+     * record winning.
+     *
+     * @param playerId the network id
+     * @return the observer slot from {@link PlayerTable#FIRST_OBSERVER_SLOT}, or {@link PlayerSlots#NO_SLOT} outside a network game
+     * or for a player who holds no observer record
+     */
+    public int getObserverSlot(int playerId) {
+        LobbyResolution.Table table = this.networkTable;
+        int slot = PlayerSlots.NO_SLOT;
+
+        if (table == null || playerId < 0) {
+            return slot;
+        }
+
+        for (int observer = 0; observer < PlayerTable.OBSERVER_SLOTS; observer++) {
+            if (table.observerId[observer] == playerId) {
+                slot = PlayerTable.FIRST_OBSERVER_SLOT + observer;
+            }
+        }
+
+        return slot;
+    }
+
+    /**
+     * @param observerSlot the observer slot ({@link #getObserverSlot})
+     * @return the name of the lobby table's observer record of the slot
+     * @throws IllegalStateException outside a network game
+     */
+    public @NotNull String getObserverName(int observerSlot) {
+        LobbyResolution.Table table = this.networkTable;
+
+        if (table == null) {
+            throw Exceptions.newIllegalStateException("Only a network game has observers.");
+        }
+
+        return table.observerName[observerSlot - PlayerTable.FIRST_OBSERVER_SLOT];
+    }
+
+    /**
      * @return a copy of a network game's lobby types before normalization, or {@code null} in single player
      */
     public int @Nullable [] getLobbyTypes() {

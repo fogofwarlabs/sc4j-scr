@@ -467,7 +467,7 @@ final class GameClientState implements InputListener {
             if (opening != null && !opening.isLive()) {
                 mode = ChatPrompt.MODE_OBSERVERS;
             } else if (opening != null && opening.isNetworkGame()) {
-                mode = ChatPrompt.chooseMode(true, false, modifiers, opening.areAlliancesAllowed(), opening.getChatRecipient());
+                mode = ChatPrompt.chooseMode(true, opening.isLocalObserver(), modifiers, opening.areAlliancesAllowed(), opening.getChatRecipient());
             } else {
                 mode = ChatPrompt.MODE_SINGLE_PLAYER;
             }

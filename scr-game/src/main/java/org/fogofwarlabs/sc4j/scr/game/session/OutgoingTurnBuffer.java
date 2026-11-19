@@ -53,6 +53,10 @@ public final class OutgoingTurnBuffer {
     private int length;
     private boolean keepAlive;
     /**
+     * Whether a send queues no Sync command for the next turn: an observer's game.
+     */
+    private boolean observer;
+    /**
      * The Sync records of the game, or {@code null} before the game starts them: the Sync command then carries zero bytes.
      */
     private @Nullable SyncRing syncRing;
@@ -68,6 +72,7 @@ public final class OutgoingTurnBuffer {
 
         this.length    = 0;
         this.keepAlive = false;
+        this.observer  = false;
         this.syncRing  = null;
 
         this.queueSync();
@@ -155,7 +160,7 @@ public final class OutgoingTurnBuffer {
     /**
      * Sends the turn: an empty turn first becomes Keep Alive ({@code 05}) at the buffer start, then the bytes below the
      * length are taken, a leading Sync command takes the newest record of the game's Sync records, and the Sync command of
-     * the next turn is queued.
+     * the next turn is queued; an observer's game ({@link #useObserverTurns()}) leaves the next turn empty instead.
      *
      * @return the turn bytes
      * @throws UnsupportedOperationException if the length DWORD lies outside the buffer
@@ -178,9 +183,21 @@ public final class OutgoingTurnBuffer {
             this.writeSyncRecord(turn);
         }
 
-        this.queueSync();
+        if (this.observer) {
+            this.length = 0;
+        } else {
+            this.queueSync();
+        }
 
         return turn;
+    }
+
+    /**
+     * Queues no Sync command after a send, as an observer's game does: the turns after the queued one carry only the
+     * commands queued for them, Keep Alive ({@code 05}) when none.
+     */
+    public void useObserverTurns() {
+        this.observer = true;
     }
 
     /**

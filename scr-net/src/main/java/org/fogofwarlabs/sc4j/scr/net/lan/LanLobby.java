@@ -1590,6 +1590,11 @@ public final class LanLobby implements GameLobby {
      * the slot, clear once its slot change {@code 0x3e} executes.
      */
     private final boolean @NotNull [] pendingSlots;
+    /**
+     * A joiner's slot changes {@code 0x3e} of human players it does not know yet, by record index: each executes once its player is known,
+     * unless another slot change of the record came first.
+     */
+    private final byte @NotNull [] @Nullable [] deferredSlotCommands;
 
     private boolean started;
     private int lastCompletedStep;
@@ -1702,6 +1707,8 @@ public final class LanLobby implements GameLobby {
         this.joinCommand        = null;
         this.pendingRequests    = new boolean[PlayerSlots.PLAYER_INDEXES];
         this.pendingSlots       = new boolean[RECORDS];
+
+        this.deferredSlotCommands = new byte[RECORDS][];
 
         this.started               = false;
         this.lastCompletedStep     = 0;
@@ -2118,8 +2125,8 @@ public final class LanLobby implements GameLobby {
     /**
      * Creates a {@link LobbyResolution.Table} instance of the lobby table the game start resolves from a game settings
      * message, the lobby records and the lobby data. Every record keeps its player id, an open record that names the player
-     * who released it too, so the game's player records carry it. The table is a new game's: a saved game's start gives an
-     * id only to a human ({@link #createSavedGamePlayers}).
+     * who released it too, so the game's player records carry it. The observer records keep the ids and names of their
+     * observers. The table is a new game's: a saved game's start gives an id only to a human ({@link #createSavedGamePlayers}).
      *
      * @param gameSettings the game settings message {@code 0x4a}
      * @param records      the twelve lobby records
@@ -2149,6 +2156,15 @@ public final class LanLobby implements GameLobby {
             table.templateRace[index] = gameSettings[SETTINGS_TEMPLATE_RACES_OFFSET + index] & BYTE_MASK;
             table.savedType[index]    = gameSettings[SETTINGS_SAVED_TYPES_OFFSET + index] & BYTE_MASK;
             table.templateTeam[index] = index < PlayerTable.PLAYABLE_PLAYER_SLOTS ? gameSettings[SETTINGS_FORCES_OFFSET + index] & BYTE_MASK : 0;
+        }
+
+        for (int observer = 0; observer < PlayerTable.OBSERVER_SLOTS; observer++) {
+            MeleeGameSetup.PlayerRecord record = records[PlayerTable.PLAYABLE_PLAYER_SLOTS + observer];
+
+            if (record.getType() == PlayerTypes.OBSERVER) {
+                table.observerId[observer]   = record.getPlayerId();
+                table.observerName[observer] = record.getName();
+            }
         }
 
         byte[] customColors = Arrays.copyOfRange(lobbyData, LOBBY_DATA_CUSTOM_COLORS, LOBBY_DATA_SIZE);
@@ -2411,6 +2427,8 @@ public final class LanLobby implements GameLobby {
         for (ProviderSession.Message message = this.session.receiveMessage(); message != null; message = this.session.receiveMessage()) {
             this.receiveMessage(message.getSender(), message.getData());
         }
+
+        this.executeDeferredSlotCommands();
 
         if (this.left) {
             return;
@@ -2868,7 +2886,7 @@ public final class LanLobby implements GameLobby {
      * and its type when that was closed or computer; the player no longer has a slot ({@link #getPlayerSlot}) or a block,
      * and its version state becomes {@link #VERSIONS_LEFT}, held slot or not: a record that still names the player queues
      * zero versions and sends no slot table ({@link #joinPlayer}). No command is sent. The map transfer forgets the player
-     * ({@link LanMapTransfer#removePlayer}).
+     * ({@link LanMapTransfer#removePlayer}), and its deferred slot changes are dropped.
      *
      * @param player the provider player identifier of the player
      */
@@ -2881,6 +2899,14 @@ public final class LanLobby implements GameLobby {
 
         int index = this.getPlayerSlot(player);
         int playerIndex = PlayerSlots.getPlayerIndex(player);
+
+        for (int record = 0; record < RECORDS; record++) {
+            byte[] deferred = this.deferredSlotCommands[record];
+
+            if (deferred != null && (deferred[SLOT_COMMAND_PLAYER_OFFSET] & BYTE_MASK) == player) {
+                this.deferredSlotCommands[record] = null;
+            }
+        }
 
         if (playerIndex >= 0) {
             this.playerVersionStates[playerIndex] = VERSIONS_LEFT;
@@ -3348,10 +3374,11 @@ public final class LanLobby implements GameLobby {
      * Executes the host's slot change command {@code 0x3e}: the whole command is ignored unless its slot is a player or
      * observer slot identifier and its player id one too or {@link ProviderPeer#UNKNOWN_IDENTIFIER}
      * ({@link PlayerSlots#isPlayerIdentifier}). It clears the slot's pending flag and the player's request flag; a joiner
-     * then takes the record (the host's records are already its own). A human record of an unknown provider player is
-     * ignored unless the id is an observer's; a joiner takes records from its first one after its joined-game command
-     * (state {@code 3 -> 4}) and none before. The record keeps the player id of the command, an open slot's too; it takes the
-     * player's name only as a human or in an observer slot. The players' slots follow ({@link PlayerSlots#update}).
+     * then takes the record (the host's records are already its own). A human record of a provider player the session does not
+     * know yet, unless the id is an observer's, waits until the player is known ({@link #executeDeferredSlotCommands}); a joiner
+     * takes records from its first one after its joined-game command (state {@code 3 -> 4}) and none before. The record keeps the
+     * player id of the command, an open slot's too; it takes the player's name only as a human or in an observer slot. The players'
+     * slots follow ({@link PlayerSlots#update}).
      *
      * @param command the slot change command
      */
@@ -3365,7 +3392,8 @@ public final class LanLobby implements GameLobby {
 
         int index = PlayerSlots.getPlayerIndex(slot);
 
-        this.pendingSlots[index] = false;
+        this.pendingSlots[index]         = false;
+        this.deferredSlotCommands[index] = null;
 
         int playerIndex = PlayerSlots.getPlayerIndex(identifier);
 
@@ -3377,7 +3405,13 @@ public final class LanLobby implements GameLobby {
         int type = command[SLOT_COMMAND_TYPE_OFFSET] & BYTE_MASK;
         boolean known = this.isSessionPlayer(playerIdentifier);
 
-        if (this.host || (type == PlayerTypes.HUMAN && !known && playerIndex >= 0 && playerIndex < PlayerTable.PLAYABLE_PLAYER_SLOTS)) {
+        if (this.host) {
+            return;
+        }
+
+        if (type == PlayerTypes.HUMAN && !known && playerIndex >= 0 && playerIndex < PlayerTable.PLAYABLE_PLAYER_SLOTS) {
+            this.deferredSlotCommands[index] = command.clone();
+
             return;
         }
 
@@ -3395,6 +3429,19 @@ public final class LanLobby implements GameLobby {
                                                               command[SLOT_COMMAND_FORCE_OFFSET] & BYTE_MASK,
                                                               name);
         this.playerSlots.update(this.records, RECORDS);
+    }
+
+    /**
+     * Executes the deferred slot changes {@code 0x3e} whose players the session knows by now.
+     */
+    private void executeDeferredSlotCommands() {
+        for (int index = 0; index < RECORDS; index++) {
+            byte[] command = this.deferredSlotCommands[index];
+
+            if (command != null && this.isSessionPlayer(command[SLOT_COMMAND_PLAYER_OFFSET] & BYTE_MASK)) {
+                this.executeSlotCommand(command);
+            }
+        }
     }
 
     /**

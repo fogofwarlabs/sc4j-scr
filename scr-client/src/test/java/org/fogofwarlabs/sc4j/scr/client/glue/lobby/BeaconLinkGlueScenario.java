@@ -49,6 +49,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Draws the glue's Beacon.Link screens offscreen: a hidden window's OpenGL context, a framebuffer of the frame size, the installed client
@@ -66,9 +67,13 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      */
     public static final @NotNull String MOD_VERSION = "0.1.0";
     /**
+     * The running SC4J version of a scenario's run, fixed so that the drawn frames do not depend on the built version.
+     */
+    public static final @NotNull ReleaseVersion RUNNING_VERSION = Objects.requireNonNull(ReleaseVersion.parse("0.1.0"));
+    /**
      * The release status of a run whose latest release is not known, which a scenario's run has unless another is given.
      */
-    public static final @NotNull ReleaseStatus UNKNOWN_RELEASE = ReleaseStatus.of(ReleaseVersion.CURRENT, ReleaseState.UNKNOWN, null);
+    public static final @NotNull ReleaseStatus UNKNOWN_RELEASE = ReleaseStatus.of(RUNNING_VERSION, ReleaseState.UNKNOWN, null);
 
     private static final int WINDOW_WIDTH = 640;
     private static final int WINDOW_HEIGHT = 480;

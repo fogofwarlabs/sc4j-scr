@@ -1484,7 +1484,7 @@ public final class ProviderSession {
 
     /**
      * Handles class {@code 0} subtype {@code 1}: a fresh join request resets the peer and is answered with subtype
-     * {@code 2}; repeats within the rejoin window are ignored.
+     * {@code 2}; repeats within the rejoin window are ignored. A player still present at the address leaves ({@link #removeReplacedPeer}).
      *
      * @param source the requester's address
      * @param packet the join request
@@ -1495,7 +1495,7 @@ public final class ProviderSession {
         boolean recent = Integer.compareUnsigned(now - existing.getJoinTime(), this.rejoinWindow) < 0;
 
         if (!recent) {
-            this.peers.remove(existing);
+            this.removeReplacedPeer(existing, ProviderPeer.UNKNOWN_IDENTIFIER);
         }
 
         byte[] payload = packet.getPayloadBytes();
@@ -1510,6 +1510,29 @@ public final class ProviderSession {
         peer.getChannel(ProviderPacket.CONTROL).reset(JOIN_CONTROL_SEQUENCE);
         peer.setJoinTime(now);
         this.send(peer, ProviderPacket.CONTROL, SUBTYPE_JOIN_ACCEPT, createInt32Bytes(JOIN_VALUE));
+    }
+
+    /**
+     * Removes a peer that a join or another player's information at its address replaces. A player of another identifier that has not
+     * left yet leaves now: event {@link #EVENT_PLAYER_LEFT} with its departure reason, and a host clears the full bit.
+     *
+     * @param existing   the replaced peer
+     * @param identifier the identifier of the player that takes the address, {@link ProviderPeer#UNKNOWN_IDENTIFIER} for a joiner
+     */
+    private void removeReplacedPeer(@NotNull ProviderPeer existing, int identifier) {
+        this.peers.remove(existing);
+
+        int former = existing.getIdentifier();
+
+        if (former == ProviderPeer.UNKNOWN_IDENTIFIER || former == identifier) {
+            return;
+        }
+
+        this.events.addLast(new Event(EVENT_PLAYER_LEFT, former, createInt32Bytes(existing.getDepartureReason())));
+
+        if (this.self.isHost() && !this.isFull()) {
+            this.gameState &= ~STATE_FULL;
+        }
     }
 
     /**
@@ -1598,7 +1621,9 @@ public final class ProviderSession {
     }
 
     /**
-     * Updates the shared acknowledgement of class {@code 2} after a queued turn.
+     * Updates the shared acknowledgement of class {@code 2} after a queued turn. The calculation starts from the receiving player's
+     * channel, or, when that player joined late, from the channel of a player that takes part in the turn being consumed, so that the
+     * acknowledgement never passes a turn that player has not sent yet.
      *
      * @param receiver the peer whose turn was queued
      * @param now      the current tick
@@ -1606,15 +1631,21 @@ public final class ProviderSession {
     private void updateTurnAcknowledgement(@NotNull ProviderPeer receiver, int now) {
         ProviderChannel[] channels = new ProviderChannel[this.peers.size()];
         int[] flags = new int[this.peers.size()];
+        ProviderChannel receiving = receiver.getChannel(ProviderPacket.TURN);
+        boolean late = (receiver.getFlags() & ProviderPeer.FLAG_JOINED_LATE) != 0;
 
         for (int index = 0; index < channels.length; index++) {
             ProviderPeer peer = this.peers.get(index);
 
             channels[index] = peer.getIdentifier() == ProviderPeer.UNKNOWN_IDENTIFIER ? null : peer.getChannel(ProviderPacket.TURN);
             flags[index]    = peer.getFlags();
+
+            if (late && channels[index] != null && (flags[index] & ProviderPeer.FLAG_JOINED_LATE) == 0) {
+                receiving = channels[index];
+                late      = false;
+            }
         }
 
-        ProviderChannel receiving = receiver.getChannel(ProviderPacket.TURN);
         int acknowledgement = ProviderChannel.calculateSharedAcknowledgement(receiving, receiving.getAcknowledgement(), channels, flags);
 
         for (ProviderPeer peer : this.peers) {
@@ -1630,6 +1661,23 @@ public final class ProviderSession {
 
             channel.setAcknowledgement(acknowledgement);
             channel.markAcknowledgementDue(now);
+        }
+    }
+
+    /**
+     * Lowers the shared acknowledgement of class {@code 2} to a player's first turn when it is ahead of it: a player that takes part in the
+     * next turn to consume holds the acknowledgement back until its turns arrive. Players that joined late keep theirs.
+     *
+     * @param player the player that takes part from its first turn on
+     * @param turn   the player's first turn
+     */
+    private void awaitTurns(@NotNull ProviderPeer player, int turn) {
+        for (ProviderPeer peer : this.peers) {
+            ProviderChannel channel = peer.getChannel(ProviderPacket.TURN);
+
+            if (peer != player && (peer.getFlags() & ProviderPeer.FLAG_JOINED_LATE) == 0 && isTurnAhead(channel.getAcknowledgement(), turn)) {
+                channel.setAcknowledgement(turn);
+            }
         }
     }
 
@@ -1681,9 +1729,11 @@ public final class ProviderSession {
             case SUBTYPE_DEPARTURE -> {
                 if (payload.length >= DEPARTURE_SIZE) {
                     ProviderPeer peer = this.findPeerByIdentifier(readInt32(payload, 0));
+                    int turn = readInt32(payload, DEPARTURE_TURN_OFFSET) & WORD_MASK;
 
-                    if (peer != null && peer.getIdentifier() != ProviderPeer.UNKNOWN_IDENTIFIER) {
-                        peer.setDeparture(readInt32(payload, DEPARTURE_TURN_OFFSET) & WORD_MASK, readInt32(payload, DEPARTURE_REASON_OFFSET));
+                    // A departure before the player's first turn is a former player's of the same identifier.
+                    if (peer != null && peer.getIdentifier() != ProviderPeer.UNKNOWN_IDENTIFIER && !isTurnAhead(peer.getFirstTurn(), turn)) {
+                        peer.setDeparture(turn, readInt32(payload, DEPARTURE_REASON_OFFSET));
                     }
                 }
             }
@@ -1723,7 +1773,9 @@ public final class ProviderSession {
     /**
      * Handles subtype {@code 6}, a player's information. The sender's own entry (the host describes itself with a zero
      * address) takes the packet's source; another player's entry names its address, whose peer is made afresh (a peer of
-     * that address is deleted and created again): the players then exchange turns and messages directly.
+     * that address is deleted and created again): the players then exchange turns and messages directly. The player counts as joined late
+     * when its first turn lies ahead of the local player's next turn to consume, whatever the sender's flags say; a first turn that was
+     * consumed already becomes the next turn to consume.
      *
      * @param source the address the packet came from
      * @param packet the player information packet
@@ -1749,7 +1801,7 @@ public final class ProviderSession {
 
             for (ProviderPeer existing : List.copyOf(this.peers)) {
                 if (address.equals(existing.getAddress())) {
-                    this.peers.remove(existing);
+                    this.removeReplacedPeer(existing, identifier);
                 }
             }
 
@@ -1759,19 +1811,24 @@ public final class ProviderSession {
         ProviderPeer peer = this.findOrCreatePeer(address);
 
         peer.setIdentifier(identifier);
-        peer.setFlags(readInt32(payload, PLAYER_INFORMATION_FLAGS_OFFSET));
+        // Whether the player joined late follows from the local turns below, not from the sender's flags.
+        peer.setFlags(readInt32(payload, PLAYER_INFORMATION_FLAGS_OFFSET) & ~ProviderPeer.FLAG_JOINED_LATE);
         peer.setHost(readInt32(payload, PLAYER_INFORMATION_HOST_OFFSET) != 0);
 
-        int turn = readInt32(payload, PLAYER_INFORMATION_TURN_OFFSET) & WORD_MASK;
+        int announced = readInt32(payload, PLAYER_INFORMATION_TURN_OFFSET) & WORD_MASK;
+        int ownExpected = this.self.getChannel(ProviderPacket.TURN).getExpectedSequence();
+        // A player announced after its first turn was consumed here takes part from the next turn to consume.
+        int turn = isTurnAhead(ownExpected, announced) ? ownExpected : announced;
         ProviderChannel channel = peer.getChannel(ProviderPacket.TURN);
 
         channel.setExpectedAndAcknowledgement(turn);
         channel.setNextOutgoingSequence(this.self.getChannel(ProviderPacket.TURN).getNextOutgoingSequence());
-
-        int ownExpected = this.self.getChannel(ProviderPacket.TURN).getExpectedSequence();
+        peer.setFirstTurn(announced);
 
         if (isTurnAhead(turn, ownExpected)) {
             peer.setFlags(peer.getFlags() | ProviderPeer.FLAG_JOINED_LATE);
+        } else {
+            this.awaitTurns(peer, turn);
         }
 
         int nameEnd = findZeroByteIndex(payload, PLAYER_INFORMATION_HEADER);
@@ -1785,13 +1842,13 @@ public final class ProviderSession {
         peer.setFlags(peer.getFlags() | ProviderPeer.FLAG_KNOWN);
 
         for (ProviderPacket history : this.self.getChannel(ProviderPacket.TURN).getHistoryPackets()) {
-            if (((history.getSequence() - turn) & WORD_MASK) <= ProviderChannel.SEQUENCE_HALF_RANGE) {
+            if (((history.getSequence() - announced) & WORD_MASK) <= ProviderChannel.SEQUENCE_HALF_RANGE) {
                 this.resend(peer, history);
             }
         }
 
         for (ProviderChannel.Received queued : this.self.getChannel(ProviderPacket.TURN).getReceivedPackets()) {
-            if (((queued.getPacket().getSequence() - turn) & WORD_MASK) <= ProviderChannel.SEQUENCE_HALF_RANGE) {
+            if (((queued.getPacket().getSequence() - announced) & WORD_MASK) <= ProviderChannel.SEQUENCE_HALF_RANGE) {
                 this.resend(peer, queued.getPacket());
             }
         }
@@ -1869,9 +1926,12 @@ public final class ProviderSession {
 
         turns.setExpectedAndAcknowledgement(turn);
         turns.setNextOutgoingSequence(turn);
+        peer.setFirstTurn(turn);
 
         if (isTurnAhead(turn, ownTurns.getExpectedSequence())) {
             peer.setFlags(peer.getFlags() | ProviderPeer.FLAG_JOINED_LATE);
+        } else {
+            this.awaitTurns(peer, turn);
         }
 
         if (this.isFull()) {
