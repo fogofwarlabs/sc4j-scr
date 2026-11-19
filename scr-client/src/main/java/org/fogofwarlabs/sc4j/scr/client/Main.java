@@ -2161,9 +2161,9 @@ public final class Main {
         this.interfaceTicksDue = this.session == null
                                  ? 0
                                  : this.requireSession().getPresentation().getInterfaceLink().getLocalInterface().advanceInterfaceTicks(
-                                         (int) UiClockUtils.getHostTimeMilliseconds(),
-                                         MAXIMUM_INTERFACE_TICKS
-                                 );
+                (int) UiClockUtils.getHostTimeMilliseconds(),
+                MAXIMUM_INTERFACE_TICKS
+        );
         this.applyWindowMode();
         // A live game with a short override frame draws at the throttle's interval, never more often than the user's frame rate limit, and never
         // waits for the display or the host's pacing.

@@ -105,13 +105,13 @@ final class InMemoryLanScenario {
         this.queues      = new HashMap<>();
         this.silent      = new boolean[clients];
 
-        this.now       = CLOCK_BASE;
+        this.now         = CLOCK_BASE;
         this.latency     = 0;
         this.jitter      = 0;
         this.lossPercent = 0;
         this.random      = new Random(0);
         this.gameName    = DEFAULT_GAME_NAME;
-        this.afterStep = () -> {
+        this.afterStep   = () -> {
         };
 
         for (int index = 0; index < clients; index++) {

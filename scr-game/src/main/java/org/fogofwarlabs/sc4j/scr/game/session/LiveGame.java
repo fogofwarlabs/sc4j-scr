@@ -368,9 +368,9 @@ public final class LiveGame {
         if (this.isLocalObserver()) {
             this.outgoingTurn.useObserverTurns();
         }
-        this.replay        = ReplayFile.create(this.buildHeader(RUNNING_FRAMES, true), this.history, setup.getMapData(),
-                                               this.getLimits(), ReplayWriter.encodeVersionBlock(GameRulesVersion.CURRENT_BUILD, 0),
-                                               ReplayWriter.CURRENT_FIX_FLAGS);
+        this.replay = ReplayFile.create(this.buildHeader(RUNNING_FRAMES, true), this.history, setup.getMapData(),
+                                        this.getLimits(), ReplayWriter.encodeVersionBlock(GameRulesVersion.CURRENT_BUILD, 0),
+                                        ReplayWriter.CURRENT_FIX_FLAGS);
 
         if (setup.getSavedHeader() != null) {
             this.replay.markSavedGameStart();
