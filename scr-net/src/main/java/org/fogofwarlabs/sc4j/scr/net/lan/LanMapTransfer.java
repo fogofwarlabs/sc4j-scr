@@ -257,6 +257,7 @@ public final class LanMapTransfer {
 
         private final byte @NotNull [] data;
         private @Nullable Path file;
+        private boolean downloading;
 
         private Transfer(int identifier, int owner, int size, int checksum) {
             this.identifier = identifier;
@@ -271,8 +272,9 @@ public final class LanMapTransfer {
             this.source     = 0;
             this.bytes      = 0;
 
-            this.data = new byte[size];
-            this.file = null;
+            this.data        = new byte[size];
+            this.file        = null;
+            this.downloading = false;
         }
 
         /**
@@ -564,7 +566,7 @@ public final class LanMapTransfer {
 
     /**
      * Removes a player that left: its record leaves every shared file; the first transfer it owned is deleted, and
-     * transfers that it fed or that fed it stop; every transfer then reports its status.
+     * transfers that it fed or that fed it stop; every transfer then reports its status, except one a downloader took over.
      *
      * @param player the player id
      */
@@ -590,7 +592,9 @@ public final class LanMapTransfer {
                 transfer.flags &= ~FLAG_SENDING;
             }
 
-            this.sendStatus(transfer);
+            if (!transfer.downloading) {
+                this.sendStatus(transfer);
+            }
         }
     }
 
@@ -796,6 +800,8 @@ public final class LanMapTransfer {
             LanMapDownloader current = this.downloader;
 
             if (current != null && current.download(transfer)) {
+                transfer.downloading = true;
+
                 return;
             }
         }
@@ -852,6 +858,7 @@ public final class LanMapTransfer {
      * Handles a chunk ({@code 9} bytes and its length): taken only at the bytes held and within the size; then the
      * acknowledgement with the new byte count goes to the sender, and once complete the checksum is checked (a mismatch
      * drops all bytes) and the file written. Any other chunk makes the receiver tell the sender to stop and report its status.
+     * A chunk of a transfer a downloader took over is dropped.
      *
      * @param sender the sending player
      * @param data   the chunk
@@ -869,7 +876,7 @@ public final class LanMapTransfer {
 
         Transfer transfer = this.findTransfer(data[IDENTIFIER_OFFSET] & BYTE_MASK, data[OWNER_OFFSET] & BYTE_MASK);
 
-        if (transfer == null) {
+        if (transfer == null || transfer.downloading) {
             return;
         }
 
@@ -1028,7 +1035,8 @@ public final class LanMapTransfer {
         }
 
         System.arraycopy(contents, 0, transfer.data, 0, contents.length);
-        transfer.bytes = transfer.size;
+        transfer.bytes       = transfer.size;
+        transfer.downloading = false;
 
         if (!this.writeDownloadedFile(transfer)) {
             transfer.flags = FLAG_FAILED;
@@ -1051,7 +1059,8 @@ public final class LanMapTransfer {
             return;
         }
 
-        transfer.bytes = 0;
+        transfer.bytes       = 0;
+        transfer.downloading = false;
         this.sendStatus(transfer);
     }
 
