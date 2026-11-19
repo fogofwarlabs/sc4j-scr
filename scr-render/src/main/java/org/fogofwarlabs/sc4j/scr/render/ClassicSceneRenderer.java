@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 
 /**
@@ -173,6 +174,20 @@ public final class ClassicSceneRenderer implements SceneRenderer, AutoCloseable 
     public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers) throws IOException {
         this.overlay.end(false);
         this.renderer.drawTerrain(tileIdentifiers);
+    }
+
+    /**
+     * Draws the visible terrain from the current game tile identifiers, including creep edges, with megatile pictures that replace installed ones
+     * ({@link WorldRenderer#drawTerrain(IntUnaryOperator, IntFunction)}).
+     *
+     * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles       the picture of a megatile index, the same array while it is unchanged, or {@code null} for the installed picture
+     * @throws IOException if a tile identifier is outside the installed assets
+     */
+    @Override
+    public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles) throws IOException {
+        this.overlay.end(false);
+        this.renderer.drawTerrain(tileIdentifiers, megatiles);
     }
 
     /**

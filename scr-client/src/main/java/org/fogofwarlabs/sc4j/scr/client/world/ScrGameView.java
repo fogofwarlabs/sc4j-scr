@@ -19,6 +19,7 @@ import org.fogofwarlabs.sc4j.scr.game.ability.UnitSpells;
 import org.fogofwarlabs.sc4j.scr.game.combat.ScrShieldLayer;
 import org.fogofwarlabs.sc4j.scr.game.combat.UnitTargeting;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrGamePlugin;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameFrame;
 import org.fogofwarlabs.sc4j.scr.game.order.UnitSelection;
 import org.fogofwarlabs.sc4j.scr.game.path.PathPool;
@@ -540,6 +541,56 @@ public final class ScrGameView implements GameView {
         }
 
         return -1;
+    }
+
+    /**
+     * Finds the picture a terrain megatile draws instead of its installed one: the first picture a plugin of the game gives
+     * ({@link ScrGamePlugin#findTerrainTile}).
+     *
+     * @param megatile the megatile index of a drawn tile
+     * @return the palette indices, or {@code null} for the installed picture
+     */
+    public byte @Nullable [] findTerrainTile(int megatile) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            byte[] picture = plugin.findTerrainTile(megatile);
+
+            if (picture != null) {
+                return picture;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds the picture drawn over the game screen and its console: the first overlay a plugin of the game gives
+     * ({@link ScrGamePlugin#findScreenOverlay}).
+     *
+     * @return the overlay, or {@code null} for none
+     */
+    public @Nullable ScrScreenOverlay findScreenOverlay() {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            ScrScreenOverlay overlay = plugin.findScreenOverlay();
+
+            if (overlay != null) {
+                return overlay;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return {@code true} if a plugin of the game hides the console ({@link ScrGamePlugin#isConsoleHidden}), {@code false} otherwise
+     */
+    public boolean isConsoleHidden() {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            if (plugin.isConsoleHidden()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

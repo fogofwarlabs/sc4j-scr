@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 
 import static org.lwjgl.opengl.GL33C.*;
@@ -534,6 +535,16 @@ public final class HdSceneRenderer implements SceneRenderer {
      * The RGBA textures of the override sheets' frames ({@link #drawImageSheet}), per frame and palette selection, {@code 0} until drawn.
      */
     private final @NotNull Map<SpriteSheet, int @NotNull []> sheetTextures;
+    /**
+     * The RGBA textures of replaced megatile pictures ({@link #drawTerrain(IntUnaryOperator, IntFunction)}) by megatile index, and the picture
+     * each one holds.
+     */
+    private final @NotNull Map<Integer, Integer> megatileTextures;
+    private final @NotNull Map<Integer, byte[]> megatilePictures;
+    /**
+     * The megatile pictures of the last terrain draw, which the foliage of the frame leaves out, or {@code null} for none.
+     */
+    private @Nullable IntFunction<byte @Nullable []> terrainMegatiles;
     private boolean fogRequested;
     private int fogVisionMask;
     private int fogVisibleLevel;
@@ -668,6 +679,9 @@ public final class HdSceneRenderer implements SceneRenderer {
         this.fogTileFlags    = null;
         this.postFogImages   = new ArrayList<>();
         this.sheetTextures   = new HashMap<>();
+        this.megatileTextures = new HashMap<>();
+        this.megatilePictures = new HashMap<>();
+        this.terrainMegatiles = null;
         this.fogRequested    = false;
         this.fogVisionMask   = 0;
         this.fogVisibleLevel = OverlayPass.DEFAULT_VISIBLE_LEVEL;
@@ -1053,7 +1067,26 @@ public final class HdSceneRenderer implements SceneRenderer {
      */
     @Override
     public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers) throws IOException {
+        this.drawTerrainTiles(tileIdentifiers, null);
+    }
+
+    /**
+     * Draws the visible terrain from the current game tile identifiers, including creep edges, with megatile pictures that replace installed ones:
+     * a replaced tile draws its classic picture in the classic palette at world size, opaque, with nearest filtering, over the HD tile.
+     *
+     * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles       the picture of a megatile index, the same array while it is unchanged, or {@code null} for the installed picture
+     * @throws IOException if a tile identifier is outside the installed assets
+     */
+    @Override
+    public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles) throws IOException {
+        this.drawTerrainTiles(tileIdentifiers, megatiles);
+    }
+
+    private void drawTerrainTiles(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles) throws IOException {
         this.beginScene();
+
+        this.terrainMegatiles = megatiles;
 
         boolean visibleWater = false;
         int mapWidth = this.world.getMapWidth();
@@ -1081,7 +1114,10 @@ public final class HdSceneRenderer implements SceneRenderer {
 
                 this.tileCreep[visibleIndex]       = TerrainTileset.isCreepTile(tileIdentifier);
                 this.tileSlots[visibleIndex]       = this.getMegatileSlot(megatile);
-                this.tileWaterFrames[visibleIndex] = this.water != null ? this.assets.getWaterMaskFrame(megatile) + 1 : 0;
+                // A replaced megatile draws as land: its picture is drawn over the tile, without the water effect.
+                boolean replaced = megatiles != null && megatiles.apply(megatile) != null;
+
+                this.tileWaterFrames[visibleIndex] = this.water != null && !replaced ? this.assets.getWaterMaskFrame(megatile) + 1 : 0;
                 visibleWater |= this.tileWaterFrames[visibleIndex] > 0;
             }
         }
@@ -1091,6 +1127,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         if (!effectTerrain) {
             this.drawTiles(firstColumn, firstRow, visibleColumns, visibleTiles, TILES_ALL);
+            this.drawMegatilePictures(tileIdentifiers, megatiles, firstColumn, firstRow, lastColumn, lastRow);
             this.drawCreepEdges(tileIdentifiers, mapWidth, mapHeight, firstColumn, firstRow, lastColumn, lastRow, MODE_EDGE);
 
             return;
@@ -1099,6 +1136,8 @@ public final class HdSceneRenderer implements SceneRenderer {
         this.drawTiles(firstColumn, firstRow, visibleColumns, visibleTiles, TILES_UNMASKED);
 
         int maskedTiles = this.drawTiles(firstColumn, firstRow, visibleColumns, visibleTiles, TILES_MASKED);
+
+        this.drawMegatilePictures(tileIdentifiers, megatiles, firstColumn, firstRow, lastColumn, lastRow);
 
         this.drawCreepEdges(tileIdentifiers, mapWidth, mapHeight, firstColumn, firstRow, lastColumn, lastRow, MODE_EDGE_EFFECT);
         this.flush();
@@ -1182,6 +1221,118 @@ public final class HdSceneRenderer implements SceneRenderer {
         }
 
         return drawn;
+    }
+
+    /**
+     * Draws the replacing pictures of the visible tiles whose megatile has one.
+     *
+     * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles       the picture of a megatile index, or {@code null} for the installed picture; {@code null} for no replacements
+     * @param firstColumn     the first visible tile column
+     * @param firstRow        the first visible tile row
+     * @param lastColumn      the column after the last visible one
+     * @param lastRow         the row after the last visible one
+     * @throws IOException if no map is loaded or a picture is not {@code 32x32} palette indices
+     */
+    private void drawMegatilePictures(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles,
+                                      int firstColumn, int firstRow, int lastColumn, int lastRow) throws IOException {
+        if (megatiles == null) {
+            return;
+        }
+
+        int mapWidth = this.world.getMapWidth();
+        float size = TerrainTileset.TILE_SIZE * this.scale;
+
+        for (int row = firstRow; row < lastRow; row++) {
+            for (int column = firstColumn; column < lastColumn; column++) {
+                int megatile = this.assets.getMegatile(tileIdentifiers.applyAsInt(row * mapWidth + column));
+                byte[] picture = megatiles.apply(megatile);
+
+                if (picture == null) {
+                    continue;
+                }
+
+                int texture = this.acquireMegatileTexture(megatile, picture);
+                float left = (column * TerrainTileset.TILE_SIZE - this.cameraX) * this.scale;
+                float top = (row * TerrainTileset.TILE_SIZE - this.cameraY) * this.scale;
+
+                this.copyTeamColor(0);
+                this.vertexFlip     = 1;
+                this.vertexLighting = 0;
+
+                this.selectBatch(MODE_SPRITE, texture, this.blackTexture, null);
+                this.appendQuad(left, top, left + size, top + size, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    /**
+     * Returns the RGBA texture of a megatile's replacing picture, made on first use and again when the picture array changes: every palette index
+     * in its classic color, opaque, with nearest filtering.
+     *
+     * @param megatile the megatile index
+     * @param picture  the {@code 32x32} palette indices
+     * @return the texture
+     * @throws IOException if no map is loaded or the picture is not {@code 32x32} palette indices
+     */
+    private int acquireMegatileTexture(int megatile, byte @NotNull [] picture) throws IOException {
+        Integer existing = this.megatileTextures.get(megatile);
+
+        if (existing != null && this.megatilePictures.get(megatile) == picture) {
+            return existing;
+        }
+
+        if (picture.length != TerrainTileset.TILE_SIZE * TerrainTileset.TILE_SIZE) {
+            throw Exceptions.newIOException("A megatile picture has {0} pixels.", picture.length);
+        }
+
+        byte[] palette = this.world.copyPlayerColorPalette(0);
+
+        if (palette == null) {
+            throw Exceptions.newIOException("The megatile picture needs a loaded map palette.");
+        }
+
+        ByteBuffer upload = MemoryUtil.memAlloc(picture.length * OverlayPass.RGBA_BYTES);
+
+        try {
+            for (byte value : picture) {
+                upload.put(palette, (value & BYTE_MASK) * OverlayPass.RGBA_BYTES, OverlayPass.RGBA_BYTES - 1).put(OverlayPass.OPAQUE_ALPHA);
+            }
+
+            upload.flip();
+            this.flush();
+
+            int name = existing != null ? existing : glGenTextures();
+
+            glBindTexture(GL_TEXTURE_2D, name);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TerrainTileset.TILE_SIZE, TerrainTileset.TILE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, upload);
+
+            this.megatileTextures.put(megatile, name);
+            this.megatilePictures.put(megatile, picture);
+            this.batchTexture = 0;
+
+            return name;
+        } finally {
+            MemoryUtil.memFree(upload);
+        }
+    }
+
+    private void deleteMegatileTextures() {
+        for (int texture : this.megatileTextures.values()) {
+            IgnoreException.execute(
+                    () -> glDeleteTextures(texture)
+            );
+        }
+
+        this.megatileTextures.clear();
+        this.megatilePictures.clear();
+        this.batchTexture = 0;
     }
 
     private void drawCreepEdges(@NotNull IntUnaryOperator tileIdentifiers,
@@ -1328,6 +1479,11 @@ public final class HdSceneRenderer implements SceneRenderer {
                 int tile = row * mapWidth + column;
 
                 if ((foliage.getFlags(tile) & HdFoliage.FLAG_VISIBLE) == 0) {
+                    continue;
+                }
+
+                // A tile whose megatile picture is replaced has no foliage.
+                if (this.terrainMegatiles != null && this.terrainMegatiles.apply(this.assets.getMegatile(tileIdentifiers.applyAsInt(tile))) != null) {
                     continue;
                 }
 
@@ -2649,6 +2805,7 @@ public final class HdSceneRenderer implements SceneRenderer {
         IgnoreException.execute(
                 this::deleteSceneTarget,
                 this::deleteSheetTextures,
+                this::deleteMegatileTextures,
                 this::deleteTileTextures,
                 this::closePasses,
                 this::deleteDrawObjects,

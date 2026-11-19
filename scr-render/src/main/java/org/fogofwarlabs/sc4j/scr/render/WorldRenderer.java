@@ -19,6 +19,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.*;
+import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 
 import static org.lwjgl.opengl.GL33C.*;
@@ -687,6 +688,11 @@ public final class WorldRenderer implements AutoCloseable {
     private int atlasVertical;
     private int atlasRowHeight;
     private final @Nullable AtlasEntry @NotNull [] terrainEntries;
+    /**
+     * The atlas entries of replaced megatile pictures by megatile index, and the picture each one holds.
+     */
+    private final @NotNull Map<Integer, AtlasEntry> megatileEntries;
+    private final @NotNull Map<Integer, byte[]> megatilePictures;
     private final @Nullable AtlasEntry @NotNull [] @Nullable [] spriteEntries;
     private @NotNull AtlasEntry @Nullable [] creepEdgeEntries;
     private final @NotNull SequencedMap<Long, AtlasEntry> warpFrames;
@@ -873,6 +879,8 @@ public final class WorldRenderer implements AutoCloseable {
         this.atlasVertical    = 0;
         this.atlasRowHeight   = 0;
         this.terrainEntries   = new AtlasEntry[TILE_IDENTIFIER_COUNT];
+        this.megatileEntries  = new HashMap<>();
+        this.megatilePictures = new HashMap<>();
         this.spriteEntries    = new AtlasEntry[ScrAddedGraphics.LAST_ID + 1][];
         this.creepEdgeEntries = null;
         this.warpFrames       = new LinkedHashMap<>();
@@ -1666,6 +1674,20 @@ public final class WorldRenderer implements AutoCloseable {
      * @throws IOException if a newly encountered tile identifier is outside the installed assets
      */
     public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers) throws IOException {
+        this.drawTerrain(tileIdentifiers, null);
+    }
+
+    /**
+     * Draws visible terrain with creep edges selected from current neighboring tile identifiers, with megatile pictures that replace installed
+     * ones. A replaced megatile keeps one atlas entry, whose texels are replaced when the picture array changes. Newly encountered tile identifiers
+     * are decoded on demand.
+     *
+     * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles       the picture of a megatile index ({@code 32x32} palette indices, the same array while it is unchanged), or
+     *                        {@code null} for the installed picture; {@code null} for no replacements
+     * @throws IOException if a newly encountered tile identifier is outside the installed assets
+     */
+    public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles) throws IOException {
         if (this.mapTiles == null || this.assets == null || this.creepEdgeEntries == null) {
             return;
         }
@@ -1691,6 +1713,10 @@ public final class WorldRenderer implements AutoCloseable {
                     this.flush();
                     entry                               = this.uploadFrame(this.assets.decodeTile(tileIdentifier), TerrainTileset.TILE_SIZE, TerrainTileset.TILE_SIZE);
                     this.terrainEntries[tileIdentifier] = entry;
+                }
+
+                if (megatiles != null) {
+                    entry = this.findMegatileEntry(megatiles, this.assets.getMegatileIndex(tileIdentifier), entry);
                 }
 
                 float horizontal = (column * TerrainTileset.TILE_SIZE - this.cameraX) * this.scale;
@@ -3091,6 +3117,65 @@ public final class WorldRenderer implements AutoCloseable {
         this.flush();
     }
 
+    /**
+     * Returns the atlas entry a terrain tile draws: the entry of its megatile's replacing picture, uploaded on first use and replaced in place when
+     * the picture array changes, or the installed tile's entry.
+     *
+     * @param megatiles the picture of a megatile index, or {@code null} for the installed picture
+     * @param megatile  the megatile index of the tile
+     * @param installed the atlas entry of the installed tile
+     * @return the atlas entry to draw
+     * @throws IOException if the picture is not {@code 32x32} palette indices
+     */
+    private @NotNull AtlasEntry findMegatileEntry(@NotNull IntFunction<byte @Nullable []> megatiles, int megatile,
+                                                  @NotNull AtlasEntry installed) throws IOException {
+        byte[] picture = megatiles.apply(megatile);
+
+        if (picture == null) {
+            return installed;
+        }
+
+        if (picture.length != TerrainTileset.TILE_SIZE * TerrainTileset.TILE_SIZE) {
+            throw Exceptions.newIOException("A megatile picture has {0} pixels.", picture.length);
+        }
+
+        AtlasEntry entry = this.megatileEntries.get(megatile);
+
+        if (entry == null) {
+            this.flush();
+            entry = this.uploadFrame(picture, TerrainTileset.TILE_SIZE, TerrainTileset.TILE_SIZE);
+            this.megatileEntries.put(megatile, entry);
+            this.megatilePictures.put(megatile, picture);
+        } else if (this.megatilePictures.get(megatile) != picture) {
+            this.flush();
+            this.replaceFrame(entry, picture);
+            this.megatilePictures.put(megatile, picture);
+        }
+
+        return entry;
+    }
+
+    /**
+     * Replaces the texels of an atlas entry with pixels of its size.
+     *
+     * @param entry  the atlas entry
+     * @param pixels the row-major palette indices
+     */
+    private void replaceFrame(@NotNull AtlasEntry entry, byte @NotNull [] pixels) {
+        ByteBuffer upload = MemoryUtil.memAlloc(pixels.length);
+
+        try {
+            upload.put(pixels).flip();
+            glBindTexture(GL_TEXTURE_2D, entry.texture);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, entry.horizontal, entry.vertical, entry.width, entry.height, GL_RED, GL_UNSIGNED_BYTE, upload);
+        } finally {
+            MemoryUtil.memFree(upload);
+        }
+
+        this.batchTexture = 0;
+    }
+
     private @NotNull AtlasEntry uploadFrame(byte @NotNull [] pixels, int width, int height) throws IOException {
         if (width <= 0 || height <= 0 || width > ATLAS_SIZE || height > ATLAS_SIZE) {
             throw Exceptions.newIOException("Sprite dimensions exceed the texture atlas: {0} by {1}", width, height);
@@ -3281,6 +3366,8 @@ public final class WorldRenderer implements AutoCloseable {
         this.assets           = null;
         this.creepEdgeEntries = null;
         Arrays.fill(this.terrainEntries, null);
+        this.megatileEntries.clear();
+        this.megatilePictures.clear();
 
         this.batchTexture    = 0;
         this.atlasRowHeight  = 0;

@@ -1,6 +1,7 @@
 package org.fogofwarlabs.sc4j.scr.game.extension;
 
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
+import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.trigger.eud.ClassicMemoryView;
 import org.jetbrains.annotations.NotNull;
@@ -50,5 +51,32 @@ public interface ScrGamePlugin {
      */
     default int findImageDrawFunction(@NotNull SpriteImage image) {
         return -1;
+    }
+
+    /**
+     * Finds the picture a terrain megatile draws instead of its installed one: {@value TerrainTileset#TILE_SIZE} by
+     * {@value TerrainTileset#TILE_SIZE} palette indices, rows from the top. The same array is returned while the picture is unchanged.
+     *
+     * @param megatile the megatile index of a drawn tile
+     * @return the palette indices, or {@code null} for the installed picture
+     */
+    default byte @Nullable [] findTerrainTile(int megatile) {
+        return null;
+    }
+
+    /**
+     * Finds the picture the plugin draws over the game screen and its console.
+     *
+     * @return the overlay, or {@code null} for none
+     */
+    default @Nullable ScrScreenOverlay findScreenOverlay() {
+        return null;
+    }
+
+    /**
+     * @return {@code true} if the console is not drawn, {@code false} if it is
+     */
+    default boolean isConsoleHidden() {
+        return false;
     }
 }

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 
 /**
@@ -239,6 +240,18 @@ public interface SceneRenderer {
      * @throws IOException if a tile identifier is outside the installed assets
      */
     void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers) throws IOException;
+
+    /**
+     * Draws the visible terrain from the current game tile identifiers, including creep edges, with megatile pictures that replace installed ones:
+     * {@code 32x32} palette indices, rows from the top, drawn in the classic palette at world size. The default ignores the replacements.
+     *
+     * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles       the picture of a megatile index, the same array while it is unchanged, or {@code null} for the installed picture
+     * @throws IOException if a tile identifier is outside the installed assets
+     */
+    default void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles) throws IOException {
+        this.drawTerrain(tileIdentifiers);
+    }
 
     /**
      * Draws HD foliage, placed once per map from the game seed with its own generator and animated by the game frame; presentation only. The default

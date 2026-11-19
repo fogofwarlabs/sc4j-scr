@@ -167,6 +167,18 @@ final class RenderAssetsTest {
     }
 
     @Test
+    void find_megatile_index_should_read_the_group_reference_without_the_high_tile_flag() throws IOException {
+        byte[] groups = new byte[GROUP_COUNT * TerrainTileset.CV5_RECORD_SIZE];
+
+        groups[LAST_GROUP * TerrainTileset.CV5_RECORD_SIZE + TerrainTileset.CV5_MEGATILES_OFFSET + LAST_VARIANT * Short.BYTES] = 3;
+
+        Assertions.assertEquals(3, RenderAssets.findMegatileIndex(groups, 0x7FFF));
+        Assertions.assertEquals(3, RenderAssets.findMegatileIndex(groups, 0xFFFF));
+        Assertions.assertEquals(0, RenderAssets.findMegatileIndex(groups, 0));
+        Assertions.assertThrows(IOException.class, () -> RenderAssets.findMegatileIndex(new byte[TerrainTileset.CV5_RECORD_SIZE], 0x8010));
+    }
+
+    @Test
     void decode_tile_from_records_should_reject_references_outside_the_graphics_files() {
         Assertions.assertThrows(IOException.class,
                                 () -> RenderAssets.decodeTile(new byte[TerrainTileset.CV5_RECORD_SIZE],

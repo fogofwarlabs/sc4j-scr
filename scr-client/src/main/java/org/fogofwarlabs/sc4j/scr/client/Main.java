@@ -77,6 +77,7 @@ import org.fogofwarlabs.sc4j.scr.game.player.Player;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerRelations;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTypes;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.presentation.*;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayCommandDescription;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayCommandExecutor;
@@ -436,6 +437,14 @@ public final class Main {
      * The divisor that halves a length to its center in floating point.
      */
     private static final float CENTER_FLOAT_DIVISOR = 2.0f;
+    /**
+     * The alpha byte of an opaque packed {@code 0xRRGGBBAA} texel.
+     */
+    private static final int SCREEN_OVERLAY_OPAQUE = 0xFF;
+    /**
+     * The packed color that draws a texture unchanged.
+     */
+    private static final int OPAQUE_WHITE_COLOR = 0xFFFFFFFF;
 
     /**
      * The fraction of a length at its center.
@@ -1121,6 +1130,17 @@ public final class Main {
 
     final @NotNull CameraTargetScroll centerViewScroll;
 
+    /**
+     * The texture of the drawn screen overlay ({@link #drawScreenOverlay}), {@code 0} before the first, the overlay and its change count at the last
+     * upload, the palette of that upload, the palette of this frame and the uploaded texels.
+     */
+    private int screenOverlayTexture;
+    private @Nullable ScrScreenOverlay screenOverlayDrawn;
+    private long screenOverlayChange;
+    private final int @NotNull [] screenOverlayPalette;
+    private final int @NotNull [] screenOverlayCycled;
+    private int @NotNull [] screenOverlayTexels;
+
     private int seekSequenceIndex;
 
     private final @NotNull DoublePressDetector doubleClicks;
@@ -1402,6 +1422,13 @@ public final class Main {
         this.keyStates = new byte[LocalKeyStates.SIZE];
 
         this.centerViewScroll = new CameraTargetScroll(CENTER_VIEW_ALIGNMENT, CENTER_VIEW_SPEED, scrollSteps);
+
+        this.screenOverlayTexture  = 0;
+        this.screenOverlayDrawn    = null;
+        this.screenOverlayChange   = -1;
+        this.screenOverlayPalette  = new int[PaletteAnimation.COLOR_COUNT];
+        this.screenOverlayCycled   = new int[PaletteAnimation.COLOR_COUNT];
+        this.screenOverlayTexels   = new int[0];
 
         this.seekSequenceIndex = -1;
 
@@ -4639,7 +4666,16 @@ public final class Main {
             this.consoleView.setMultiplayerGame(this.requireSession().isLive() && this.requireSession().isNetworkGame());
             this.consoleView.setShowTimer(this.options.getInterfaceSettings().isGameTimer());
             this.updateApmDisplay(perspective == CommandCard.Perspective.NATIVE_REPLAY);
-            this.consoleView.draw(this.consoleModel, this.gameViewport, camera);
+            ScrGameView gameView = this.requireSession().getView();
+            boolean plugins = gameView.hasPlugins();
+
+            if (!plugins || !gameView.isConsoleHidden()) {
+                this.consoleView.draw(this.consoleModel, this.gameViewport, camera);
+            }
+
+            if (plugins) {
+                this.drawScreenOverlay(gameView.findScreenOverlay());
+            }
 
             if (this.debugView) {
                 this.drawUnitInspection();
@@ -4652,6 +4688,56 @@ public final class Main {
         } catch (IOException | RuntimeException exception) {
             this.setAssetWarning("Console: " + exception);
         }
+    }
+
+    /**
+     * Draws a screen overlay of a plugin over the game screen and the console: the classic screen scaled to the view height and centered in the
+     * game screen, each shown pixel in the display palette, the others transparent. The texture is uploaded again when the overlay or the palette
+     * changed.
+     *
+     * @param overlay the overlay, or {@code null} for none
+     */
+    private void drawScreenOverlay(@Nullable ScrScreenOverlay overlay) {
+        InterfaceRenderer interfaceRenderer = this.getInterfaceRenderer();
+
+        if (overlay == null || overlay.getShownCount() == 0 || interfaceRenderer == null ||
+            !this.requireSession().copyDisplayPalette(this.screenOverlayCycled)) {
+            return;
+        }
+
+        int width = overlay.getWidth();
+        int height = overlay.getHeight();
+        boolean resized = this.screenOverlayTexels.length != width * height;
+
+        if (resized) {
+            if (this.screenOverlayTexture != 0) {
+                interfaceRenderer.deleteTexture(this.screenOverlayTexture);
+            }
+
+            this.screenOverlayTexture = interfaceRenderer.createDynamicTexture(width, height, false);
+            this.screenOverlayTexels  = new int[width * height];
+        }
+
+        if (resized || overlay != this.screenOverlayDrawn || overlay.getChangeCount() != this.screenOverlayChange ||
+            !Arrays.equals(this.screenOverlayCycled, this.screenOverlayPalette)) {
+            System.arraycopy(this.screenOverlayCycled, 0, this.screenOverlayPalette, 0, this.screenOverlayPalette.length);
+
+            for (int offset = 0; offset < this.screenOverlayTexels.length; offset++) {
+                // Palette colors are packed 0x00BBGGRR; texels are packed 0xRRGGBBAA.
+                this.screenOverlayTexels[offset] = overlay.isShown(offset) ? Integer.reverseBytes(this.screenOverlayPalette[overlay.getPixel(offset)]) |
+                                                                             SCREEN_OVERLAY_OPAQUE : 0;
+            }
+
+            interfaceRenderer.updateTexture(this.screenOverlayTexture, width, height, this.screenOverlayTexels);
+            this.screenOverlayDrawn  = overlay;
+            this.screenOverlayChange = overlay.getChangeCount();
+        }
+
+        float scale = (float) this.viewHeight / height;
+        float drawnWidth = width * scale;
+        float left = this.gameViewport.getGameLeft() + (this.gameViewport.getGameWidth() - drawnWidth) / CENTER_FLOAT_DIVISOR;
+
+        interfaceRenderer.drawTexture(this.screenOverlayTexture, left, 0, drawnWidth, this.viewHeight, OPAQUE_WHITE_COLOR);
     }
 
     /**
