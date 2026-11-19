@@ -1556,6 +1556,55 @@ public final class ClassicAddressSpace implements ScrTriggerSystem.ExtendedDeath
     }
 
     /**
+     * Reads bytes as the aligned DWORD reads of a trigger condition give them, without reporting an access failure: a range of a plain memory
+     * region ({@link ClassicRegion#isPlainMemory()}) outside the overlay is copied whole, other bytes are read by DWORD. The read stops at the first
+     * DWORD no represented region serves.
+     *
+     * @param address     the classic address of the first byte
+     * @param destination the receiving array
+     * @param offset      the first index written
+     * @param length      the number of bytes
+     * @return the number of bytes read, {@code length} unless the read stopped
+     */
+    public int readQuietly(int address, byte @NotNull [] destination, int offset, int length) {
+        int[] dword = new int[1];
+        int count = 0;
+
+        while (count < length) {
+            int current = address + count;
+            int regionIndex = this.findRegionIndex(current);
+
+            if (regionIndex >= 0 && this.sorted[regionIndex].isPlainMemory()) {
+                long start = current & DWORD_MASK;
+                int chunk = (int) Math.min(length - count, this.sortedEnds[regionIndex] - start);
+
+                if (this.overlay == null || start >= this.overlayEnd || start + chunk <= this.overlayBase) {
+                    this.sorted[regionIndex].read((int) (start - this.sortedBases[regionIndex]), destination, offset + count, chunk);
+                    count += chunk;
+
+                    continue;
+                }
+            }
+
+            int aligned = current & ~ClassicRegion.DWORD_OFFSET_MASK;
+
+            try {
+                if (!this.readQuietly(aligned, dword)) {
+                    return count;
+                }
+            } catch (UnsupportedOperationException exception) {
+                return count;
+            }
+
+            for (int index = current - aligned; index < Integer.BYTES && count < length; index++) {
+                destination[offset + count++] = (byte) (dword[0] >>> index * Byte.SIZE);
+            }
+        }
+
+        return count;
+    }
+
+    /**
      * Reads the DWORD at a classic address as the low-level read of the emulation: an unaligned address combines the two
      * aligned DWORDs it spans, each read through its own region.
      *

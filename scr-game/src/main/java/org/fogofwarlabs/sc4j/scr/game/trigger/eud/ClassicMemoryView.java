@@ -7,8 +7,6 @@ import org.jetbrains.annotations.NotNull;
  * the address, and observers of the writes in a range. It offers no write.
  */
 public final class ClassicMemoryView {
-    private static final int BYTE_MASK = 0xFF;
-
     private final @NotNull ClassicAddressSpace space;
 
     /**
@@ -43,26 +41,6 @@ public final class ClassicMemoryView {
      * @return the number of bytes read, {@code length} unless the read stopped
      */
     public int read(int address, byte @NotNull [] destination, int offset, int length) {
-        int[] dword = new int[1];
-        int count = 0;
-
-        while (count < length) {
-            int current = address + count;
-            int aligned = current & ~ClassicRegion.DWORD_OFFSET_MASK;
-
-            try {
-                if (!this.space.readQuietly(aligned, dword)) {
-                    return count;
-                }
-            } catch (UnsupportedOperationException exception) {
-                return count;
-            }
-
-            for (int index = current - aligned; index < Integer.BYTES && count < length; index++) {
-                destination[offset + count++] = (byte) (dword[0] >>> index * Byte.SIZE & BYTE_MASK);
-            }
-        }
-
-        return count;
+        return this.space.readQuietly(address, destination, offset, length);
     }
 }

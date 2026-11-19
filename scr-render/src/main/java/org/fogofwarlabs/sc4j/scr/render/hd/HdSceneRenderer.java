@@ -7,7 +7,7 @@ import org.fogofwarlabs.sc4j.engine.client.render.GraphicsDevice;
 import org.fogofwarlabs.sc4j.engine.client.render.ShaderProgram;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteFrame;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
-import org.fogofwarlabs.sc4j.scr.data.format.dat.ImagesDat;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.TextureSheet;
 import org.fogofwarlabs.sc4j.scr.data.format.image.AnimFile;
 import org.fogofwarlabs.sc4j.scr.data.format.image.AnimLights;
 import org.fogofwarlabs.sc4j.scr.data.format.image.DdsFile;
@@ -23,13 +23,7 @@ import org.lwjgl.system.MemoryUtil;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SequencedMap;
+import java.util.*;
 import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 
@@ -272,6 +266,10 @@ public final class HdSceneRenderer implements SceneRenderer {
      * The shift of the left edge in a packed frame rectangle origin (the top edge in the low {@code int}).
      */
     private static final int ORIGIN_LEFT_SHIFT = 32;
+    /**
+     * The result of {@link #findPlacementOffset} without an override sheet frame.
+     */
+    private static final long NO_PLACEMENT = -1L;
 
     private static final @NotNull String VERTEX_SHADER = """
                                                          #version 330 core
@@ -550,6 +548,12 @@ public final class HdSceneRenderer implements SceneRenderer {
      */
     private final @NotNull SequencedMap<SpriteSheet, int @NotNull []> sheetTextures;
     /**
+     * The textures of the override anim drawn by {@link #drawImageAnimation} instead of the image's installed anim, and the override sheet that
+     * places its frames without a canvas placement; {@code null} outside that draw.
+     */
+    private @Nullable HdImageTextures animationTextures;
+    private @Nullable ScrImageSheet animationPlacement;
+    /**
      * The RGBA textures of replaced megatile pictures ({@link #drawTerrain(IntUnaryOperator, IntFunction)}) by megatile index, and the picture
      * each one holds.
      */
@@ -690,16 +694,18 @@ public final class HdSceneRenderer implements SceneRenderer {
         this.foliageTextures     = null;
         this.foliageTextureSizes = null;
 
-        this.fogTileFlags    = null;
-        this.postFogImages   = new ArrayList<>();
-        this.sheetTextures   = new LinkedHashMap<>();
-        this.megatileTextures = new HashMap<>();
-        this.megatilePictures = new HashMap<>();
-        this.terrainMegatiles = null;
-        this.fogRequested    = false;
-        this.fogVisionMask   = 0;
-        this.fogVisibleLevel = OverlayPass.DEFAULT_VISIBLE_LEVEL;
-        this.fogObserver     = false;
+        this.fogTileFlags       = null;
+        this.postFogImages      = new ArrayList<>();
+        this.sheetTextures      = new LinkedHashMap<>();
+        this.animationTextures  = null;
+        this.animationPlacement = null;
+        this.megatileTextures   = new HashMap<>();
+        this.megatilePictures   = new HashMap<>();
+        this.terrainMegatiles   = null;
+        this.fogRequested       = false;
+        this.fogVisionMask      = 0;
+        this.fogVisibleLevel    = OverlayPass.DEFAULT_VISIBLE_LEVEL;
+        this.fogObserver        = false;
 
         this.sceneActive        = false;
         this.cameraX            = 0;
@@ -823,6 +829,14 @@ public final class HdSceneRenderer implements SceneRenderer {
     @Override
     public boolean isRemastered() {
         return true;
+    }
+
+    /**
+     * @return the asset scale of the anims the backend draws ({@link #drawImageAnimation}): {@code 4} for HD, {@code 2} for HD2
+     */
+    @Override
+    public int getAssetScale() {
+        return this.imageSet.getQuality().getScale();
     }
 
     /**
@@ -1126,8 +1140,8 @@ public final class HdSceneRenderer implements SceneRenderer {
                 int megatile = this.assets.getMegatile(tileIdentifier);
                 int visibleIndex = (row - firstRow) * visibleColumns + column - firstColumn;
 
-                this.tileCreep[visibleIndex]       = TerrainTileset.isCreepTile(tileIdentifier);
-                this.tileSlots[visibleIndex]       = this.getMegatileSlot(megatile);
+                this.tileCreep[visibleIndex] = TerrainTileset.isCreepTile(tileIdentifier);
+                this.tileSlots[visibleIndex] = this.getMegatileSlot(megatile);
                 // A replaced megatile draws as land: its picture is drawn over the tile, without the water effect.
                 boolean replaced = megatiles != null && megatiles.apply(megatile) != null;
 
@@ -1656,13 +1670,7 @@ public final class HdSceneRenderer implements SceneRenderer {
                  DRAW_FUNCTION_UNSEEN_DECLOAKING -> this.drawSheetFrame(frame, MODE_CLOAKED, 0, playerColor, worldX, worldY, flipped);
             case DRAW_FUNCTION_CLOAKING,
                  DRAW_FUNCTION_CLOAKED,
-                 DRAW_FUNCTION_DECLOAKING -> this.drawSheetFrame(frame,
-                                                                 MODE_TRANSLUCENT,
-                                                                 VISIBLE_CLOAK_ALPHA,
-                                                                 playerColor,
-                                                                 worldX,
-                                                                 worldY,
-                                                                 flipped);
+                 DRAW_FUNCTION_DECLOAKING -> this.drawSheetFrame(frame, MODE_TRANSLUCENT, VISIBLE_CLOAK_ALPHA, playerColor, worldX, worldY, flipped);
             case DRAW_FUNCTION_DISTORTION -> this.drawSheetFrame(frame, MODE_WARPED, 0, playerColor, worldX, worldY, flipped);
             case DRAW_FUNCTION_SHADOW -> {
                 if (this.world.isShadowStacking()) {
@@ -1684,6 +1692,59 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     /**
+     * Draws one image of a sprite with the frames of an override anim instead of the image's installed anim, with the image's draw function. A
+     * frame the anim does not place on its canvas is placed by the override sheet's frame, else on the canvas. The anim's textures keep the team
+     * color in every frame and get no frame lights. Update rectangles and images drawn after the fog draw the override sheet or the installed
+     * graphics, and so does the image while the anim's textures are not uploaded yet.
+     *
+     * @param animation    the texture sheet of the anim, prepared at the backend's asset scale or the other one ({@link #getAssetScale()})
+     * @param sheet        the indexed frames the image draws in the classic graphics, or {@code null} for its installed graphics
+     * @param imageIndex   the image identifier
+     * @param frameIndex   the image frame, a frame of the anim
+     * @param modifier     the image draw modifier
+     * @param modifierData the image modifier data
+     * @param playerColor  the owner's player color index {@code 0..15}, or {@link #PLAYER_COLOR}{@code + owner}
+     * @param worldX       the canvas center world coordinate
+     * @param worldY       the canvas center world coordinate
+     * @param flipped      whether the image is horizontally flipped
+     * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
+     */
+    @Override
+    public void drawImageAnimation(@NotNull TextureSheet animation, @Nullable ScrImageSheet sheet,
+                                   int imageIndex, int frameIndex,
+                                   int modifier, int modifierData, int playerColor,
+                                   int worldX, int worldY, boolean flipped) throws IOException {
+        this.beginScene();
+
+        HdImageTextures textures = null;
+
+        if (!this.fogRequested && modifier != DRAW_FUNCTION_UPDATE_RECTANGLE) {
+            textures = this.imageSet.acquireSheet(animation,
+                                                  this.streaming, UPLOAD_BUDGET_NANOSECONDS, this.frameCounter, this.imageUploadPreparation);
+        }
+
+        if (textures == null) {
+            if (sheet != null && frameIndex < sheet.getFrameCount()) {
+                this.drawImageSheet(sheet, imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+            } else if (sheet == null && this.world.isDrawnFrame(imageIndex, frameIndex)) {
+                this.drawImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+            }
+
+            return;
+        }
+
+        this.animationTextures  = textures;
+        this.animationPlacement = sheet;
+
+        try {
+            this.drawSceneImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+        } finally {
+            this.animationTextures  = null;
+            this.animationPlacement = null;
+        }
+    }
+
+    /**
      * Draws the frame of a one-frame override sheet at the world size: the frame rectangle placed on the sheet's canvas, which is centered on the
      * image position and mirrored when flipped.
      *
@@ -1696,9 +1757,7 @@ public final class HdSceneRenderer implements SceneRenderer {
      * @param flipped     whether the image is horizontally flipped
      * @throws IOException if the sheet has no frame or no map is loaded
      */
-    private void drawSheetFrame(@NotNull SpriteSheet sheet,
-                                int mode, float parameter, int playerColor,
-                                int worldX, int worldY, boolean flipped) throws IOException {
+    private void drawSheetFrame(@NotNull SpriteSheet sheet, int mode, float parameter, int playerColor, int worldX, int worldY, boolean flipped) throws IOException {
         if (sheet.getFrameCount() == 0) {
             throw Exceptions.newIOException("The image sheet has no frame.");
         }
@@ -1806,7 +1865,8 @@ public final class HdSceneRenderer implements SceneRenderer {
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, frame.getWidth(), frame.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, upload);
 
-            textures[slot]    = name;
+            textures[slot] = name;
+
             this.batchTexture = 0;
 
             return name;
@@ -1829,11 +1889,13 @@ public final class HdSceneRenderer implements SceneRenderer {
                                 int worldX, int worldY, boolean flipped) throws IOException {
         this.copyTeamColor(playerColor);
 
-        if (!this.smoothTurning && frameIndex > 0 && this.world.isPreviousFrameRepeated(imageIndex, frameIndex)) {
+        boolean installed = this.animationTextures == null;
+
+        if (installed && !this.smoothTurning && frameIndex > 0 && this.world.isPreviousFrameRepeated(imageIndex, frameIndex)) {
             frameIndex--;
         }
 
-        int anchor = this.assets.getAnchoredOverlayOffset(imageIndex, frameIndex, flipped, this.imageOverlayOffsets);
+        int anchor = installed ? this.assets.getAnchoredOverlayOffset(imageIndex, frameIndex, flipped, this.imageOverlayOffsets) : 0;
 
         if (anchor != 0) {
             // The offsets are subtracted unmirrored, flipped or not.
@@ -2127,14 +2189,16 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     private void drawFrame(int imageIndex, int frameIndex, int mode, float parameter, int worldX, int worldY, boolean flipped, int warpFrame) throws IOException {
+        HdImageTextures animation = this.animationTextures;
         // Draw function 14 (the placement ghost) is a pass 0 draw that samples the diffuse layer (HdImageSet.acquireDiffuse).
-        HdImageTextures textures = mode == MODE_GHOST
-                                   ? this.imageSet.acquireDiffuse(imageIndex,
-                                                                  this.streaming,
-                                                                  UPLOAD_BUDGET_NANOSECONDS,
-                                                                  this.frameCounter,
-                                                                  this.imageUploadPreparation)
-                                   : this.acquireImage(imageIndex);
+        HdImageTextures textures = animation != null ? animation
+                                                     : mode == MODE_GHOST
+                                                       ? this.imageSet.acquireDiffuse(imageIndex,
+                                                                                      this.streaming,
+                                                                                      UPLOAD_BUDGET_NANOSECONDS,
+                                                                                      this.frameCounter,
+                                                                                      this.imageUploadPreparation)
+                                                       : this.acquireImage(imageIndex);
 
         if (textures == null) {
             // Not streamed in yet (no preload): its point light still shines once the image has been read.
@@ -2209,9 +2273,9 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         if (litSprite && (!textures.lightingData || (geometry.getFrameFlags(frameIndex) & HdImageLoader.FRAME_UNLIT) != 0)) {
             // Uses the diffuse texture and default lighting layers when a frame has no complete lighting data. A native frame drops its team
-            // color mask there; an image a mod adds keeps it, so a mod unit without lighting layers keeps its team color.
+            // color mask there; an image a mod adds and an override anim keep it, so a mod unit without lighting layers keeps its team color.
             spriteTexture  = textures.unlitTexture;
-            secondTexture  = imageIndex >= ImagesDat.IMAGE_COUNT ? secondTexture : this.blackTexture;
+            secondTexture  = textures.keepsTeamColor ? secondTexture : this.blackTexture;
             lightingLayers = this.defaultLightingTextures;
         }
 
@@ -2219,7 +2283,7 @@ public final class HdSceneRenderer implements SceneRenderer {
         this.vertexLighting = litSprite ? 1 : 0;
 
         // Main.lit lights belong to the image frame of every lit-pass draw (fire, muzzle flashes and trails included).
-        if (this.lighting != null && litSprite) {
+        if (this.lighting != null && litSprite && animation == null) {
             this.addFrameLight(imageIndex, frameIndex, rectangleLeft, rectangleTop, frameWidth, flipped);
         }
 
@@ -2249,7 +2313,11 @@ public final class HdSceneRenderer implements SceneRenderer {
         int left;
         int top;
 
-        if ((geometry.getFrameFlags(frameIndex) & FRAME_CANVAS_PLACED) != 0) {
+        long sheetOffset = this.animationTextures != null && (geometry.getFrameFlags(frameIndex) & FRAME_CANVAS_PLACED) == 0
+                           ? this.findPlacementOffset(frameIndex, flipped)
+                           : NO_PLACEMENT;
+
+        if ((geometry.getFrameFlags(frameIndex) & FRAME_CANVAS_PLACED) != 0 || this.animationTextures != null && sheetOffset == NO_PLACEMENT) {
             int canvasWidth = geometry.getCanvasWidth();
             int canvasLeft = worldX * HdFrameGeometry.UNIT_SCALE - (flipped ? canvasWidth - canvasWidth / RenderAssets.HALF_DIVISOR
                                                                             : canvasWidth / RenderAssets.HALF_DIVISOR);
@@ -2259,13 +2327,40 @@ public final class HdSceneRenderer implements SceneRenderer {
             top  = worldY * HdFrameGeometry.UNIT_SCALE - geometry.getCanvasHeight() / RenderAssets.HALF_DIVISOR +
                    geometry.getFrameYOffset(frameIndex);
         } else {
-            int offset = this.world.getFrameMapOffset(imageIndex, frameIndex, flipped);
+            int offset = sheetOffset != NO_PLACEMENT ? (int) sheetOffset : this.world.getFrameMapOffset(imageIndex, frameIndex, flipped);
 
             left = (worldX + (short) offset) * HdFrameGeometry.UNIT_SCALE;
             top  = (worldY + (short) (offset >>> PACKED_OFFSET_Y_SHIFT)) * HdFrameGeometry.UNIT_SCALE;
         }
 
         return (long) left << ORIGIN_LEFT_SHIFT | top & DWORD_MASK;
+    }
+
+    /**
+     * Finds the offset of an override sheet frame's rectangle from the image position, which places an override anim frame without a canvas
+     * placement, as {@link WorldRenderer#getFrameMapOffset} gives it for installed frames.
+     *
+     * @param frameIndex the frame
+     * @param flipped    whether the image is horizontally flipped
+     * @return the packed offset (x in the low WORD, y in the high WORD), or {@link #NO_PLACEMENT} without an override sheet frame
+     */
+    private long findPlacementOffset(int frameIndex, boolean flipped) {
+        ScrImageSheet placement = this.animationPlacement;
+
+        if (placement == null || frameIndex >= placement.getFrameCount()) {
+            return NO_PLACEMENT;
+        }
+
+        try {
+            SpriteSheet sheet = placement.getFrame(frameIndex);
+            SpriteFrame frame = sheet.getFrame(0);
+            int x = flipped ? sheet.getAnchorX() - frame.getX() - frame.getWidth() : frame.getX() - sheet.getAnchorX();
+            int y = frame.getY() - sheet.getAnchorY();
+
+            return x & WORD_MASK | (y & WORD_MASK) << PACKED_OFFSET_Y_SHIFT;
+        } catch (IOException exception) {
+            return NO_PLACEMENT;
+        }
     }
 
     /**
@@ -2817,6 +2912,7 @@ public final class HdSceneRenderer implements SceneRenderer {
         IgnoreException.execute(
                 this::deleteSceneTarget,
                 this::deleteSheetTextures,
+                this.imageSet::releaseSheets,
                 this::deleteMegatileTextures,
                 this::deleteTileTextures,
                 this::closePasses,

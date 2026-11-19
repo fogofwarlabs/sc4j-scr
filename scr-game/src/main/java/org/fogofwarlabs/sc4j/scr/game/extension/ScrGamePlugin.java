@@ -2,6 +2,7 @@ package org.fogofwarlabs.sc4j.scr.game.extension;
 
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageAnimation;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.trigger.eud.ClassicMemoryView;
@@ -15,8 +16,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface ScrGamePlugin {
     /**
-     * Hears that the game's EUD address space was created, on the first EUD access of the game's triggers; the plugin may observe writes and read
-     * memory through the view from then on.
+     * Called when the game's EUD address space is created, on the first EUD access of the game's triggers; the plugin may observe writes and
+     * read memory through the view from then on.
      *
      * @param memory the read-only view of the address space
      */
@@ -32,6 +33,28 @@ public interface ScrGamePlugin {
      */
     default @Nullable ScrImageSheet findImageSheet(@NotNull SpriteImage image) {
         return null;
+    }
+
+    /**
+     * Finds the HD graphics a sprite image draws instead of its installed anim, in the HD and HD2 graphics; the classic graphics keep
+     * {@link #findImageSheet}. Selection circles, health bars and the selection tests keep the installed graphics.
+     *
+     * @param image an image of a drawn sprite
+     * @return the anims the image draws, or {@code null} for its installed anim
+     */
+    default @Nullable ScrImageAnimation findImageAnimation(@NotNull SpriteImage image) {
+        return null;
+    }
+
+    /**
+     * Finds the image type whose installed graphics a sprite image draws instead of its own, in every graphics: its GRP, its anims, their frame
+     * placement and lights. A sheet or anim of the image itself ({@link #findImageSheet}, {@link #findImageAnimation}) is drawn instead.
+     *
+     * @param image an image of a drawn sprite
+     * @return the image type, or {@code -1} for the image's own
+     */
+    default int findImageTypeId(@NotNull SpriteImage image) {
+        return -1;
     }
 
     /**

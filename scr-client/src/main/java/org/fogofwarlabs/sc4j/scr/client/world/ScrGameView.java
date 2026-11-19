@@ -13,6 +13,7 @@ import org.fogofwarlabs.sc4j.engine.terrain.TerrainGrid;
 import org.fogofwarlabs.sc4j.scr.content.ScrResources;
 import org.fogofwarlabs.sc4j.scr.core.GameSettings;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkUnit;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageAnimation;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.game.ability.TransportCargo;
@@ -506,6 +507,44 @@ public final class ScrGameView implements GameView {
         }
 
         return null;
+    }
+
+    /**
+     * Finds the HD graphics a sprite image draws instead of its installed anim: the first anims a plugin of the game gives
+     * ({@link ScrGamePlugin#findImageAnimation}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the anims the image draws, or {@code null} for its installed anim
+     */
+    public @Nullable ScrImageAnimation findImageAnimation(@NotNull SpriteImage image) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            ScrImageAnimation animation = plugin.findImageAnimation(image);
+
+            if (animation != null) {
+                return animation;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds the image type whose installed graphics a sprite image draws instead of its own: the first image type a plugin of the game gives
+     * ({@link ScrGamePlugin#findImageTypeId}).
+     *
+     * @param image an image of a drawn sprite
+     * @return the image type, or {@code -1} for the image's own
+     */
+    public int findImageTypeId(@NotNull SpriteImage image) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            int imageType = plugin.findImageTypeId(image);
+
+            if (imageType >= 0) {
+                return imageType;
+            }
+        }
+
+        return -1;
     }
 
     /**

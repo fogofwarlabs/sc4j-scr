@@ -1,5 +1,6 @@
 package org.fogofwarlabs.sc4j.scr.render;
 
+import org.fogofwarlabs.sc4j.engine.resource.graphics.TextureSheet;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -205,6 +206,14 @@ public interface SceneRenderer {
     }
 
     /**
+     * @return the asset scale of the anims the backend draws ({@link #drawImageAnimation}): {@code 4} for HD, {@code 2} for HD2, {@code 0} when it
+     * draws no anims
+     */
+    default int getAssetScale() {
+        return 0;
+    }
+
+    /**
      * Sets the game's live image overlay offsets for the images whose placement reads them at draw time (the HD Bunker fire). The default ignores
      * them.
      *
@@ -306,6 +315,34 @@ public interface SceneRenderer {
                                 int modifier, int modifierData, int playerColor,
                                 int worldX, int worldY, boolean flipped) throws IOException {
         this.drawImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+    }
+
+    /**
+     * Draws one image of a sprite with the frames of an override anim instead of the image's installed anim, with the image's draw function. A
+     * frame the anim does not place on its canvas is placed by the override sheet's frame, else on the canvas. The default draws the override sheet
+     * ({@link #drawImageSheet}) or the installed graphics ({@link #drawImage}).
+     *
+     * @param animation    the texture sheet of the anim, prepared at the backend's asset scale or the other one ({@link #getAssetScale()})
+     * @param sheet        the indexed frames the image draws in the classic graphics, or {@code null} for its installed graphics
+     * @param imageIndex   the image identifier
+     * @param frameIndex   the image frame, a frame of the anim
+     * @param modifier     the image draw modifier
+     * @param modifierData the image modifier data
+     * @param playerColor  the owner's player color index {@code 0..15}, or {@link #PLAYER_COLOR}{@code + owner}
+     * @param worldX       the canvas center world coordinate
+     * @param worldY       the canvas center world coordinate
+     * @param flipped      whether the image is horizontally flipped
+     * @throws IOException if the frame cannot be drawn or the modifier is not drawn by this backend
+     */
+    default void drawImageAnimation(@NotNull TextureSheet animation, @Nullable ScrImageSheet sheet,
+                                    int imageIndex, int frameIndex,
+                                    int modifier, int modifierData, int playerColor,
+                                    int worldX, int worldY, boolean flipped) throws IOException {
+        if (sheet != null) {
+            this.drawImageSheet(sheet, imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+        } else {
+            this.drawImage(imageIndex, frameIndex, modifier, modifierData, playerColor, worldX, worldY, flipped);
+        }
     }
 
     /**

@@ -1,9 +1,11 @@
 package org.fogofwarlabs.sc4j.scr.client.world;
 
+import org.fogofwarlabs.sc4j.engine.resource.graphics.TextureSheet;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.PlacementPreview;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.WorldInterface;
 import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageAnimation;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrImageTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrSpriteTypeView;
@@ -251,10 +253,15 @@ public final class WorldSceneExtraction {
                         }
 
                         ScrImageSheet sheet = plugins ? gameView.findImageSheet(image) : null;
+                        ScrImageAnimation animation = plugins && scene.getAssetScale() > 0 ? gameView.findImageAnimation(image) : null;
+                        TextureSheet animationSheet = animation != null ? animation.findSheet(scene.getAssetScale()) : null;
+                        int pluginImageType = plugins && sheet == null && animationSheet == null ? gameView.findImageTypeId(image) : -1;
+                        int imageType = pluginImageType >= 0 ? pluginImageType : image.getImageTypeId();
 
                         // Skips images whose frame has no drawable rectangle.
-                        if (sheet != null ? frame >= sheet.getFrameCount()
-                                          : !renderer.isDrawnFrame(image.getImageTypeId(), frame)) {
+                        if (animationSheet != null ? frame >= animationSheet.getFrameCount()
+                                                   : sheet != null ? frame >= sheet.getFrameCount()
+                                                                   : !renderer.isDrawnFrame(imageType, frame)) {
                             continue;
                         }
 
@@ -262,7 +269,7 @@ public final class WorldSceneExtraction {
                         int imageY = sprite.getY() + image.getOffsetY();
 
                         // Drops the engine-glow vertical offset for the remastered backend.
-                        if (image.getImageTypeId() == ARBITER_ENGINE_GLOW_IMAGE && scene.isRemastered() &&
+                        if (imageType == ARBITER_ENGINE_GLOW_IMAGE && scene.isRemastered() &&
                             (image.getOffsetY() == ARBITER_FIRST_GLOW_OFFSET || image.getOffsetY() == ARBITER_LAST_GLOW_OFFSET)) {
                             imageY -= image.getOffsetY();
                         }
@@ -271,13 +278,25 @@ public final class WorldSceneExtraction {
 
                         // The frozen canvas center comes from the classic frame rectangle; both backends center their canvas there.
                         if ((image.getFlags() & SpriteImage.FLAG_Y_FROZEN) != 0) {
-                            imageY = renderer.getFrozenCenterY(image.getImageTypeId(), frame, image.getFrozenMapY());
+                            imageY = renderer.getFrozenCenterY(imageType, frame, image.getFrozenMapY());
                         }
 
-                        if (sheet != null) {
+                        if (animationSheet != null) {
+                            // A plugin's anim replaces the installed anim in every draw function.
+                            scene.drawImageAnimation(animationSheet,
+                                                     sheet,
+                                                     imageType,
+                                                     frame,
+                                                     modifier,
+                                                     image.getModifierData1(),
+                                                     playerColor,
+                                                     imageX,
+                                                     imageY,
+                                                     flipped);
+                        } else if (sheet != null) {
                             // A plugin's sheet replaces the installed graphics in every draw function.
                             scene.drawImageSheet(sheet,
-                                                 image.getImageTypeId(),
+                                                 imageType,
                                                  frame,
                                                  modifier,
                                                  image.getModifierData1(),
@@ -286,10 +305,10 @@ public final class WorldSceneExtraction {
                                                  imageY,
                                                  flipped);
                         } else if (modifier == SceneRenderer.DRAW_FUNCTION_UPDATE_RECTANGLE) {
-                            scene.drawUpdateRectangle(image.getImageTypeId(), frame, imageX, imageY, flipped);
+                            scene.drawUpdateRectangle(imageType, frame, imageX, imageY, flipped);
                         } else if (modifier == SpriteImage.MODIFIER_REMAPPING) {
                             // Uses the remapping index retained by the image.
-                            scene.drawRemappedImage(image.getImageTypeId(),
+                            scene.drawRemappedImage(imageType,
                                                     frame,
                                                     image.getColorRemappingIndex(),
                                                     playerColor,
@@ -303,9 +322,9 @@ public final class WorldSceneExtraction {
                                                    ? primary.getModifierData1()
                                                    : -1;
 
-                            scene.drawShadowImage(image.getImageTypeId(), frame, primaryWarpFrame, imageX, imageY, flipped);
+                            scene.drawShadowImage(imageType, frame, primaryWarpFrame, imageX, imageY, flipped);
                         } else {
-                            scene.drawImage(image.getImageTypeId(),
+                            scene.drawImage(imageType,
                                             frame,
                                             modifier,
                                             image.getModifierData1(),
