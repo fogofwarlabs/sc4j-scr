@@ -25,9 +25,9 @@ final class ChatHistoryTest {
      * Measures every code point but an unpaired surrogate {@code 10} pixels wide.
      */
     private static final @NotNull ToDoubleFunction<String> CODE_POINT_MEASURE = text -> text.codePoints()
-                                                                                              .filter(codePoint -> codePoint < Character.MIN_SURROGATE ||
-                                                                                                                   codePoint > Character.MAX_SURROGATE)
-                                                                                              .count() * CHARACTER_WIDTH;
+                                                                                            .filter(codePoint -> codePoint < Character.MIN_SURROGATE ||
+                                                                                                                 codePoint > Character.MAX_SURROGATE)
+                                                                                            .count() * CHARACTER_WIDTH;
     private static final @NotNull String EMOJI = "\uD83D\uDE00";
     private static final int CODE = 2;
     private static final int SENDER = 0xF40404FF;
