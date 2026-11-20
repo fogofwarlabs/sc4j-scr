@@ -1390,7 +1390,7 @@ public final class GameLobbyScreen extends GlueScreen {
     /**
      * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
-     * Takes presses on the chat scroll bar, and presses on a team or observers header to request a move to that team or to the observers.
+     * Takes presses on the chat scroll bar and the chat text (a selection), and presses on a team or observers header to request a move to that team or to the observers.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1398,7 +1398,7 @@ public final class GameLobbyScreen extends GlueScreen {
      */
     @Override
     protected boolean onPointerPressed(float x, float y) {
-        if (this.chatLog.press(x, y)) {
+        if (this.chatLog.press(this.getContext().getCanvas(), x, y, this.isExtendingPress(), this.isDoublePress())) {
             return true;
         }
 
@@ -1772,20 +1772,20 @@ public final class GameLobbyScreen extends GlueScreen {
     /**
      * Called for every pointer move of the screen (after an open combo box or popup takes it).
      * <p>
-     * Drags the chat scroll bar.
+     * Drags the chat scroll bar or the chat selection.
      *
      * @param x the interface x
      * @param y the interface y
      */
     @Override
     protected void onPointerMoved(float x, float y) {
-        this.chatLog.drag(y);
+        this.chatLog.drag(this.getContext().getCanvas(), x, y);
     }
 
     /**
      * Called for every release of the left button of the screen.
      * <p>
-     * Releases the chat scroll bar.
+     * Releases the chat scroll bar and the chat selection.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1793,6 +1793,19 @@ public final class GameLobbyScreen extends GlueScreen {
     @Override
     protected void onPointerReleased(float x, float y) {
         this.chatLog.release();
+    }
+
+    /**
+     * Called first for a copy (Ctrl+C or the edit menu's Copy): a screen whose read-only text (a chat log) holds a selection copies it here,
+     * before the focused edit control.
+     * <p>
+     * Copies the chat log's selection.
+     *
+     * @return {@code true} if the copy was consumed, {@code false} otherwise
+     */
+    @Override
+    protected boolean onCopy() {
+        return this.chatLog.copy(this.getContext().getClipboard());
     }
 
     /**

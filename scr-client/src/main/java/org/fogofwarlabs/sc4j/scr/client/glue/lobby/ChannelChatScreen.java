@@ -715,8 +715,9 @@ public final class ChannelChatScreen extends GlueScreen {
     /**
      * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
-     * An open context menu takes the press: it runs the action under it and shuts. Otherwise takes presses on the scroll bars and the tabs,
-     * folds a group open or shut at its label and selects the player under a press on the list; a double press starts a whisper to the player.
+     * An open context menu takes the press: it runs the action under it and shuts. Otherwise takes presses on the scroll bars, the chat text (a
+     * selection) and the tabs, folds a group open or shut at its label and selects the player under a press on the list; a double press starts a
+     * whisper to the player.
      *
      * @param x the interface x
      * @param y the interface y
@@ -737,7 +738,7 @@ public final class ChannelChatScreen extends GlueScreen {
             return true;
         }
 
-        if (this.chatLog.press(x, y) || this.users.press(x, y)) {
+        if (this.chatLog.press(this.getContext().getCanvas(), x, y, this.isExtendingPress(), this.isDoublePress()) || this.users.press(x, y)) {
             return true;
         }
 
@@ -900,7 +901,7 @@ public final class ChannelChatScreen extends GlueScreen {
     /**
      * Called for every pointer move of the screen (after an open combo box or popup takes it).
      * <p>
-     * Drags the scroll bars and follows the hovered action of an open context menu.
+     * Drags the scroll bars or the chat selection and follows the hovered action of an open context menu.
      *
      * @param x the interface x
      * @param y the interface y
@@ -911,14 +912,14 @@ public final class ChannelChatScreen extends GlueScreen {
             this.menuHovered = ParticipantRowsUtils.findMenuItem(x, y, this.menuLeft, this.menuTop, this.menuActions.size());
         }
 
-        this.chatLog.drag(y);
+        this.chatLog.drag(this.getContext().getCanvas(), x, y);
         this.users.drag(y);
     }
 
     /**
      * Called for every release of the left button of the screen.
      * <p>
-     * Releases the scroll bars.
+     * Releases the scroll bars and the chat selection.
      *
      * @param x the interface x
      * @param y the interface y
@@ -927,6 +928,19 @@ public final class ChannelChatScreen extends GlueScreen {
     protected void onPointerReleased(float x, float y) {
         this.chatLog.release();
         this.users.release();
+    }
+
+    /**
+     * Called first for a copy (Ctrl+C or the edit menu's Copy): a screen whose read-only text (a chat log) holds a selection copies it here,
+     * before the focused edit control.
+     * <p>
+     * Copies the chat log's selection.
+     *
+     * @return {@code true} if the copy was consumed, {@code false} otherwise
+     */
+    @Override
+    protected boolean onCopy() {
+        return this.chatLog.copy(this.getContext().getClipboard());
     }
 
     /**

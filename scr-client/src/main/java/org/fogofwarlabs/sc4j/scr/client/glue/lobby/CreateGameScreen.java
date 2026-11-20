@@ -1398,7 +1398,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
     /**
      * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
-     * Takes presses on the chat log's scroll bar.
+     * Takes presses on the chat log's scroll bar and its text (a selection).
      *
      * @param x the interface x
      * @param y the interface y
@@ -1406,13 +1406,13 @@ public final class CreateGameScreen extends FileBrowserScreen {
      */
     @Override
     protected boolean onPointerPressed(float x, float y) {
-        return this.chat != null && this.chatLog.press(x, y);
+        return this.chat != null && this.chatLog.press(this.getContext().getCanvas(), x, y, this.isExtendingPress(), this.isDoublePress());
     }
 
     /**
      * Called for every pointer move of the screen (after an open combo box or popup takes it).
      * <p>
-     * Drags the chat log's scroll bar.
+     * Drags the chat log's scroll bar or its selection.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1420,14 +1420,14 @@ public final class CreateGameScreen extends FileBrowserScreen {
     @Override
     protected void onPointerMoved(float x, float y) {
         if (this.chat != null) {
-            this.chatLog.drag(y);
+            this.chatLog.drag(this.getContext().getCanvas(), x, y);
         }
     }
 
     /**
      * Called for every release of the left button of the screen.
      * <p>
-     * Releases the chat log's scroll bar.
+     * Releases the chat log's scroll bar and its selection.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1437,6 +1437,19 @@ public final class CreateGameScreen extends FileBrowserScreen {
         if (this.chat != null) {
             this.chatLog.release();
         }
+    }
+
+    /**
+     * Called first for a copy (Ctrl+C or the edit menu's Copy): a screen whose read-only text (a chat log) holds a selection copies it here,
+     * before the focused edit control.
+     * <p>
+     * Copies the chat log's selection.
+     *
+     * @return {@code true} if the copy was consumed, {@code false} otherwise
+     */
+    @Override
+    protected boolean onCopy() {
+        return this.chat != null && this.chatLog.copy(this.getContext().getClipboard());
     }
 
     /**

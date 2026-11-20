@@ -7,6 +7,7 @@ import org.fogofwarlabs.sc4j.engine.client.dialog.TextEditKey;
 import org.fogofwarlabs.sc4j.engine.client.dialog.TextEditOperation;
 import org.fogofwarlabs.sc4j.engine.client.input.InputEvent;
 import org.fogofwarlabs.sc4j.engine.client.input.Key;
+import org.fogofwarlabs.sc4j.engine.client.input.KeyModifier;
 import org.fogofwarlabs.sc4j.engine.client.input.PointerButton;
 import org.fogofwarlabs.sc4j.engine.client.scene.Scene;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.ControlKind;
@@ -331,6 +332,10 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      * Whether the press being handled is a double press ({@link #handlePointerPressed}).
      */
     private boolean doublePress;
+    /**
+     * The modifier mask ({@link KeyModifier#getMask()} bits) of the last key or button press handled ({@link #handleInput}).
+     */
+    private int modifiers;
 
     private @Nullable GlueScreen popup;
     private @Nullable GlueScreen owner;
@@ -384,6 +389,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
         this.pointerX    = 0;
         this.pointerY    = 0;
         this.doublePress = false;
+        this.modifiers   = 0;
 
         this.popup = null;
         this.owner = null;
@@ -646,6 +652,14 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      */
     protected final boolean isDoublePress() {
         return this.doublePress;
+    }
+
+    /**
+     * @return {@code true} if Shift is held with the press {@link #onPointerPressed} handles, which extends a text selection, {@code false}
+     * otherwise
+     */
+    protected final boolean isExtendingPress() {
+        return KeyModifier.SHIFT.isIn(this.modifiers);
     }
 
     /**
@@ -1088,6 +1102,16 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
      * @return {@code true} if the notch was consumed, {@code false} otherwise
      */
     protected boolean onWheel(float x, float y, boolean down) {
+        return false;
+    }
+
+    /**
+     * Called first for a copy (Ctrl+C or the edit menu's Copy): a screen whose read-only text (a chat log) holds a selection copies it here,
+     * before the focused edit control.
+     *
+     * @return {@code true} if the copy was consumed, {@code false} otherwise
+     */
+    protected boolean onCopy() {
         return false;
     }
 
@@ -1704,7 +1728,10 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
     @Override
     public final boolean handleInput(@NotNull InputEvent event) {
         switch (event.getType()) {
-            case KEY_PRESSED, KEY_REPEATED, KEY_RELEASED -> this.handleKey(event);
+            case KEY_PRESSED, KEY_REPEATED, KEY_RELEASED -> {
+                this.modifiers = event.getModifiers();
+                this.handleKey(event);
+            }
             case CHARACTER_TYPED -> {
                 if (Character.isBmpCodePoint(event.getCodePoint())) {
                     this.handleKeyTyped((char) event.getCodePoint());
@@ -1720,6 +1747,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
                         this.onContextPressed(event.getX(), event.getY());
                     }
                 } else {
+                    this.modifiers = event.getModifiers();
                     this.handlePointerPressed(event.getX(), event.getY(), event.isDoublePress());
                 }
             }
@@ -1821,6 +1849,11 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
             this.onSelectionChanged(pressedSlider.getDefinition().getId());
         }
 
+        // A drag from a press on the focused edit control extends its selection; a drag after a double press keeps the word.
+        if (this.requireDialogState().getPressed() instanceof EditControl pressedEdit && pressedEdit == this.focusedEdit && !this.doublePress) {
+            pressedEdit.getEditText().moveCaret(this.findEditIndex(pressedEdit, x), true, this.now);
+        }
+
         if (this.isInteractive()) {
             this.onPointerMoved(x, y);
         }
@@ -1914,9 +1947,18 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
             return;
         }
 
-        // A pressed edit control takes the keyboard focus.
+        // A pressed edit control takes the keyboard focus and puts its caret under the press: Shift extends the selection to it, a double
+        // press selects the word there.
         if (this.requireDialogState().getPressed() instanceof EditControl edit) {
+            int index = this.findEditIndex(edit, x);
+
             this.setFocusedEdit(edit);
+
+            if (doublePress) {
+                edit.getEditText().selectWord(index, this.now);
+            } else {
+                edit.getEditText().moveCaret(index, this.isExtendingPress(), this.now);
+            }
         }
 
         if (this.requireDialogState().getPressed() instanceof ListBox list) {
@@ -1971,6 +2013,20 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
         if (this.requireDialogState().getPressedId() >= 0) {
             this.onPressed(this.requireDialogState().getPressedId(), x, y);
         }
+    }
+
+    /**
+     * Finds the index of an edit control's text under an interface x, on the line as it was last drawn ({@link EditText#findIndexAt}).
+     *
+     * @param edit the edit control
+     * @param x    the interface x
+     * @return the UTF-16 index of the text
+     */
+    private int findEditIndex(@NotNull EditControl edit, float x) {
+        GlueCanvas canvas = this.getContext().getCanvas();
+        int slot = InterfaceFonts.toInputLineBox(this.getEditFontSlot(canvas, edit.getDefinition()));
+
+        return edit.getEditText().findIndexAt(x, text -> canvas.measure(slot, text));
     }
 
     /**
@@ -2124,7 +2180,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
             case KEY_END -> TextEditKey.END;
             default -> null;
         };
-        boolean changed = editing == null ? edit.type(key, this.now) : edit.press(editing, this.now);
+        boolean changed = editing == null ? edit.type(key, this.now) : edit.press(editing, KeyModifier.SHIFT.isIn(this.modifiers), this.now);
 
         // Undo input-method insertion when the edit rejects a printable character.
         if (editing == null && !changed && key >= FIRST_PRINTABLE) {
@@ -2140,14 +2196,18 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
 
     /**
      * Applies an edit operation (select all, cut, copy, paste, undo, redo) to the focused edit control with the system
-     * clipboard, as the edit keys do ({@link EditText#apply}).
+     * clipboard, as the edit keys do ({@link EditText#apply}); a copy goes to the screen's read-only selection first ({@link #onCopy}).
      *
      * @param operation the operation
      */
     public final void applyEditOperation(@NotNull TextEditOperation operation) {
+        if (!this.isInteractive() || this.openComboBox != null || operation == TextEditOperation.COPY && this.onCopy()) {
+            return;
+        }
+
         EditControl focused = this.focusedEdit;
 
-        if (focused == null || !this.isInteractive() || this.openComboBox != null) {
+        if (focused == null) {
             return;
         }
 
