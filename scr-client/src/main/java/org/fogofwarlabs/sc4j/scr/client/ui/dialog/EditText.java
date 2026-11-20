@@ -1,10 +1,6 @@
 package org.fogofwarlabs.sc4j.scr.client.ui.dialog;
 
-import org.fogofwarlabs.sc4j.engine.client.dialog.TextBoundaryUtils;
-import org.fogofwarlabs.sc4j.engine.client.dialog.TextClipboard;
-import org.fogofwarlabs.sc4j.engine.client.dialog.TextEditKey;
-import org.fogofwarlabs.sc4j.engine.client.dialog.TextEditModel;
-import org.fogofwarlabs.sc4j.engine.client.dialog.TextEditOperation;
+import org.fogofwarlabs.sc4j.engine.client.dialog.*;
 import org.fogofwarlabs.sc4j.scr.game.presentation.InterfaceTimers;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
