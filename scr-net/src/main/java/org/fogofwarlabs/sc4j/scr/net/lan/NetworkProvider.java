@@ -2,6 +2,7 @@ package org.fogofwarlabs.sc4j.scr.net.lan;
 
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.BeaconLinkSession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.FoundRoom;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.ParticipantChannel;
 import org.fogofwarlabs.sc4j.engine.net.lobby.JoinRefusal;
 import org.fogofwarlabs.sc4j.scr.net.discovery.LanDiscovery;
 import org.fogofwarlabs.sc4j.scr.net.discovery.LanRecord;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 
 /**
@@ -74,6 +76,16 @@ public interface NetworkProvider extends AutoCloseable {
      * {@link ProviderSession.JoinState#REJECTED} and the network names a reason, otherwise {@code null}
      */
     default @Nullable JoinRefusal getJoinRefusal() {
+        return null;
+    }
+
+    /**
+     * Finds the channel that carries a game participant's datagrams, whose delay and relay state the game's network report shows.
+     *
+     * @param address the participant's address, as the provider session knows its peers
+     * @return the channel, or {@code null} for a network without channels or an address of no participant of the game
+     */
+    default @Nullable ParticipantChannel findChannel(@NotNull InetSocketAddress address) {
         return null;
     }
 

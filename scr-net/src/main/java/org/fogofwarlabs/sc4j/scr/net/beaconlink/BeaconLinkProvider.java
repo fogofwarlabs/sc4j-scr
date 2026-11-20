@@ -296,6 +296,20 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
+     * Finds the channel that carries a game participant's datagrams, whose delay and relay state the game's network report shows.
+     *
+     * @param address the participant's address, as the provider session knows its peers
+     * @return the channel, or {@code null} for a network without channels or an address of no participant of the game
+     * @implSpec Returns the overlay's channel to the participant that the address names.
+     */
+    @Override
+    public synchronized @Nullable ParticipantChannel findChannel(@NotNull InetSocketAddress address) {
+        LinkParticipant participant = this.book.findParticipant(address);
+
+        return participant == null ? null : this.session.getOverlay().getChannel(participant);
+    }
+
+    /**
      * Lists the games found on the network, except the one this client hosts.
      *
      * @return the games

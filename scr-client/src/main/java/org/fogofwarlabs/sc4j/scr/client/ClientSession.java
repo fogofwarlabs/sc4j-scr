@@ -885,6 +885,10 @@ public final class ClientSession implements AutoCloseable {
     private int pausedMode;
     private boolean waitingForTurns;
     /**
+     * The pacing of the live game's frames and turn waits, which a network game reports once a second ({@link #reportLivePacing()}).
+     */
+    private final @NotNull LivePacingStatistics pacingStatistics;
+    /**
      * Test harness: called with the frame about to exchange its turn ({@link #setTurnListener}), or {@code null}.
      */
     private @Nullable LongConsumer turnListener;
@@ -1011,6 +1015,7 @@ public final class ClientSession implements AutoCloseable {
         this.replayPaused       = false;
         this.pausedMode         = PLAYING_TIMING_MODE;
         this.waitingForTurns    = false;
+        this.pacingStatistics   = new LivePacingStatistics(System.nanoTime());
         this.turnListener       = null;
 
         this.locale              = GameLocaleUtils.FALLBACK;
@@ -1694,6 +1699,26 @@ public final class ClientSession implements AutoCloseable {
      */
     public boolean isWaitingForTurns() {
         return this.waitingForTurns;
+    }
+
+    /**
+     * Records a frame the client presented, for the live pacing report ({@link #reportLivePacing()}).
+     */
+    void recordPresentedFrame() {
+        this.pacingStatistics.recordPresentedFrame();
+    }
+
+    /**
+     * Logs the pacing of a network game once a second at {@code INFO} ({@code LIVE PACING}): the frames simulated per second with their
+     * average and longest simulation time, the frames presented per second, and the milliseconds per second the game waited for players' turns
+     * with its longest single wait. The period of any other session is discarded without a log.
+     */
+    void reportLivePacing() {
+        String report = this.pacingStatistics.takeReport(System.nanoTime());
+
+        if (report != null && this.isNetworkGame()) {
+            LOGGER.info("LIVE PACING: " + report);
+        }
     }
 
     /**
@@ -2503,12 +2528,16 @@ public final class ClientSession implements AutoCloseable {
 
             if (this.liveGame != null && !this.liveGame.exchangeTurn(this.state.getCurrentFrame())) {
                 this.waitingForTurns = true;
+                this.pacingStatistics.beginTurnWait(System.nanoTime());
 
                 return false;
             }
 
             boolean completed;
             SimulationWatchdog frameWatchdog = this.watchdog;
+            long stepStart = System.nanoTime();
+
+            this.pacingStatistics.endTurnWait(stepStart);
 
             if (frameWatchdog != null) {
                 frameWatchdog.begin(this.state.getCurrentFrame());
@@ -2522,6 +2551,8 @@ public final class ClientSession implements AutoCloseable {
                 if (frameWatchdog != null) {
                     frameWatchdog.end();
                 }
+
+                this.pacingStatistics.recordFrame(System.nanoTime() - stepStart);
             }
 
             if (completed) {

@@ -2229,6 +2229,12 @@ public final class Main {
 
         this.previousFrameTime = currentTime;
 
+        ClientSession pacedSession = this.session;
+
+        if (pacedSession != null) {
+            pacedSession.reportLivePacing();
+        }
+
         if (this.framebufferWidth == 0 || this.framebufferHeight == 0) {
             host.waitEvents(ICONIFIED_WINDOW_WAIT_SECONDS);
 
@@ -2266,6 +2272,12 @@ public final class Main {
         }
 
         this.presentFrame();
+
+        ClientSession presentedSession = this.session;
+
+        if (presentedSession != null) {
+            presentedSession.recordPresentedFrame();
+        }
 
         if (this.frameTiming != null) {
             this.frameTiming.mark(FramePhaseUtils.SWAP);
@@ -3097,8 +3109,9 @@ public final class Main {
 
         this.receiveChat();
 
-        int dueFrames = this.requireSession().isLive() && !this.playback.isUnlimited()
-                        ? this.playback.takeLiveDueFrame(elapsedSeconds, this.requireSession().getFrameDuration(), this.requireSession().getLiveLagLimit())
+        boolean livePaced = this.requireSession().isLive() && !this.playback.isUnlimited();
+        int dueFrames = livePaced
+                        ? this.playback.takeLiveDueFrames(elapsedSeconds, this.requireSession().getFrameDuration(), this.requireSession().getLiveLagLimit())
                         : this.playback.takeDueFrames(elapsedSeconds, this.requireSession().getFrameDuration());
         boolean audible = !this.playback.isUnlimited();
 
@@ -3106,6 +3119,7 @@ public final class Main {
             // Test harness (-Dsc4j.fastForwardTo): a live game runs unpaced and silent up to that frame.
             dueFrames = Integer.MAX_VALUE;
             audible   = false;
+            livePaced = false;
         }
 
         long deadline = System.nanoTime() + PLAYBACK_BUDGET_NANOSECONDS;
@@ -3141,8 +3155,13 @@ public final class Main {
             }
 
             if (!stepped && this.requireSession().isWaitingForTurns()) {
-                // A network game waits for a player's turn: no frame ran; retry on the next update.
-                this.playback.resetClock();
+                // A network game waits for a player's turn: no frame ran; retry on the next update. A paced live game keeps the time of this
+                // frame and of the later due ones, so it catches up once the turn arrived.
+                if (livePaced) {
+                    this.playback.refundLiveFrames(dueFrames - frame);
+                } else {
+                    this.playback.resetClock();
+                }
 
                 return;
             }
@@ -3185,6 +3204,10 @@ public final class Main {
             }
 
             if (System.nanoTime() >= deadline) {
+                if (livePaced) {
+                    this.playback.refundLiveFrames(dueFrames - frame - 1);
+                }
+
                 return;
             }
         }
