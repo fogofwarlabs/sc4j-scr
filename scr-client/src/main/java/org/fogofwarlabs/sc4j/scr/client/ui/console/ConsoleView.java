@@ -4749,10 +4749,9 @@ public final class ConsoleView implements AutoCloseable {
         }
 
         int interfaceWidth = viewport.getInterfaceWidth();
-        InterfaceImageCache.Sprite squareRight = this.images.getImage(loaded,
-                                                                      this.showTimer
-                                                                      ? ObserverConsoleUtils.SQUARE_RIGHT
-                                                                      : ObserverConsoleUtils.SQUARE_RIGHT_NO_TIMER);
+        // The dialogs and the unit frame are placed by the frame with the timer band; the drawn minimap frame follows the timer.
+        InterfaceImageCache.Sprite squareRight = this.images.getImage(loaded, ObserverConsoleUtils.SQUARE_RIGHT);
+        InterfaceImageCache.Sprite minimapFrame = this.images.getImage(loaded, ObserverConsoleUtils.getMinimapFrame(this.showTimer));
         InterfaceImageCache.Sprite consoleLeft = this.images.getImage(loaded, ObserverConsoleUtils.CONSOLE_LEFT);
         InterfaceImageCache.Sprite consoleCenter = this.images.getImage(loaded, ObserverConsoleUtils.CONSOLE_CENTER);
         InterfaceImageCache.Sprite consoleRight = this.images.getImage(loaded, ObserverConsoleUtils.CONSOLE_RIGHT);
@@ -4776,14 +4775,14 @@ public final class ConsoleView implements AutoCloseable {
 
         // With draw flags 0x16 and tint (1, 1, 1, 1); each frame only while the page shows its pane.
         if (this.sideBar.isShown(ReplaySideBar.Pane.MINIMAP)) {
-            this.drawObserverFrame(console, squareRight, 0, interfaceHeight - squareRight.getHeight(), squareRight.getWidth(), 1);
+            this.drawObserverFrame(console, minimapFrame, 0, interfaceHeight - minimapFrame.getHeight(), minimapFrame.getWidth(), 1);
 
             // With the timer the game time follows in font10, centered on the frame's middle, 2 below its top.
             if (this.showTimer) {
                 this.drawClockText(console,
                                    this.normalFont,
                                    TimerTextUtils.formatGameTime(model.getView().getCurrentFrame()),
-                                   GameTimerLayout.ofObserverConsole(squareRight.getWidth(), interfaceHeight - squareRight.getHeight()),
+                                   GameTimerLayout.ofObserverConsole(minimapFrame.getWidth(), interfaceHeight - minimapFrame.getHeight()),
                                    interfaceWidth);
             }
         }
