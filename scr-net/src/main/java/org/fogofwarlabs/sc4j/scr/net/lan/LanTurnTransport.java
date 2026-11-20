@@ -2,8 +2,8 @@ package org.fogofwarlabs.sc4j.scr.net.lan;
 
 import org.fogofwarlabs.sc4j.base.binary.LittleEndianUtils;
 import org.fogofwarlabs.sc4j.base.log.Logger;
-import org.fogofwarlabs.sc4j.engine.net.beaconlink.ParticipantChannel;
 import org.fogofwarlabs.sc4j.engine.lockstep.*;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.ParticipantChannel;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommandCodecs;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommandIds;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
