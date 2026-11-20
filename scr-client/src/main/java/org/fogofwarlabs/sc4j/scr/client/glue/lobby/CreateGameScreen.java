@@ -660,7 +660,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
         int rememberedRate = settings.getCreateGameValue(GlueSettings.TURN_RATE);
 
         rates.setRange(0, LanClient.TURN_RATES.length);
-        rates.setValue(findTurnRateStep(rememberedRate == GlueSettings.NONE ? LanClient.DEFAULT_TURN_RATE : rememberedRate));
+        rates.setValue(findTurnRateStep(rememberedRate));
         this.turnRate = rates;
 
         super.onOpen(glueContext);
@@ -781,38 +781,28 @@ public final class CreateGameScreen extends FileBrowserScreen {
      * Finds the turn rate slider's step of a turn rate: step {@code 0} is the dynamic turn rate ({@link LanClient#DYNAMIC_TURN_RATE}), the
      * next steps are {@link LanClient#TURN_RATES} in order.
      *
-     * @param turnRate turns per second, or {@link LanClient#DYNAMIC_TURN_RATE}
-     * @return the step of the turn rate, the default turn rate's for a turn rate the slider does not offer
+     * @param turnRate turns per second, {@link LanClient#DYNAMIC_TURN_RATE} or {@link GlueSettings#NONE}
+     * @return the step of the turn rate, step {@code 0} for a turn rate the slider does not offer
      */
     private static int findTurnRateStep(int turnRate) {
-        int step = 0;
-
-        if (turnRate == LanClient.DYNAMIC_TURN_RATE) {
-            return 0;
-        }
-
         for (int index = 0; index < LanClient.TURN_RATES.length; index++) {
             if (LanClient.TURN_RATES[index] == turnRate) {
                 return index + 1;
             }
-
-            if (LanClient.TURN_RATES[index] == LanClient.DEFAULT_TURN_RATE) {
-                step = index + 1;
-            }
         }
 
-        return step;
+        return 0;
     }
 
     /**
-     * @return the turn rate the turn rate slider chooses ({@link LanClient#DYNAMIC_TURN_RATE} at its first step), the default turn rate
+     * @return the turn rate the turn rate slider chooses ({@link LanClient#DYNAMIC_TURN_RATE} at its first step), the dynamic turn rate
      * before the screen opened
      */
     private int getTurnRate() {
         Slider rates = this.turnRate;
 
         if (rates == null) {
-            return LanClient.DEFAULT_TURN_RATE;
+            return LanClient.DYNAMIC_TURN_RATE;
         }
 
         int step = Math.clamp(rates.getValue(), 0, LanClient.TURN_RATES.length);
