@@ -1791,12 +1791,17 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * Sets the game flags of a network game (the host's, which its advertisement carries).
+     * Sets the game flags of a network game (the host's, which its advertisement carries), which its live game takes before its session
+     * starts ({@link LiveGame#setGameFlags}).
      *
      * @param gameFlags the flags
      */
     public void setGameFlags(int gameFlags) {
         this.gameFlags = gameFlags;
+
+        if (this.liveGame != null) {
+            this.liveGame.setGameFlags(gameFlags);
+        }
     }
 
     /**

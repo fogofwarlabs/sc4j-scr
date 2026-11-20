@@ -76,6 +76,11 @@ public final class LiveGame {
     public static final int MAXIMUM_LATENCY = 2;
 
     /**
+     * Game flags bit {@code 5}: the dynamic turn rate, which adjusts the turn rate and latency from the turn stalls.
+     */
+    public static final int DYNAMIC_TURN_RATE_FLAG = 0x20;
+
+    /**
      * The maximum bytes in a single-player outgoing turn.
      */
     public static final int MAXIMUM_TURN_BYTES = 0x1F0;
@@ -115,6 +120,11 @@ public final class LiveGame {
      * The Latency command's silent bit (the Network Health start's {@code 55 80}).
      */
     private static final int SILENT_LATENCY = 0x80;
+
+    /**
+     * The Dynamic Turn Rate command's bytes after the type byte: the sub-command, the turns per second and the latency.
+     */
+    private static final int DYNAMIC_TURN_RATE_PAYLOAD = 3;
 
     /**
      * The minimum provider turns in transit.
@@ -167,6 +177,46 @@ public final class LiveGame {
          * @param name the command's name bytes without terminator, as received: the file name without extension
          */
         void loadGame(int time, byte @NotNull [] name);
+    }
+
+    /**
+     * The view of this game that its turn rate rules adjust.
+     */
+    private final class TurnRateSession implements DynamicTurnRate.Session {
+        /**
+         * @return the game's turns per second
+         */
+        @Override
+        public int getTurnRate() {
+            return LiveGame.this.turnRate;
+        }
+
+        /**
+         * @return the game's latency setting, {@code 0} Low through {@code 2} Extra High
+         */
+        @Override
+        public int getLatency() {
+            return LiveGame.this.latency;
+        }
+
+        /**
+         * @return {@code true} if the local player is the present player of the lowest network id below {@code 8}, {@code false}
+         * otherwise
+         */
+        @Override
+        public boolean isLowestPresentPlayer() {
+            return LiveGame.this.lowestPresentPlayer;
+        }
+
+        /**
+         * Queues a command into the local outgoing turn.
+         *
+         * @param command the command bytes, type byte first
+         */
+        @Override
+        public void queueCommand(byte @NotNull [] command) {
+            LiveGame.this.outgoingTurn.queue(command);
+        }
     }
 
     /**
@@ -269,6 +319,22 @@ public final class LiveGame {
     private int turnsInTransit;
     private int baseTurnsInTransit;
     private int latency;
+    /**
+     * The network game's turns per second, which the Turn Rate and Dynamic Turn Rate commands change.
+     */
+    private int turnRate;
+    /**
+     * The game flags of the network game ({@link #DYNAMIC_TURN_RATE_FLAG}).
+     */
+    private int gameFlags;
+    /**
+     * The turn rate rules of the network game, from its session start; {@code null} before and outside a network game.
+     */
+    private @Nullable DynamicTurnRate dynamicTurnRate;
+    /**
+     * Whether the local player was the present player of the lowest network id below {@code 8} at the last completed turn step.
+     */
+    private boolean lowestPresentPlayer;
     private boolean networkStarted;
     /**
      * The number of commands the startup turn recorded, the first commands of the history.
@@ -395,6 +461,10 @@ public final class LiveGame {
         this.turnsInTransit          = 0;
         this.baseTurnsInTransit      = 0;
         this.latency                 = 0;
+        this.turnRate                = 0;
+        this.gameFlags               = 0;
+        this.dynamicTurnRate         = null;
+        this.lowestPresentPlayer     = false;
         this.networkStarted          = false;
         this.startupTurnCommandCount = 0;
         this.syncRing                = null;
@@ -531,12 +601,37 @@ public final class LiveGame {
     }
 
     /**
-     * @return the network game's configured turns per second, {@code 0} outside a network game
+     * @return the network game's turns per second: the room's, then as the Turn Rate and Dynamic Turn Rate commands set it; {@code 0}
+     * outside a network game
      */
     public int getTurnRate() {
-        LockstepTransport network = this.transport;
+        return this.transport == null ? 0 : this.turnRate;
+    }
 
-        return network == null ? 0 : network.getTurnRate().getTurnsPerSecond();
+    /**
+     * @return the game flags of the network game
+     */
+    public int getGameFlags() {
+        return this.gameFlags;
+    }
+
+    /**
+     * Sets the game flags of the network game (the host's, which its advertisement carries) before its session starts; with
+     * {@link #DYNAMIC_TURN_RATE_FLAG} the session adjusts the turn rate and latency.
+     *
+     * @param gameFlags the flags
+     */
+    public void setGameFlags(int gameFlags) {
+        this.gameFlags = gameFlags;
+    }
+
+    /**
+     * @return {@code true} if the dynamic turn rate's scan runs, {@code false} otherwise
+     */
+    public boolean isTurnRateScanning() {
+        DynamicTurnRate rules = this.dynamicTurnRate;
+
+        return rules != null && rules.isScanning();
     }
 
     /**
@@ -831,6 +926,15 @@ public final class LiveGame {
         Arrays.fill(this.pausesLeft, (byte) INITIAL_PAUSES);
 
         timing.startSession(network == null ? 0 : 1, turnRate.getTurnsPerSecond(), turnRate.getNetworkTurnsPerSecond());
+
+        if (network != null) {
+            DynamicTurnRate rules = new DynamicTurnRate(new TurnRateSession(), System::nanoTime, (this.gameFlags & DYNAMIC_TURN_RATE_FLAG) != 0,
+                                                        latencyTurns);
+
+            this.dynamicTurnRate = rules;
+
+            rules.start();
+        }
     }
 
     /**
@@ -881,6 +985,70 @@ public final class LiveGame {
 
         if ((value & SILENT_LATENCY) == 0) {
             this.latencyNotices.add(new int[]{this.findCommandSlot(playerId), this.latency});
+        }
+    }
+
+    /**
+     * Executes a received Turn Rate command ({@link #changeTurnRate}).
+     *
+     * @param payload the command bytes after the type byte: the turns per second
+     */
+    private void executeTurnRate(byte @NotNull [] payload) {
+        if (payload.length > 0) {
+            this.changeTurnRate(Byte.toUnsignedInt(payload[0]));
+        }
+    }
+
+    /**
+     * Executes a received Dynamic Turn Rate command: a scan start ({@link DynamicTurnRate#onScanStart}), or a scan result, which ends the
+     * scan, sets the turn rate ({@link #changeTurnRate}) and sets the latency silently.
+     *
+     * @param payload  the command bytes after the type byte: the sub-command ({@code 0} scan start), the turns per second and the latency
+     * @param playerId the sender's network id
+     */
+    private void executeDynamicTurnRate(byte @NotNull [] payload, int playerId) {
+        DynamicTurnRate rules = this.dynamicTurnRate;
+
+        if (payload.length < DYNAMIC_TURN_RATE_PAYLOAD) {
+            return;
+        }
+
+        if (payload[0] == 0) {
+            if (rules != null) {
+                rules.onScanStart();
+            }
+
+            return;
+        }
+
+        if (rules != null) {
+            rules.onScanResult();
+        }
+
+        this.changeTurnRate(Byte.toUnsignedInt(payload[1]));
+        this.executeLatency(new byte[]{(byte) (payload[2] | SILENT_LATENCY)}, playerId);
+    }
+
+    /**
+     * Sets the network game's turns per second when they differ, noting the change to the turn rate rules, and refills the timing's
+     * timeouts from them.
+     *
+     * @param turnRate the turns per second
+     */
+    private void changeTurnRate(int turnRate) {
+        DynamicTurnRate rules = this.dynamicTurnRate;
+        GameSpeed timing = this.timing;
+
+        if (turnRate != this.turnRate) {
+            this.turnRate = turnRate;
+
+            if (rules != null) {
+                rules.onTurnRateChanged();
+            }
+        }
+
+        if (timing != null) {
+            timing.setTurnRate(this.turnRate);
         }
     }
 
@@ -1066,6 +1234,7 @@ public final class LiveGame {
         this.turnExchange       = new TurnExchange(transport, this.outgoingTurn::send);
         this.baseTurnsInTransit = turnsInTransit;
         this.turnsInTransit     = turnsInTransit + this.latency;
+        this.turnRate           = transport.getTurnRate().getTurnsPerSecond();
 
         if (keepAlive) {
             this.outgoingTurn.useKeepAlive();
@@ -1163,8 +1332,12 @@ public final class LiveGame {
         List<PeerTurn> turns = exchange.exchange(this.turnsInTransit);
 
         if (turns == null) {
+            this.onTurnMissing();
+
             return false;
         }
+
+        this.onTurnsReceived(turns);
 
         // The frame's record is made after its commands executed (onCommandsExecuted); its drawing values are those of the
         // first drawing after the previous turn step (updateSyncDrawing).
@@ -1201,8 +1374,12 @@ public final class LiveGame {
         List<PeerTurn> turns = exchange.exchange(this.turnsInTransit);
 
         if (turns == null) {
+            this.onTurnMissing();
+
             return false;
         }
+
+        this.onTurnsReceived(turns);
 
         for (PeerTurn turn : turns) {
             this.syncMonitor.check(turn, (int) currentFrame);
@@ -1217,6 +1394,42 @@ public final class LiveGame {
         this.startupTurnCommandCount = this.history.size() - firstCommand;
 
         return true;
+    }
+
+    /**
+     * Tells the turn rate rules that a turn step misses a turn.
+     */
+    private void onTurnMissing() {
+        DynamicTurnRate rules = this.dynamicTurnRate;
+
+        if (rules != null) {
+            rules.onTurnMissing();
+        }
+    }
+
+    /**
+     * Notes whether the local player is the present player of the lowest network id below {@code 8} among the senders of a completed turn
+     * step, and tells the turn rate rules, before the step's commands run.
+     *
+     * @param turns the step's turns
+     */
+    private void onTurnsReceived(@NotNull List<PeerTurn> turns) {
+        DynamicTurnRate rules = this.dynamicTurnRate;
+        int lowest = PlayerTable.PLAYABLE_PLAYER_SLOTS;
+
+        for (PeerTurn turn : turns) {
+            int playerId = turn.getPeer().getNumber();
+
+            if (playerId >= 0 && playerId < lowest) {
+                lowest = playerId;
+            }
+        }
+
+        this.lowestPresentPlayer = lowest == this.localPlayerId;
+
+        if (rules != null) {
+            rules.onTurnReceived();
+        }
     }
 
     /**
@@ -1423,6 +1636,10 @@ public final class LiveGame {
             this.executeSavedGameCommand(typeId, payload, playerId);
         } else if (typeId == ReplayCommandIds.LATENCY) {
             this.executeLatency(payload, playerId);
+        } else if (typeId == ReplayCommandIds.TURN_RATE) {
+            this.executeTurnRate(payload);
+        } else if (typeId == ReplayCommandIds.DYNAMIC_TURN_RATE) {
+            this.executeDynamicTurnRate(payload, playerId);
         } else if (typeId != OutgoingTurnBuffer.SYNC_COMMAND && typeId != ReplayCommandIds.KEEP_ALIVE) {
             throw Exceptions.newUnsupportedOperationException(
                     "The received turn executes command 0x{0}, which this session handles outside the command stream.",

@@ -8045,10 +8045,11 @@ public final class Main {
 
         if (live != null && live.isNetworkGame()) {
             String latency = glueText == null ? "" : glueText.get(StatusOverlay.getLatencyKey(live.getLatency()));
+            String scan = glueText == null || !live.isTurnRateScanning() ? "" : glueText.get(StatusOverlay.getScanKey());
 
-            this.statusOverlay.update(settings, true, live.getTurnRate(), latency);
+            this.statusOverlay.update(settings, true, live.getTurnRate(), latency, scan);
         } else {
-            this.statusOverlay.update(settings, false, 0, "");
+            this.statusOverlay.update(settings, false, 0, "", "");
         }
 
         interfaceRenderer.begin(framebuffer, viewportWidth, viewportHeight, this.framebufferWidth, this.framebufferHeight);
