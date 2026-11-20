@@ -701,7 +701,7 @@ final class BeaconLinkProviderTest {
                 }, "the joiner reaches the lobby");
 
                 LanLobby hostLobby = host.requireLobby();
-                List<Integer> departures = new ArrayList<>();
+                List<String> departures = new ArrayList<>();
 
                 for (LanLobby.Notice notice = hostLobby.pollNotice(); notice != null; notice = hostLobby.pollNotice()) {
                     Assertions.assertEquals(LanLobby.Notice.JOINED, notice.getKind(), "the host only saw the joiner join");
@@ -711,7 +711,7 @@ final class BeaconLinkProviderTest {
                 driver.runUntil(() -> {
                     for (LanLobby.Notice notice = hostLobby.pollNotice(); notice != null; notice = hostLobby.pollNotice()) {
                         if (notice.getKind() != LanLobby.Notice.JOINED) {
-                            departures.add(notice.getKind());
+                            departures.add(notice.getKind() + " " + notice.getName());
                         }
                     }
 
@@ -719,7 +719,7 @@ final class BeaconLinkProviderTest {
                 }, DEPARTURE_LIMIT_MILLISECONDS, "the host's lobby loses the first join's player");
                 driver.runUntil(() -> joiner.client.getState() != LanClient.State.JOINING, "the second join ends");
 
-                Assertions.assertEquals(List.of(LanLobby.Notice.LEFT), departures, "the first join's leave reaches the host");
+                Assertions.assertEquals(List.of(LanLobby.Notice.LEFT + " joiner"), departures, "the first join's leave reaches the host with its name");
                 Assertions.assertTrue(joiner.client.getState() == LanClient.State.LOBBY || joiner.client.getState() == LanClient.State.FAILED,
                                       () -> "the second join ends in " + joiner.client.getState());
             } finally {

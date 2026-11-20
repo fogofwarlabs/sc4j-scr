@@ -2411,13 +2411,16 @@ public final class LanLobby implements GameLobby {
             if (event.getType() == ProviderSession.EVENT_PLAYER_JOINED && this.host) {
                 this.sendGameSettings(event.getPlayerIdentifier());
             } else if (event.getType() == ProviderSession.EVENT_PLAYER_LEFT) {
-                // The chat panel's line of a player that left or was dropped (reason 0x40000006).
+                // The chat panel's line of a player that left or was dropped (reason 0x40000006). The session no longer knows a departed
+                // player, so the name is the one its slot record holds until the player is removed below.
                 int player = event.getPlayerIdentifier();
                 byte[] reason = event.getData();
                 boolean dropped = reason.length >= Integer.BYTES && LittleEndianUtils.readInt32(reason, 0) == DROP_REASON;
+                int slot = this.getPlayerSlot(player);
+                String name = slot >= 0 ? this.records[slot].getName() : "";
 
-                if (player != HOST_PLAYER_IDENTIFIER) {
-                    this.notices.add(new Notice(dropped ? Notice.DROPPED : Notice.LEFT, this.getPlayerName(player)));
+                if (player != HOST_PLAYER_IDENTIFIER && !name.isEmpty()) {
+                    this.notices.add(new Notice(dropped ? Notice.DROPPED : Notice.LEFT, name));
                 }
 
                 this.removePlayer(player);
