@@ -280,8 +280,8 @@ public final class UnitBuildingFlight {
      *
      * @param building         the building executing {@link ScrOrderIds#LIFTING_OFF}
      * @param instructionLimit the order, animation and sprite initialization budget
-     * @throws IllegalStateException         if the building has no sprite
-     * @throws NullPointerException          if the world was built without game data
+     * @throws IllegalStateException if the building has no sprite
+     * @throws NullPointerException  if the world was built without game data
      */
     public void updateLiftingOff(@NotNull Unit building, int instructionLimit) {
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
