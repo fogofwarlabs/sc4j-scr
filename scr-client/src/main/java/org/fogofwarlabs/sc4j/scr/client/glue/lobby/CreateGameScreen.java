@@ -1379,7 +1379,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
     }
 
     /**
-     * Called first for every press of the screen that no open popup or open combo box takes.
+     * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
      * Takes presses on the chat log's scroll bar.
      *

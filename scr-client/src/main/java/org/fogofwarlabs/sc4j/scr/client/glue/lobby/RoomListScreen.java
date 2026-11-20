@@ -773,8 +773,8 @@ public final class RoomListScreen extends GlueScreen {
     private void followJoin(@NotNull LanClient client) {
         GlueContext glueContext = this.getContext();
 
+        // The join stays pending while the screen slides away, so that no second join starts.
         if (GameListScreen.isLobbyReady(client)) {
-            this.joining = false;
             this.leave(() -> glueContext.getNavigator().show(GlueNavigator.Destination.GAME_LOBBY));
         } else if (client.getState() == LanClient.State.FAILED) {
             this.joining = false;
@@ -810,7 +810,7 @@ public final class RoomListScreen extends GlueScreen {
     }
 
     /**
-     * Called first for every press of the screen that no open popup or open combo box takes.
+     * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
      * Takes presses on the scroll bars, and selects the room under a press on the list; a double press joins it.
      *

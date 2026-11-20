@@ -304,6 +304,23 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
     }
 
     /**
+     * Double-clicks a point of the shown dialog with the left button without drawing: a click, then a press the host marks as the second
+     * press of a double press; the pointer stays there.
+     *
+     * @param dialogX the x in the dialog's pixels
+     * @param dialogY the y in the dialog's pixels
+     */
+    public void doubleTap(float dialogX, float dialogY) {
+        GlueCanvas canvas = this.glue.getCanvas();
+        float x = canvas.toScreenX((canvas.getInterfaceWidth() - DIALOG_WIDTH) / CENTER_DIVISOR + dialogX);
+        float y = canvas.toScreenY(dialogY);
+
+        this.tap(dialogX, dialogY);
+        this.glue.handleInput(InputEvent.createButtonPressed(PointerButton.LEFT, NO_MODIFIERS, x, y, true));
+        this.glue.handleInput(InputEvent.createButtonReleased(PointerButton.LEFT, NO_MODIFIERS, x, y));
+    }
+
+    /**
      * Presses the right button at a point of the shown dialog and draws until the screen settled; the pointer stays there.
      *
      * @param dialogX the x in the dialog's pixels
