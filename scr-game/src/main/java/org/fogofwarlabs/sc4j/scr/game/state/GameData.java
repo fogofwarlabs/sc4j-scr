@@ -358,9 +358,9 @@ public final class GameData implements AutoCloseable {
 
         this.codeConstants.loadExecutable(storage.getInstallRoot().resolve(EXECUTABLE_DIRECTORY).resolve(EXECUTABLE_FILE_NAME));
 
-        this.imageDamageOverlayCounts   = new int[ImagesDat.IMAGE_COUNT];
-        this.imageDamageOverlayBase     = null;
-        this.imageOverlayResources      = new byte[ImagesDat.IMAGE_COUNT * OVERLAY_TABLE_COUNT][];
+        this.imageDamageOverlayCounts = new int[ImagesDat.IMAGE_COUNT];
+        this.imageDamageOverlayBase   = null;
+        this.imageOverlayResources    = new byte[ImagesDat.IMAGE_COUNT * OVERLAY_TABLE_COUNT][];
 
         Arrays.fill(this.imageDamageOverlayCounts, -1);
 
@@ -436,9 +436,9 @@ public final class GameData implements AutoCloseable {
         this.codeConstants  = base.codeConstants;
 
         // A game's own table for EUD writes, read through to the installed bytes until written.
-        this.imageDamageOverlayCounts   = new int[ImagesDat.IMAGE_COUNT];
-        this.imageDamageOverlayBase     = base.imageDamageOverlayBase == null ? base : base.imageDamageOverlayBase;
-        this.imageOverlayResources      = base.imageOverlayResources;
+        this.imageDamageOverlayCounts = new int[ImagesDat.IMAGE_COUNT];
+        this.imageDamageOverlayBase   = base.imageDamageOverlayBase == null ? base : base.imageDamageOverlayBase;
+        this.imageOverlayResources    = base.imageOverlayResources;
 
         Arrays.fill(this.imageDamageOverlayCounts, -1);
 
@@ -1230,7 +1230,7 @@ public final class GameData implements AutoCloseable {
                 throw Exceptions.newIOException("Invalid image-overlay string index for image {0}: {1}", imageTypeId, stringIndex);
             }
 
-            contents = this.storage.readFile("unit/" + this.imagesTbl.getString(stringIndex).replace('\\', '/'));
+            contents                                  = this.storage.readFile("unit/" + this.imagesTbl.getString(stringIndex).replace('\\', '/'));
             this.imageOverlayResources[resourceIndex] = contents;
         }
 
