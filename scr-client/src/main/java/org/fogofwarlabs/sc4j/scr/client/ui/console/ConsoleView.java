@@ -2261,7 +2261,7 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
-     * Draws the optional APM plate, then right-aligns the measured local APM value at the APM pen in its selected color.
+     * Draws the optional APM plate, then the local APM value right aligned in its selected color ({@link ConsoleKind#calculateApmTextRight}).
      * The console class of the art ({@link ConsoleKind}) places the plate and the pen.
      */
     private void drawApm(@NotNull ConsoleLayout console, @NotNull InterfaceAssets loaded) throws IOException {
@@ -2289,17 +2289,9 @@ public final class ConsoleView implements AutoCloseable {
 
         InterfaceFont font = this.smallFont;
         String text = Integer.toString(this.apmValue);
-        int clipRight = interfaceWidth - 1;
-        int penX = kind.getApmPenX() + offsetX;
-        int penY = kind.getApmPenY();
-        InterfaceText.Bounds bounds = InterfaceText.measureBounds(font,
-                                                                  List.of(text),
-                                                                  penX, penY,
-                                                                  InterfaceText.LINE_GAP,
-                                                                  0, 0,
-                                                                  clipRight, ConsoleLayout.INTERFACE_HEIGHT - 1);
+        float left = kind.calculateApmTextRight(interfaceWidth) - font.measure(text, true);
 
-        InterfaceText.drawAt(this.renderer, console, font, text, penX - bounds.getWidth(), penY, clipRight, this.apmColorCode);
+        InterfaceText.drawAt(this.renderer, console, font, text, left, kind.getApmPenY(), interfaceWidth - 1, this.apmColorCode);
     }
 
     /**
