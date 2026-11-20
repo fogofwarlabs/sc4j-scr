@@ -6341,8 +6341,7 @@ public final class Main {
         ListBox list = this.consoleView.openPopupList(dialog, control);
 
         this.keystrokeHelpList = null;
-        this.chatHistory.open(list, text -> this.requireConsoleView().measurePopupText(control, text),
-                              control.getWidth(), this.consoleView.getPopupListRows(list));
+        this.chatHistory.open(list, text -> this.requireConsoleView().measurePopupText(control, text), this.consoleView.getPopupListRows(list));
     }
 
     /**
