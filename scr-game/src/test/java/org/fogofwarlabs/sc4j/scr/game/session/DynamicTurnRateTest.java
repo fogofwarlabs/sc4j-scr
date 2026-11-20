@@ -306,7 +306,7 @@ final class DynamicTurnRateTest {
         Assertions.assertEquals(List.of(encode(ReplayCommandIds.TURN_RATE, SECOND_RATE)), game.takeCommands());
 
         game.turnRate = SECOND_RATE;
-        time = runStalls(rules, clock, time + SECOND, STALLS_TO_LOWER);
+        time          = runStalls(rules, clock, time + SECOND, STALLS_TO_LOWER);
 
         Assertions.assertEquals(List.of(encode(ReplayCommandIds.TURN_RATE, THIRD_RATE)), game.takeCommands());
 

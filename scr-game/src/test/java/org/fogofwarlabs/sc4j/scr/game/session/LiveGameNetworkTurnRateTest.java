@@ -88,7 +88,7 @@ final class LiveGameNetworkTurnRateTest {
             Assertions.assertEquals(SCAN_LATENCY, game.getLatency(), "the scan result sets the latency");
             Assertions.assertTrue(game.takeLatencyNotices().isEmpty(), "the scan result's latency is silent");
             Assertions.assertTrue(game.getHistory().stream().noneMatch(command -> command.getTypeId() == ReplayCommandIds.TURN_RATE ||
-                                                                                command.getTypeId() == ReplayCommandIds.DYNAMIC_TURN_RATE),
+                                                                                  command.getTypeId() == ReplayCommandIds.DYNAMIC_TURN_RATE),
                                   "Turn Rate and Dynamic Turn Rate are not recorded");
         }
     }
