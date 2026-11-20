@@ -713,7 +713,7 @@ public final class ChannelChatScreen extends GlueScreen {
     }
 
     /**
-     * Called first for every press of the screen that no open popup or open combo box takes.
+     * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
      * An open context menu takes the press: it runs the action under it and shuts. Otherwise takes presses on the scroll bars and the tabs,
      * folds a group open or shut at its label and selects the player under a press on the list; a double press starts a whisper to the player.

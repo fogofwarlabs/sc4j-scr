@@ -143,6 +143,15 @@ public interface NetworkProvider extends AutoCloseable {
     void update();
 
     /**
+     * Takes the address of the next player of the hosted game whose connection the network saw end, in the order the network saw them.
+     *
+     * @return the player's address in the game, or {@code null} if none is waiting or the network does not see connections end
+     */
+    default @Nullable InetSocketAddress pollDeparture() {
+        return null;
+    }
+
+    /**
      * Closes the network: it withdraws what it published and closes its sockets.
      */
     @Override

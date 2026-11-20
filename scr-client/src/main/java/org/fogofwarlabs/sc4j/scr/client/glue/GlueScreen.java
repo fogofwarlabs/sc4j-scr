@@ -1041,7 +1041,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
     }
 
     /**
-     * Called first for every press of the screen that no open popup or open combo box takes.
+     * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1893,16 +1893,19 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
             return;
         }
 
+        // While panels slide or a leave is pending, neither the screen nor its controls take the press.
+        if (!this.isInteractive()) {
+            this.requireDialogState().cancelPress();
+
+            return;
+        }
+
         if (this.onPointerPressed(x, y)) {
             return;
         }
 
         // Mark the control under the pointer as pressed.
-        if (this.isInteractive()) {
-            this.getContext().getDialogStack().press(x, y);
-        } else {
-            this.requireDialogState().cancelPress();
-        }
+        this.getContext().getDialogStack().press(x, y);
 
         if (this.requireDialogState().getPressedId() >= 0 && this.requireDialogState().getPressed() instanceof GlueFlicButton) {
             this.playMouseOver();

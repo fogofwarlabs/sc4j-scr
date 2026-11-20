@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -979,7 +980,8 @@ public final class LanClient implements AutoCloseable {
 
     /**
      * Reads the game socket into the session and updates it: the network pump of the lobby and of the game's turn
-     * stream.
+     * stream. A player whose connection the network saw end is dropped from the lobby at once, unless the player's leave arrived
+     * first.
      */
     public synchronized void pump() {
         this.network.update();
@@ -996,6 +998,10 @@ public final class LanClient implements AutoCloseable {
             current.receive(source, packet);
         });
         current.update();
+
+        for (InetSocketAddress departed = this.network.pollDeparture(); departed != null; departed = this.network.pollDeparture()) {
+            this.dropDeparted(current, departed);
+        }
     }
 
     /**
@@ -1152,6 +1158,32 @@ public final class LanClient implements AutoCloseable {
     @Override
     public @NotNull String toString() {
         return String.format(Locale.ROOT, "LanClient[%s, %s]", this.playerName, this.state);
+    }
+
+    /**
+     * Drops the lobby's player at an address whose connection the network saw end ({@link ProviderSession#dropPlayer}), unless the player
+     * left already: the lobby frees the player's slot at its next step instead of after its timeout. The game's turn transport handles a
+     * missing player on its own.
+     *
+     * @param current the session
+     * @param address the player's address in the game
+     */
+    private void dropDeparted(@NotNull ProviderSession current, @NotNull InetSocketAddress address) {
+        LanLobby currentLobby = this.lobby;
+
+        if (currentLobby == null || currentLobby.getState() == LanLobby.STATE_GAME) {
+            return;
+        }
+
+        for (ProviderPeer peer : current.getPeers()) {
+            if (address.equals(peer.getAddress()) && peer.getIdentifier() != ProviderPeer.UNKNOWN_IDENTIFIER &&
+                (peer.getFlags() & ProviderPeer.FLAG_DEPARTED) == 0) {
+                LOGGER.info("LAN LOBBY DROP: player " + peer.getIdentifier() + " at " + address + " lost its connection");
+                current.dropPlayer(peer.getIdentifier(), LanLobby.DROP_REASON);
+
+                return;
+            }
+        }
     }
 
     /**

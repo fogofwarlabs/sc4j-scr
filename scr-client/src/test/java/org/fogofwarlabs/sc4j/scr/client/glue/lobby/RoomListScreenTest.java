@@ -11,6 +11,7 @@ import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueNavigator;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrControl;
+import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialog;
 import org.fogofwarlabs.sc4j.scr.core.test.RequiresInstallation;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.GameTemplate;
 import org.fogofwarlabs.sc4j.scr.game.test.GameTestResources;
@@ -36,7 +37,8 @@ import java.util.*;
  * sub-folder with one recently hosted map, its create page with a private game and its map browser, in both; and the local network's game
  * creation over the same folder with a lower turn rate chosen on its turn rate slider, in both; and that the room list's search row starts
  * under its title as the local network game list's list does, that a full room list keeps whole rows above the
- * panel art's frame, and that the filter's check box and its label stand on one line.
+ * panel art's frame, that the filter's check box and its label stand on one line, and that a double press on a room while the list slides
+ * away starts no join.
  * <p>
  * The reference frames are stored as SHA-256 digests of the read-back pixels (the frames hold installation artwork, which the repository does
  * not keep); every drawn frame is also written to {@code build/glue-screenshots}. The digests are those of the reference machine's OpenGL
@@ -97,6 +99,14 @@ final class RoomListScreenTest {
      */
     private static final int TITLE = 103;
     private static final int SEARCH = 90;
+    /**
+     * The room list's Cancel (the dialog's control {@code 10}), and the middle of the first room row below the search field's bottom: the
+     * page's inset ({@code 4}), the header ({@code 12}) and half a row ({@code 17}).
+     */
+    private static final int CANCEL = 10;
+    private static final float FIRST_ROW_BELOW_SEARCH = 24;
+    private static final float ROW_INSET = 20;
+    private static final float CENTER_DIVISOR = 2;
     private static final int LAN_LIST_UNDER_TITLE = 32;
     /**
      * A full room list (more rooms than the list shows) and, at 640x480 where frame pixels are dialog pixels, the band of the list page from
@@ -445,6 +455,44 @@ final class RoomListScreenTest {
             Assertions.assertNotNull(title);
             Assertions.assertNotNull(search);
             Assertions.assertEquals(LAN_LIST_UNDER_TITLE, search.getDefinition().getY() - title.getDefinition().getY());
+        }
+    }
+
+    @Test
+    void double_press_on_a_room_while_the_list_slides_away_starts_no_join() throws IOException {
+        Assumptions.assumeTrue(Boolean.getBoolean(RENDER_SMOKE_PROPERTY), RENDER_SMOKE_MESSAGE);
+
+        Path root = this.directory;
+
+        Assertions.assertNotNull(root);
+
+        PlayerPresence kerrigan = createPlayer(KERRIGAN_KEY, "Kerrigan", PlayerStatus.IN_ROOM);
+        FoundRoom room = createRoom(createHost(TASSADAR_KEY), "2v2 team game", "Circuit Breakers", 3, 4,
+                                    new ScrRoomData(GameTemplate.TYPE_MELEE, 1, FASTEST_SPEED, MAP_SIZE, MAP_SIZE), null,
+                                    LatencyEstimate.of(FAIR_MILLISECONDS));
+
+        try (BeaconLinkGlueScenario scenario = BeaconLinkGlueScenario.open(root.resolve("slide-join"), "enUS", SMALL_WIDTH, SMALL_HEIGHT,
+                                                                           GlueCanvas.SD_PREFIX, this.createCommunity(kerrigan), List.of(room))) {
+            scenario.show(GlueNavigator.Destination.CHANNEL_CHAT);
+            scenario.show(GlueNavigator.Destination.GAME_LIST);
+
+            ScrDialog dialog = scenario.getScreenDialog();
+            ScrControl cancel = dialog.findControl(CANCEL);
+            ScrControl search = dialog.findControl(SEARCH);
+
+            Assertions.assertNotNull(cancel);
+            Assertions.assertNotNull(search);
+
+            DialogControl cancelDefinition = cancel.getDefinition();
+            DialogControl searchDefinition = search.getDefinition();
+
+            // Cancel slides the list away; a join of the session's recorded network would throw, as it carries no game.
+            scenario.tap(cancelDefinition.getX() + cancelDefinition.getWidth() / CENTER_DIVISOR,
+                         cancelDefinition.getY() + cancelDefinition.getHeight() / CENTER_DIVISOR);
+            scenario.doubleTap(searchDefinition.getX() + ROW_INSET, searchDefinition.getY() + searchDefinition.getHeight() + FIRST_ROW_BELOW_SEARCH);
+            scenario.settle();
+
+            Assertions.assertNotSame(dialog, scenario.getScreenDialog(), "the list slid away to the channel chat");
         }
     }
 

@@ -1285,7 +1285,7 @@ public final class OptionsPopup extends GluePopup {
     }
 
     /**
-     * Called first for every press of the screen that no open popup or open combo box takes.
+     * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
      * The number box (the APM threshold) takes the keyboard when it is pressed while enabled; a press elsewhere gives the keys back to the
      * controls' hotkeys. The press is never consumed, so the normal control press continues after the keyboard focus changed.
