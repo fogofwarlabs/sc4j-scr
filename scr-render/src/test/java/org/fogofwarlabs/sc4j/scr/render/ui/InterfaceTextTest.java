@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.ToDoubleFunction;
 
 /**
- * Checks the alignment, wrapping and end-of-text rules of {@link InterfaceText}.
+ * Checks the alignment, wrapping and end-of-text rules of {@link InterfaceText} and the color it carries across lines.
  */
 final class InterfaceTextTest {
     /**
@@ -43,6 +43,32 @@ final class InterfaceTextTest {
 
         return width;
     };
+    /**
+     * The pen color a text starts in: the game's code 2.
+     */
+    private static final int START_COLOR = InterfaceFont.getCodeColor(2);
+
+    /**
+     * Finds the pen color of a line's first glyph as a font draws it: each code changes the pen through the game's code colors, and the color
+     * before a code becomes the one code {@code 1} switches back to.
+     *
+     * @param line the drawn line
+     * @return the packed {@code 0xRRGGBBAA} color
+     */
+    private static int findStartColor(@NotNull String line) {
+        InterfaceCodeColors colors = new InterfaceCodeColors(InterfaceText.GAME_CODE_COLORS);
+        int color = START_COLOR;
+        int previous = START_COLOR;
+
+        for (int index = 0; index < line.length() && colors.isColorCode(line.charAt(index)); index++) {
+            int next = colors.getColor(line.charAt(index), START_COLOR, color, previous);
+
+            previous = color;
+            color    = next;
+        }
+
+        return color;
+    }
 
     @Test
     void compute_alignment_shifts_should_be_empty_without_alignment_codes() {
@@ -170,6 +196,25 @@ final class InterfaceTextTest {
         Assertions.assertEquals("ab\u0004\u0001cd", InterfaceText.removeCaretGlyph("ab\u0004¦\u0001cd"));
         // A U+00A6 not preceded by code 0x04 is an ordinary glyph.
         Assertions.assertEquals("a¦b", InterfaceText.removeCaretGlyph("a¦b"));
+    }
+
+    @Test
+    void carry_color_codes_should_start_each_line_with_the_codes_of_the_lines_before() {
+        List<String> lines = List.of("a\u0003b", "c\u0006d\u0001", "", "e");
+
+        Assertions.assertEquals(List.of("a\u0003b", "\u0003c\u0006d\u0001", "\u0003\u0006\u0001", "\u0003\u0006\u0001e"),
+                                InterfaceText.carryColorCodes(lines));
+        Assertions.assertEquals(List.of("a", "b"), InterfaceText.carryColorCodes(List.of("a", "b")));
+    }
+
+    @Test
+    void carried_color_codes_should_give_each_line_the_pen_color_of_the_end_of_the_line_before() {
+        // Line 1 ends in code 3; line 2 starts in it, switches to 6 and back to 3 with code 1; line 3 starts in 3 again.
+        List<String> drawnLines = InterfaceText.carryColorCodes(List.of("a\u0003b", "c\u0006d\u0001", "e"));
+
+        Assertions.assertEquals(START_COLOR, findStartColor(drawnLines.get(0)));
+        Assertions.assertEquals(InterfaceFont.getCodeColor(3), findStartColor(drawnLines.get(1)));
+        Assertions.assertEquals(InterfaceFont.getCodeColor(3), findStartColor(drawnLines.get(2)));
     }
 
     @Test

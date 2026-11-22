@@ -726,6 +726,13 @@ public final class MpqArchive {
     }
 
     /**
+     * @return the whole archive content the archive reads its files from; shared, not copied, and never changed by the archive
+     */
+    public byte @NotNull [] getArchiveData() {
+        return this.archiveData;
+    }
+
+    /**
      * Returns existing block entries, resolving their names from a readable listfile on the first call.
      *
      * @return the file entries; names are resolved only when the archive holds a readable {@code (listfile)}

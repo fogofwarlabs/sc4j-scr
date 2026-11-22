@@ -310,6 +310,23 @@ final class GameViewportTest {
     }
 
     @Test
+    void play_clip_should_end_at_the_play_view_rows_of_the_game_screen() {
+        // The selection box clip of the 4:3 frame in a 1920x1080 window: the game screen columns and the 383 of 480 rows above the console.
+        GameViewport viewport = createViewport(WIDE_WINDOW_WIDTH, WIDE_WINDOW_HEIGHT, false, true);
+
+        assertClip(240, 0, 1680, PLAY_VIEW_ROWS * WIDE_WINDOW_HEIGHT / NATIVE_ROWS, viewport.getPlayClip(), PIXEL_TOLERANCE);
+
+        // The replay console's full-height play view and a hidden console leave the whole game screen.
+        viewport.setInterface(false, true, true);
+
+        assertClip(240, 0, 1680, WIDE_WINDOW_HEIGHT, viewport.getPlayClip(), PIXEL_TOLERANCE);
+
+        viewport.setInterface(false, false, false);
+
+        assertClip(0, 0, WIDE_WINDOW_WIDTH, WIDE_WINDOW_HEIGHT, viewport.getPlayClip(), PIXEL_TOLERANCE);
+    }
+
+    @Test
     void game_view_fills_window_without_console() {
         GameViewport viewport = createViewport(1280, 800, true, false);
 

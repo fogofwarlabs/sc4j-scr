@@ -10,6 +10,7 @@ import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkFile;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommandIds;
 import org.fogofwarlabs.sc4j.scr.data.format.text.LegacyTextUtils;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrGameExtensionUtils;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrSimulationExtensionUtils;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerColorRows;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTypes;
@@ -61,7 +62,8 @@ public final class LanLobby implements GameLobby {
      * The lobby protocol version the host requires in the joined-game command, a 16-bit number read from the resource
      * {@code lan-lobby.properties} next to this class ({@code 5} in the SC:R mod, as native SC:R). A host refuses a joiner with another
      * version, so a mod built from the SC:R mod's sources sets its own version there to keep apart from SC:R mod players on a LAN; a mod whose
-     * game extensions provide memory ({@link ScrGameExtensionUtils#providesMemory()}) must.
+     * game extensions provide memory ({@link ScrGameExtensionUtils#providesMemory()}) or that has simulation extensions
+     * ({@link ScrSimulationExtensionUtils#hasExtensions()}) must.
      */
     public static final int JOIN_VERSION = readJoinVersion();
     /**
@@ -1506,6 +1508,11 @@ public final class LanLobby implements GameLobby {
                                                       JOIN_VERSION_KEY, LOBBY_SETTINGS_RESOURCE, SCR_JOIN_VERSION);
         }
 
+        if (version == SCR_JOIN_VERSION && ScrSimulationExtensionUtils.hasExtensions()) {
+            throw Exceptions.newIllegalStateException("The mod has simulation extensions, so the {0} of {1} must differ from the SC:R version {2}.",
+                                                      JOIN_VERSION_KEY, LOBBY_SETTINGS_RESOURCE, SCR_JOIN_VERSION);
+        }
+
         return version;
     }
 
@@ -2411,13 +2418,16 @@ public final class LanLobby implements GameLobby {
             if (event.getType() == ProviderSession.EVENT_PLAYER_JOINED && this.host) {
                 this.sendGameSettings(event.getPlayerIdentifier());
             } else if (event.getType() == ProviderSession.EVENT_PLAYER_LEFT) {
-                // The chat panel's line of a player that left or was dropped (reason 0x40000006).
+                // The chat panel's line of a player that left or was dropped (reason 0x40000006). The session no longer knows a departed
+                // player, so the name is the one its slot record holds until the player is removed below.
                 int player = event.getPlayerIdentifier();
                 byte[] reason = event.getData();
                 boolean dropped = reason.length >= Integer.BYTES && LittleEndianUtils.readInt32(reason, 0) == DROP_REASON;
+                int slot = this.getPlayerSlot(player);
+                String name = slot >= 0 ? this.records[slot].getName() : "";
 
-                if (player != HOST_PLAYER_IDENTIFIER) {
-                    this.notices.add(new Notice(dropped ? Notice.DROPPED : Notice.LEFT, this.getPlayerName(player)));
+                if (player != HOST_PLAYER_IDENTIFIER && !name.isEmpty()) {
+                    this.notices.add(new Notice(dropped ? Notice.DROPPED : Notice.LEFT, name));
                 }
 
                 this.removePlayer(player);

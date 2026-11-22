@@ -124,6 +124,14 @@ public final class OutgoingTurnBuffer {
     }
 
     /**
+     * @param commandLength the length of a command, type byte included
+     * @return {@code true} if a command of the length fits in the turn after the queued bytes, {@code false} otherwise
+     */
+    public boolean hasRoom(int commandLength) {
+        return this.length + commandLength <= this.maximumBytes;
+    }
+
+    /**
      * Queues one command at the current buffer length.
      *
      * @param command the command bytes, type byte first

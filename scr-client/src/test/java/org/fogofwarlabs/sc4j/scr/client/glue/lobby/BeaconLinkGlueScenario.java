@@ -1,6 +1,5 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
-import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
 import org.fogofwarlabs.sc4j.catalog.ReleaseVersion;
 import org.fogofwarlabs.sc4j.engine.client.audio.AudioMixer;
@@ -36,26 +35,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL30C;
-import org.lwjgl.system.MemoryUtil;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Draws the glue's Beacon.Link screens offscreen: a hidden window's OpenGL context, a framebuffer of the frame size, the installed client
  * resources and a Beacon.Link of one registered node whose session's community part is the given one ({@link RecordingBeaconLink}), played
- * with the account {@value #ACCOUNT_NAME} unless the scenario names another account or none. Each captured frame is written to
- * {@code build/glue-screenshots} and digested.
+ * with the account {@value #ACCOUNT_NAME} unless the scenario names another account or none.
  */
 public final class BeaconLinkGlueScenario implements AutoCloseable {
     /**
@@ -67,7 +58,7 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      */
     public static final @NotNull String MOD_VERSION = "0.1.0";
     /**
-     * The running SC4J version of a scenario's run, fixed so that the drawn frames do not depend on the built version.
+     * The running SC4J version of a scenario's run, fixed so that a run does not depend on the built version.
      */
     public static final @NotNull ReleaseVersion RUNNING_VERSION = Objects.requireNonNull(ReleaseVersion.parse("0.1.0"));
     /**
@@ -77,18 +68,11 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
 
     private static final int WINDOW_WIDTH = 640;
     private static final int WINDOW_HEIGHT = 480;
-    private static final int RGBA_BYTES = 4;
-    private static final int GREEN_OFFSET = 1;
-    private static final int BLUE_OFFSET = 2;
-    private static final int OPAQUE_ARGB = 0xFF000000;
     /**
      * The frozen host time step between two drawn frames and the drawn time a screen gets to settle (swish, fades), in milliseconds.
      */
     private static final int FRAME_MILLISECONDS = 20;
     private static final int SETTLE_MILLISECONDS = 3000;
-    private static final @NotNull String SCREENSHOT_DIRECTORY = "build/glue-screenshots";
-    private static final @NotNull String SCREENSHOT_FORMAT = "png";
-    private static final @NotNull String DIGEST_ALGORITHM = "SHA-256";
     /**
      * The width of the Beacon.Link dialogs, centered on the interface's width.
      */
@@ -304,6 +288,23 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
     }
 
     /**
+     * Double-clicks a point of the shown dialog with the left button without drawing: a click, then a press the host marks as the second
+     * press of a double press; the pointer stays there.
+     *
+     * @param dialogX the x in the dialog's pixels
+     * @param dialogY the y in the dialog's pixels
+     */
+    public void doubleTap(float dialogX, float dialogY) {
+        GlueCanvas canvas = this.glue.getCanvas();
+        float x = canvas.toScreenX((canvas.getInterfaceWidth() - DIALOG_WIDTH) / CENTER_DIVISOR + dialogX);
+        float y = canvas.toScreenY(dialogY);
+
+        this.tap(dialogX, dialogY);
+        this.glue.handleInput(InputEvent.createButtonPressed(PointerButton.LEFT, NO_MODIFIERS, x, y, true));
+        this.glue.handleInput(InputEvent.createButtonReleased(PointerButton.LEFT, NO_MODIFIERS, x, y));
+    }
+
+    /**
      * Presses the right button at a point of the shown dialog and draws until the screen settled; the pointer stays there.
      *
      * @param dialogX the x in the dialog's pixels
@@ -394,95 +395,6 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
      */
     public @NotNull ScrDialog getScreenDialog() {
         return this.client.getDialogStack().getLayers().getLast().getDialog();
-    }
-
-    /**
-     * Returns the frame's column of a dialog x.
-     *
-     * @param dialogX the x in the dialog's pixels
-     * @return the frame column
-     */
-    public int getFrameX(float dialogX) {
-        GlueCanvas canvas = this.glue.getCanvas();
-
-        return (int) canvas.toScreenX((canvas.getInterfaceWidth() - DIALOG_WIDTH) / CENTER_DIVISOR + dialogX);
-    }
-
-    /**
-     * Returns the frame's row of a dialog y.
-     *
-     * @param dialogY the y in the dialog's pixels
-     * @return the frame row, from the top
-     */
-    public int getFrameY(float dialogY) {
-        return (int) this.glue.getCanvas().toScreenY(dialogY);
-    }
-
-    /**
-     * Reads the drawn frame back.
-     *
-     * @return the frame, its first row at the top
-     */
-    public @NotNull BufferedImage readFrame() {
-        return this.toImage(this.readPixels());
-    }
-
-    /**
-     * Reads the drawn frame back, writes it to {@link #SCREENSHOT_DIRECTORY} and digests its pixels.
-     *
-     * @param name the frame name
-     * @return the hexadecimal SHA-256 digest of the RGBA rows, bottom row first
-     * @throws IOException if the frame cannot be written
-     */
-    public @NotNull String capture(@NotNull String name) throws IOException {
-        byte[] bytes = this.readPixels();
-        Path directory = Path.of(SCREENSHOT_DIRECTORY);
-
-        Files.createDirectories(directory);
-        ImageIO.write(this.toImage(bytes), SCREENSHOT_FORMAT, directory.resolve(name + "." + SCREENSHOT_FORMAT).toFile());
-
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance(DIGEST_ALGORITHM).digest(bytes));
-        } catch (NoSuchAlgorithmException exception) {
-            throw Exceptions.newIllegalStateException(exception, "No {0} digest: {1}", DIGEST_ALGORITHM, exception.getMessage());
-        }
-    }
-
-    /**
-     * @return the RGBA rows of the drawn frame, bottom row first
-     */
-    private byte @NotNull [] readPixels() {
-        ByteBuffer pixels = MemoryUtil.memAlloc(this.width * this.height * RGBA_BYTES);
-
-        try {
-            GL11C.glFinish();
-            GL30C.glBindFramebuffer(GL30C.GL_READ_FRAMEBUFFER, this.framebuffer);
-            GL11C.glReadPixels(0, 0, this.width, this.height, GL11C.GL_RGBA, GL11C.GL_UNSIGNED_BYTE, pixels);
-
-            byte[] bytes = new byte[pixels.remaining()];
-
-            pixels.get(bytes);
-
-            return bytes;
-        } finally {
-            MemoryUtil.memFree(pixels);
-        }
-    }
-
-    private @NotNull BufferedImage toImage(byte @NotNull [] bytes) {
-        BufferedImage image = new BufferedImage(this.width, this.height, BufferedImage.TYPE_INT_ARGB);
-
-        for (int row = 0; row < this.height; row++) {
-            for (int column = 0; column < this.width; column++) {
-                int offset = (row * this.width + column) * RGBA_BYTES;
-                int color = OPAQUE_ARGB | Byte.toUnsignedInt(bytes[offset]) << Short.SIZE |
-                            Byte.toUnsignedInt(bytes[offset + GREEN_OFFSET]) << Byte.SIZE | Byte.toUnsignedInt(bytes[offset + BLUE_OFFSET]);
-
-                image.setRGB(column, this.height - row - 1, color);
-            }
-        }
-
-        return image;
     }
 
     /**

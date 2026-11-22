@@ -196,6 +196,28 @@ final class PlayerTechnologyTest {
     }
 
     @Test
+    void set_available_should_store_the_availability_byte_without_the_expansion_gate() {
+        PlayerTechnology classic = PlayerProgressTestUtils.createPlayerTechnology(false);
+
+        classic.setAvailable(SECOND_PLAYER, FIRST_EXPANSION_TECHNOLOGY, false);
+        classic.setAvailable(SECOND_PLAYER, FIRST_TECHNOLOGY, false);
+
+        Assertions.assertFalse(classic.isAvailable(SECOND_PLAYER, FIRST_EXPANSION_TECHNOLOGY), "an expansion technology of classic storage");
+        Assertions.assertFalse(classic.isAvailable(SECOND_PLAYER, FIRST_TECHNOLOGY));
+        Assertions.assertEquals(UNAVAILABLE, classic.readContextByte(PlayerTechnology.CLASSIC_AVAILABLE_OFFSET +
+                                                                     SECOND_PLAYER * PlayerTechnology.CLASSIC_TECHNOLOGY_COUNT));
+
+        classic.setAvailable(SECOND_PLAYER, FIRST_TECHNOLOGY, true);
+
+        Assertions.assertEquals(AVAILABLE, classic.readContextByte(PlayerTechnology.CLASSIC_AVAILABLE_OFFSET +
+                                                                   SECOND_PLAYER * PlayerTechnology.CLASSIC_TECHNOLOGY_COUNT));
+
+        classic.setAvailable(PAST_PLAYER, FIRST_TECHNOLOGY, true);
+
+        Assertions.assertTrue(classic.isResearched(FIRST_PLAYER, FIRST_TECHNOLOGY), "the classic researched byte of player 0");
+    }
+
+    @Test
     void set_researching_should_set_or_clear_the_bit_of_the_context_byte_a_player_past_the_slots_addresses() {
         ArrayContext context = new ArrayContext();
         PlayerTechnology technology = PlayerProgressTestUtils.createPlayerTechnology(new ContextExpansion(true), () -> context);

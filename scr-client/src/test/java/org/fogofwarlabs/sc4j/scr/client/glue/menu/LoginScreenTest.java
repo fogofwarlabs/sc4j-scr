@@ -31,8 +31,8 @@ import java.util.Locale;
  * Checks the ID screen of a run without an account: the title screen leads to it and opens New ID for an empty list, New ID creates and
  * selects an ID in the local ID folder and refuses an existing or invalid name, Delete removes an ID with its saved games and keeps another
  * player's saved games of the same name, and Ok makes the selected ID the run's player; after Cancel the main menu's login button and Single
- * Player lead to the ID screen; an account run goes from the title screen to the main menu. The frames are written to
- * {@code build/glue-screenshots} and not compared, SD at 640x480 in English and HD at 1920x1080 in Korean.
+ * Player lead to the ID screen; an account run goes from the title screen to the main menu. SD at 640x480 in English and HD at 1920x1080 in
+ * Korean.
  */
 @RequiresInstallation
 final class LoginScreenTest {
@@ -131,7 +131,6 @@ final class LoginScreenTest {
 
             Assertions.assertEquals(0, requireList(scenario).getCount(), "the ID list is empty");
             Assertions.assertTrue(scenario.isPopupOpen(), "an empty list opens New ID");
-            scenario.capture("login-new-id-" + size);
 
             scenario.type(firstName);
             scenario.press(Key.ENTER);
@@ -145,7 +144,6 @@ final class LoginScreenTest {
             scenario.press(Key.ENTER);
 
             Assertions.assertEquals(texts.getGluText().get(NAME_EXISTS_KEY), getMessage(scenario));
-            scenario.capture("login-name-exists-" + size);
             scenario.press(Key.ENTER);
 
             scenario.type(NEW_ID_HOTKEY);
@@ -153,7 +151,6 @@ final class LoginScreenTest {
             scenario.press(Key.ENTER);
 
             Assertions.assertEquals(texts.getNetwork().get(RESERVED_NAME_KEY), getMessage(scenario));
-            scenario.capture("login-reserved-name-" + size);
             scenario.press(Key.ENTER);
 
             scenario.type(NEW_ID_HOTKEY);
@@ -164,7 +161,6 @@ final class LoginScreenTest {
 
             Assertions.assertEquals(2, names.size(), names.toString());
             Assertions.assertEquals(names.indexOf(secondName), requireList(scenario).getSelection(), "the created ID is selected");
-            scenario.capture("login-list-" + size);
 
             Path saveFolder = InstallLayout.of(install).getSaveDirectory();
             Path savedGames = saveFolder.resolve(ClientPlayer.LOCAL_ID_FOLDER).resolve(secondName);
@@ -179,7 +175,6 @@ final class LoginScreenTest {
             scenario.type(DELETE_HOTKEY);
 
             Assertions.assertEquals(texts.getGluText().get(CONFIRM_DELETE_KEY), getMessage(scenario));
-            scenario.capture("login-delete-" + size);
             scenario.press(Key.ENTER);
 
             Assertions.assertEquals(List.of(firstName), listNames(characters));
@@ -196,7 +191,6 @@ final class LoginScreenTest {
             Assertions.assertEquals(firstName, player.getFolderName());
             Assertions.assertEquals(saveFolder.resolve(ClientPlayer.LOCAL_ID_FOLDER).resolve(firstName), player.getSaveDirectory(saveFolder));
             Assertions.assertFalse(scenario.getScreenDialog().findControl(LIST) instanceof ListBox, "Ok leaves for the main menu");
-            scenario.capture("login-main-menu-" + size);
         }
     }
 

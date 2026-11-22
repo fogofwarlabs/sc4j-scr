@@ -211,15 +211,21 @@ public final class StatText {
     }
 
     /**
-     * Reads a string from the game's committed table or falls back to the installed string.
-     * {@link GameContext#getStatTextBytes} supplies the committed bytes, decoded through {@link LegacyTextUtils}.
+     * Reads a string a plugin of the game overrides ({@link ScrGameView#findStatTextOverride}), else from the game's committed table, else the
+     * installed string. {@link GameContext#getStatTextBytes} supplies the committed bytes, decoded through {@link LegacyTextUtils}.
      * A one-byte hotkey prefix is joined to text read at offset two with an intervening NUL character.
      *
-     * @param view       the game view whose committed table applies, or {@code null} outside a game
+     * @param view       the game view whose overrides and committed table apply, or {@code null} outside a game
      * @param identifier the one-based string identifier
      * @return the string
      */
     public @NotNull String getString(@Nullable ScrGameView view, int identifier) {
+        String override = view == null ? null : view.findStatTextOverride(identifier);
+
+        if (override != null) {
+            return override;
+        }
+
         byte[] head = view == null ? null : view.getGameContext().getStatTextBytes(identifier, 0);
 
         if (head == null) {

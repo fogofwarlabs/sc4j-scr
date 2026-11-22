@@ -276,6 +276,13 @@ public final class LocalInterfaceState {
         return this.chatMode;
     }
 
+    /**
+     * @return {@code true} if the chat mode BYTE is known and nonzero, as it is while the chat box is open, {@code false} otherwise
+     */
+    public boolean isChatOpen() {
+        return this.chatModeKnown && this.chatMode != 0;
+    }
+
     void writeChatMode(int value) {
         this.getChatMode();
 

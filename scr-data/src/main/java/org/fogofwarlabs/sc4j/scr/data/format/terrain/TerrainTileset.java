@@ -276,6 +276,18 @@ public final class TerrainTileset {
     }
 
     /**
+     * Checks whether a tile WORD names a tile of this tileset: its CV5 group is one of the records and its megatile one of the VF4 records, the
+     * tiles a map's terrain expands ({@link #expandTileFlags}) without failing.
+     *
+     * @param tileIdentifier the tile WORD
+     * @return {@code true} if the tile WORD is from {@code 0} through {@code 0xFFFF} with an installed group and megatile, {@code false} otherwise
+     */
+    public boolean hasTile(int tileIdentifier) {
+        return tileIdentifier >= 0 && tileIdentifier <= MAXIMUM_TILE_IDENTIFIER && getGroupIndex(tileIdentifier) < this.getGroupCount() &&
+               (this.readMegatileWord(tileIdentifier) & MEGATILE_INDEX_MASK) < this.megatileFlags.length;
+    }
+
+    /**
      * Reads the CV5 megatile WORD of a tile.
      *
      * @param tileIdentifier the tile WORD

@@ -13,6 +13,7 @@ import org.fogofwarlabs.sc4j.scr.data.type.ScrFlingyTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrWeaponTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitTypeFlags;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.WeaponBehaviors;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrSimulationPlugins;
 import org.fogofwarlabs.sc4j.scr.game.movement.FlingyMotionUtils;
 import org.fogofwarlabs.sc4j.scr.game.save.SaveReferences;
 import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
@@ -247,6 +248,10 @@ public final class ProjectilePhase {
         private int firstFree;
         private int firstActive;
         private int activeCount;
+        /**
+         * The generation of the latest bullet that joined the active list, {@code 0} before the first.
+         */
+        private long generation;
 
         /**
          * The source of the previous spinning launch, whose next launch spins the other way.
@@ -295,6 +300,7 @@ public final class ProjectilePhase {
             this.firstFree             = 0;
             this.firstActive           = NO_BULLET;
             this.activeCount           = 0;
+            this.generation            = 0;
 
             this.previousSource    = null;
             this.previousClockwise = false;
@@ -314,6 +320,21 @@ public final class ProjectilePhase {
          */
         public int getNext(int index) {
             return this.bullets[index].next;
+        }
+
+        /**
+         * @return the index of the first active bullet, or {@code -1} when none is active
+         */
+        public int getFirstActive() {
+            return this.firstActive;
+        }
+
+        /**
+         * @param index the bullet index, from {@code 0} to {@link #getCapacity()} minus one
+         * @return the bullet entry at that index, active or free
+         */
+        public @NotNull Bullet getBullet(int index) {
+            return this.bullets[index];
         }
 
         /**
@@ -572,6 +593,7 @@ public final class ProjectilePhase {
 
                 bullet.previous = last;
                 bullet.next     = NO_BULLET;
+                bullet.active   = active;
 
                 if (last >= 0) {
                     this.bullets[last].next = bullet.index;
@@ -649,11 +671,17 @@ public final class ProjectilePhase {
     /**
      * Holds the state of one bullet: its list links, owner and weapon, order state, target and native flingy type WORD; its position and motion
      * are the inherited engine projectile fields at their native widths, moved by the flingy motion ({@link FlingyMotionUtils}).
+     * <p>
+     * A bullet that joins the active list takes the next generation of its context ({@link #getGeneration()}), a serial that tells bullets
+     * apart that reuse an entry. The generations are bookkeeping of the bullet table: no simulation rule reads them, the state hash and saved
+     * games leave them out.
      */
-    static final class Bullet extends Projectile {
+    public static final class Bullet extends Projectile {
         final int index;
         int next;
         int previous;
+        boolean active;
+        long generation;
 
         @Nullable Sprite sprite;
         @Nullable Unit ownerUnit;
@@ -678,9 +706,11 @@ public final class ProjectilePhase {
         Bullet(int index) {
             super(index + 1);
 
-            this.index    = index;
-            this.next     = NO_BULLET;
-            this.previous = NO_BULLET;
+            this.index      = index;
+            this.next       = NO_BULLET;
+            this.previous   = NO_BULLET;
+            this.active     = false;
+            this.generation = 0;
 
             this.sprite    = null;
             this.ownerUnit = null;
@@ -701,6 +731,137 @@ public final class ProjectilePhase {
             this.nearTargetIndex      = 0;
 
             this.flingyType = 0;
+        }
+
+        /**
+         * @return the index of the entry in the bullet table, from {@code 0}
+         */
+        public int getPoolIndex() {
+            return this.index;
+        }
+
+        /**
+         * @return {@code true} while the bullet is in the active list, from its creation until it is released after dying, {@code false} otherwise
+         */
+        public boolean isActive() {
+            return this.active;
+        }
+
+        /**
+         * @return the generation the bullet took when it joined the active list, {@code 0} for a bullet of a saved game or an entry never used
+         */
+        public long getGeneration() {
+            return this.generation;
+        }
+
+        /**
+         * @return the sprite, or {@code null} once the last image of the bullet ended
+         */
+        public @Nullable Sprite getSprite() {
+            return this.sprite;
+        }
+
+        /**
+         * @return the unit that fired the bullet (the parent of a subunit or of a Scarab), or {@code null} once it is gone
+         */
+        public @Nullable Unit getSourceUnit() {
+            return this.ownerUnit;
+        }
+
+        /**
+         * @return the owning player slot
+         */
+        public int getOwner() {
+            return this.owner;
+        }
+
+        /**
+         * @return the {@code weapons.dat} entry
+         */
+        public int getWeapon() {
+            return this.weapon;
+        }
+
+        /**
+         * @return the {@code flingy.dat} entry
+         */
+        public int getFlingyType() {
+            return this.flingyType;
+        }
+
+        /**
+         * Returns the order state: {@code 0} init, {@code 1} move, {@code 2} follow, {@code 3} bounce, {@code 4} damage over time, {@code 5} dying,
+         * {@code 6} hit near the target.
+         *
+         * @return the order state
+         */
+        public int getState() {
+            return this.orderState;
+        }
+
+        /**
+         * @return the remaining time BYTE: the frames until a moving bullet dies, or until a bullet that persists on its target position ends
+         */
+        public int getRemainingTime() {
+            return this.remainingTime;
+        }
+
+        /**
+         * Sets the remaining time BYTE, as a write of the field does: the move and damage-over-time states count it down from the next frame.
+         *
+         * @param remainingTime the frames, truncated to eight bits
+         */
+        public void setRemainingTime(int remainingTime) {
+            this.remainingTime = remainingTime & BYTE_MASK;
+        }
+
+        /**
+         * @return the targets a bouncing bullet still hits
+         */
+        public int getRemainingBounces() {
+            return this.remainingBounces;
+        }
+
+        /**
+         * @return the target unit, or {@code null} for a position target or once the target is gone
+         */
+        public @Nullable Unit getTargetUnit() {
+            return this.targetUnit;
+        }
+
+        /**
+         * Sets the target unit, as a write of the field does: the follow, bounce and hit-near-target states move toward it from the next frame,
+         * and the hit damages it; the move state keeps its move target.
+         *
+         * @param targetUnit the target unit, or {@code null} for none
+         */
+        public void setTargetUnit(@Nullable Unit targetUnit) {
+            this.targetUnit = targetUnit;
+        }
+
+        /**
+         * @return the target X coordinate, the center of the hit
+         */
+        public int getTargetX() {
+            return this.targetX;
+        }
+
+        /**
+         * @return the target Y coordinate, the center of the hit
+         */
+        public int getTargetY() {
+            return this.targetY;
+        }
+
+        /**
+         * Sets the target position WORDs, as a write of the fields does: the hit is centered there; the move target of the bullet does not change.
+         *
+         * @param targetX the X coordinate, truncated to a signed WORD
+         * @param targetY the Y coordinate, truncated to a signed WORD
+         */
+        public void setTargetPosition(int targetX, int targetY) {
+            this.targetX = (short) targetX;
+            this.targetY = (short) targetY;
         }
 
         /**
@@ -1023,6 +1184,7 @@ public final class ProjectilePhase {
                     }
 
                     bullet.previous = NO_BULLET;
+                    bullet.active   = false;
 
                     if (context.firstFree < 0) {
                         bullet.next       = NO_BULLET;
@@ -1187,7 +1349,7 @@ public final class ProjectilePhase {
 
     /**
      * Creates a bullet of a weapon at a position: the flingy and sprite, the launch spin, the miss roll and the behavior's start position, then links
-     * it into the active list.
+     * it into the active list. The bullet takes the order target unit of the source, else its order target position, as its target.
      *
      * @param source           the attacking unit
      * @param weapon           the weapon
@@ -1200,7 +1362,7 @@ public final class ProjectilePhase {
      *                                       bullet that extends to the maximum range has no sprite
      * @throws NullPointerException          if the world was built without game data
      */
-    @Nullable Bullet create(@NotNull Unit source, int weapon, int positionX, int positionY, int instructionLimit) {
+    public @Nullable Bullet create(@NotNull Unit source, int weapon, int positionX, int positionY, int instructionLimit) {
         Context context = this.findContext();
 
         if (context == null || !context.emptyListsInitialized) {
@@ -1419,6 +1581,15 @@ public final class ProjectilePhase {
         }
 
         context.activeCount++;
+
+        bullet.active     = true;
+        bullet.generation = ++context.generation;
+
+        ScrSimulationPlugins simulation = this.game.getSimulationPlugins();
+
+        if (simulation != null) {
+            simulation.reportBulletCreated(bullet, weapon, bullet.owner, source, bullet.targetUnit, bullet.targetX, bullet.targetY);
+        }
 
         return bullet;
     }
@@ -1746,6 +1917,17 @@ public final class ProjectilePhase {
             for (int bounce = 0; bounce < BOUNCE_COUNT - 1 - bullet.remainingBounces; bounce++) {
                 divisor *= BOUNCE_DAMAGE_DIVISOR;
             }
+        }
+
+        ScrSimulationPlugins simulation = this.game.getSimulationPlugins();
+
+        if (simulation != null) {
+            simulation.reportBulletHit(bullet,
+                                       bullet.weapon,
+                                       bullet.owner,
+                                       bullet.ownerUnit, bullet.targetUnit,
+                                       bullet.targetX, bullet.targetY,
+                                       (bullet.hitFlags & HIT_FLAG_MISSED) != 0);
         }
 
         this.game.getUnitDamage().hitBullet(bullet.weapon,

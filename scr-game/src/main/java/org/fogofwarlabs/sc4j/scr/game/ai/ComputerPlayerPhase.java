@@ -2130,24 +2130,40 @@ public final class ComputerPlayerPhase {
         this.releaseRegionReferences(unit, death);
         this.releaseTownRecord(unit);
         ComputerMilitary.releaseGuard(unit);
-
-        if (this.game.requireGameData().getBaseType(unit) == ScrUnitIds.TERRAN_MEDIC && this.getPlayer(unit.getOwnerIndex()).getMedic() == unit) {
-            // The tracked Medic passes to the first Medic of the owner list.
-            Unit next = null;
-            UnitPool pool = this.game.getUnitSystem().requireUnitPool();
-
-            for (int poolIndex = pool.getFirstOwnerIndex(unit.getOwnerIndex()); poolIndex != 0; poolIndex = pool.getNextOwnerIndex(poolIndex)) {
-                if (this.game.requireGameData().getBaseType(pool.getUnit(poolIndex)) == ScrUnitIds.TERRAN_MEDIC) {
-                    next = pool.getUnit(poolIndex);
-
-                    break;
-                }
-            }
-
-            this.getPlayer(unit.getOwnerIndex()).setMedic(next);
-        }
+        this.handOverMedic(unit);
 
         unit.setComputerRecord(null);
+    }
+
+    /**
+     * Passes the tracked Medic of a leaving Medic's owner to the first Medic of the owner list, or to none. An owner outside
+     * the computer player records has no tracked Medic, so its Medics change nothing.
+     */
+    private void handOverMedic(@NotNull Unit unit) {
+        int owner = unit.getOwnerIndex();
+
+        if (this.game.requireGameData().getBaseType(unit) != ScrUnitIds.TERRAN_MEDIC || owner >= PlayerTable.PLAYABLE_PLAYER_SLOTS) {
+            return;
+        }
+
+        ComputerPlayer player = this.getPlayer(owner);
+
+        if (player.getMedic() != unit) {
+            return;
+        }
+
+        Unit next = null;
+        UnitPool pool = this.game.getUnitSystem().requireUnitPool();
+
+        for (int poolIndex = pool.getFirstOwnerIndex(owner); poolIndex != 0; poolIndex = pool.getNextOwnerIndex(poolIndex)) {
+            if (this.game.requireGameData().getBaseType(pool.getUnit(poolIndex)) == ScrUnitIds.TERRAN_MEDIC) {
+                next = pool.getUnit(poolIndex);
+
+                break;
+            }
+        }
+
+        player.setMedic(next);
     }
 
     /**

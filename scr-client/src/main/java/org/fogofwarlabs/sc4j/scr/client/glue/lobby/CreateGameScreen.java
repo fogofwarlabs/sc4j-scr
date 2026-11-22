@@ -236,6 +236,10 @@ public final class CreateGameScreen extends FileBrowserScreen {
     private static final @NotNull String SPEED_DOWN = "-";
     private static final @NotNull String SPEED_UP = "+";
     private static final @NotNull String LABEL_SUFFIX = ":";
+    /**
+     * The text key of the dynamic turn rate's name, the turn rate slider's first step.
+     */
+    private static final @NotNull String DYNAMIC_TURN_RATE_KEY = "bnet_turnRate_dynamic";
 
     /**
      * The map browser ({@code MapBrowserPanel}, page-relative): the title, the open folder (at the page's content top) and the list's frame
@@ -655,8 +659,8 @@ public final class CreateGameScreen extends FileBrowserScreen {
         Slider rates = this.addSlider(TURN_RATE);
         int rememberedRate = settings.getCreateGameValue(GlueSettings.TURN_RATE);
 
-        rates.setRange(0, LanClient.TURN_RATES.length - 1);
-        rates.setValue(findTurnRateStep(rememberedRate == GlueSettings.NONE ? LanClient.DEFAULT_TURN_RATE : rememberedRate));
+        rates.setRange(0, LanClient.TURN_RATES.length);
+        rates.setValue(findTurnRateStep(rememberedRate));
         this.turnRate = rates;
 
         super.onOpen(glueContext);
@@ -774,32 +778,45 @@ public final class CreateGameScreen extends FileBrowserScreen {
     }
 
     /**
-     * @param turnRate turns per second
-     * @return the turn rate slider's step of the turn rate, the default turn rate's for a turn rate the slider does not offer
+     * Finds the turn rate slider's step of a turn rate: step {@code 0} is the dynamic turn rate ({@link LanClient#DYNAMIC_TURN_RATE}), the
+     * next steps are {@link LanClient#TURN_RATES} in order.
+     *
+     * @param turnRate turns per second, {@link LanClient#DYNAMIC_TURN_RATE} or {@link GlueSettings#NONE}
+     * @return the step of the turn rate, step {@code 0} for a turn rate the slider does not offer
      */
     private static int findTurnRateStep(int turnRate) {
-        int step = 0;
-
         for (int index = 0; index < LanClient.TURN_RATES.length; index++) {
             if (LanClient.TURN_RATES[index] == turnRate) {
-                return index;
-            }
-
-            if (LanClient.TURN_RATES[index] == LanClient.DEFAULT_TURN_RATE) {
-                step = index;
+                return index + 1;
             }
         }
 
-        return step;
+        return 0;
     }
 
     /**
-     * @return the turn rate the turn rate slider chooses, the default turn rate before the screen opened
+     * @return the turn rate the turn rate slider chooses ({@link LanClient#DYNAMIC_TURN_RATE} at its first step), the dynamic turn rate
+     * before the screen opened
      */
     private int getTurnRate() {
         Slider rates = this.turnRate;
 
-        return rates == null ? LanClient.DEFAULT_TURN_RATE : LanClient.TURN_RATES[Math.clamp(rates.getValue(), 0, LanClient.TURN_RATES.length - 1)];
+        if (rates == null) {
+            return LanClient.DYNAMIC_TURN_RATE;
+        }
+
+        int step = Math.clamp(rates.getValue(), 0, LanClient.TURN_RATES.length);
+
+        return step == 0 ? LanClient.DYNAMIC_TURN_RATE : LanClient.TURN_RATES[step - 1];
+    }
+
+    /**
+     * @return the shown name of the chosen turn rate: the localized dynamic turn rate name, or the turns per second
+     */
+    private @NotNull String getTurnRateName() {
+        int rate = this.getTurnRate();
+
+        return rate == LanClient.DYNAMIC_TURN_RATE ? this.getContext().getGluText().get(DYNAMIC_TURN_RATE_KEY) : String.valueOf(rate);
     }
 
     /**
@@ -1064,7 +1081,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
 
         if (this.gameName != null) {
             this.bindControl(SPEED_VALUE).setReplacedText(GameListScreen.getSpeedName(this.getContext(), this.getSpeed()));
-            this.bindControl(TURN_RATE_VALUE).setReplacedText(String.valueOf(this.getTurnRate()));
+            this.bindControl(TURN_RATE_VALUE).setReplacedText(this.getTurnRateName());
         }
     }
 
@@ -1095,7 +1112,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
         }
 
         if (label != null) {
-            label.setReplacedText(formatRowLabel(glueContext.getGluText().get("infoPane_turnRate") + LABEL_SUFFIX, String.valueOf(this.getTurnRate())));
+            label.setReplacedText(formatRowLabel(glueContext.getGluText().get("infoPane_turnRate") + LABEL_SUFFIX, this.getTurnRateName()));
         }
     }
 
@@ -1379,9 +1396,9 @@ public final class CreateGameScreen extends FileBrowserScreen {
     }
 
     /**
-     * Called first for every press of the screen that no open popup or open combo box takes.
+     * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
-     * Takes presses on the chat log's scroll bar.
+     * Takes presses on the chat log's scroll bar and its text (a selection).
      *
      * @param x the interface x
      * @param y the interface y
@@ -1389,13 +1406,13 @@ public final class CreateGameScreen extends FileBrowserScreen {
      */
     @Override
     protected boolean onPointerPressed(float x, float y) {
-        return this.chat != null && this.chatLog.press(x, y);
+        return this.chat != null && this.chatLog.press(this.getContext().getCanvas(), x, y, this.isExtendingPress(), this.isDoublePress());
     }
 
     /**
      * Called for every pointer move of the screen (after an open combo box or popup takes it).
      * <p>
-     * Drags the chat log's scroll bar.
+     * Drags the chat log's scroll bar or its selection.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1403,14 +1420,14 @@ public final class CreateGameScreen extends FileBrowserScreen {
     @Override
     protected void onPointerMoved(float x, float y) {
         if (this.chat != null) {
-            this.chatLog.drag(y);
+            this.chatLog.drag(this.getContext().getCanvas(), x, y);
         }
     }
 
     /**
      * Called for every release of the left button of the screen.
      * <p>
-     * Releases the chat log's scroll bar.
+     * Releases the chat log's scroll bar and its selection.
      *
      * @param x the interface x
      * @param y the interface y
@@ -1420,6 +1437,19 @@ public final class CreateGameScreen extends FileBrowserScreen {
         if (this.chat != null) {
             this.chatLog.release();
         }
+    }
+
+    /**
+     * Called first for a copy (Ctrl+C or the edit menu's Copy): a screen whose read-only text (a chat log) holds a selection copies it here,
+     * before the focused edit control.
+     * <p>
+     * Copies the chat log's selection.
+     *
+     * @return {@code true} if the copy was consumed, {@code false} otherwise
+     */
+    @Override
+    protected boolean onCopy() {
+        return this.chat != null && this.chatLog.copy(this.getContext().getClipboard());
     }
 
     /**

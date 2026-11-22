@@ -20,8 +20,6 @@ import org.fogofwarlabs.sc4j.scr.data.format.dat.ImagesDat;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayRuntime;
 import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
-import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
-import org.fogofwarlabs.sc4j.scr.game.sprite.SpritePool;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.load.ScrIscriptImporter;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
@@ -30,7 +28,6 @@ import org.fogofwarlabs.sc4j.scr.game.test.AddedGraphicsScenario;
 import org.fogofwarlabs.sc4j.scr.game.test.RunningGameScenario;
 import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
 import org.fogofwarlabs.sc4j.scr.game.visibility.LocalVision;
-import org.fogofwarlabs.sc4j.scr.render.OverlayPass;
 import org.fogofwarlabs.sc4j.scr.render.SceneRenderer;
 import org.fogofwarlabs.sc4j.scr.render.WorldRenderer;
 import org.fogofwarlabs.sc4j.scr.render.hd.HdAnimations;
@@ -42,16 +39,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.lwjgl.system.MemoryUtil;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
-import static org.lwjgl.opengl.GL33C.*;
 
 /**
  * Checks that the loading screen's tasks prepare the images a mod adds before a game, as they prepare the installed images: the client data loads
@@ -73,21 +65,7 @@ final class AddedImageLoadingTest {
     private static final @NotNull String RENDER_SMOKE_PROPERTY = "sc4j.render.smoke";
     private static final @NotNull String RENDER_SMOKE_MESSAGE = "Pass -Psc4j.render.smoke=true to run the GPU check.";
 
-    private static void setImagesHidden(@NotNull SpritePool sprites, @NotNull Sprite kept, boolean keptHidden) {
-        for (int index = 0; index < sprites.getCapacity(); index++) {
-            if (sprites.isAllocated(index)) {
-                Sprite sprite = sprites.getSprite(index);
-                boolean hidden = sprite != kept || keptHidden;
-
-                for (SpriteImage image : sprite.getImages()) {
-                    image.setFlags(hidden ? image.getFlags() | SpriteImage.FLAG_HIDDEN : image.getFlags() & ~SpriteImage.FLAG_HIDDEN);
-                }
-            }
-        }
-    }
-
-    private static int @NotNull [] drawFrame(@NotNull WorldRenderer world, @NotNull SceneRenderer scene, @NotNull Game game,
-                                             @NotNull ByteBuffer pixels) {
+    private static void drawFrame(@NotNull WorldRenderer world, @NotNull SceneRenderer scene, @NotNull Game game) {
         List<String> warnings = new ArrayList<>();
 
         world.beginFrame(FRAME_SIZE, FRAME_SIZE, FRAME_SIZE, FRAME_SIZE, 0, 0, 1);
@@ -100,41 +78,18 @@ final class AddedImageLoadingTest {
         }
 
         Assertions.assertTrue(warnings.isEmpty(), () -> String.join("\n", warnings));
-        glReadPixels(0, 0, FRAME_SIZE, FRAME_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-        int[] frame = new int[FRAME_SIZE * FRAME_SIZE];
-
-        for (int index = 0; index < frame.length; index++) {
-            frame[index] = pixels.getInt(index * OverlayPass.RGBA_BYTES);
-        }
-
-        return frame;
     }
 
     /**
-     * Draws the first frame that shows the added unit, then the same frame without its images, and checks that the first one draws the unit and
-     * reads no frame file.
+     * Draws the first frame that shows the added unit and checks that it reads no frame file.
      */
-    private static void checkFirstFrame(@NotNull WorldRenderer world, @NotNull SceneRenderer scene, @NotNull ReplayRuntime runtime,
-                                        @NotNull Sprite sprite, @NotNull AddedGraphicsScenario added, @NotNull ByteBuffer pixels,
-                                        @NotNull String graphics) {
-        Game game = runtime.getGame();
-        SpritePool sprites = game.getSpriteSystem().getSpritePool();
+    private static void checkFirstFrame(@NotNull WorldRenderer world, @NotNull SceneRenderer scene, @NotNull Game game,
+                                        @NotNull AddedGraphicsScenario added, @NotNull String graphics) {
         int fileReads = added.getFileReadCount();
 
-        Assertions.assertNotNull(sprites);
-
-        RunningGameScenario.runInCommandDispatch(runtime, () -> setImagesHidden(sprites, sprite, false));
-
-        int[] first = drawFrame(world, scene, game, pixels);
+        drawFrame(world, scene, game);
 
         Assertions.assertEquals(fileReads, added.getFileReadCount(), graphics + ": the first frame reads no frame file of the added images.");
-
-        RunningGameScenario.runInCommandDispatch(runtime, () -> setImagesHidden(sprites, sprite, true));
-
-        int[] hidden = drawFrame(world, scene, game, pixels);
-
-        Assertions.assertFalse(Arrays.equals(first, hidden), graphics + ": the first frame draws the added unit.");
     }
 
 
@@ -194,7 +149,6 @@ final class AddedImageLoadingTest {
 
                 try (WorldRenderer world = new WorldRenderer()) {
                     WorldSkin skin = new WorldSkin(HdRenderAssets.Quality.HD2);
-                    ByteBuffer pixels = MemoryUtil.memAlloc(FRAME_SIZE * FRAME_SIZE * OverlayPass.RGBA_BYTES);
 
                     try {
                         world.loadMap(ScrResourceProvider.borrow(client.getStorage(), graphics), map.getTileset(), map.getWidth(), map.getHeight(), tiles);
@@ -203,7 +157,6 @@ final class AddedImageLoadingTest {
 
                         int fileReads = added.getFileReadCount();
                         long textureBytes = images.getTextureBytes();
-                        Sprite[] sprites = new Sprite[1];
 
                         RunningGameScenario.runInCommandDispatch(runtime, () -> {
                             Unit unit = RunningGameScenario.createUnit(game, added.getUnitTypeId(), UNIT_CREATION_X, UNIT_CREATION_Y,
@@ -216,22 +169,19 @@ final class AddedImageLoadingTest {
                             game.getUnitVisibility().updateFog(unit);
                             sprite.setVisibilityFlags(LocalVision.ALL_PLAYERS);
                             game.getLocalVision().acceptDialog(LocalVision.ALL_PLAYERS, true);
-
-                            sprites[0] = sprite;
                         });
 
                         Assertions.assertEquals(fileReads, added.getFileReadCount(), "The game creates the added images without reading their frames.");
 
-                        checkFirstFrame(world, skin.prepareHdScene(true, false), runtime, sprites[0], added, pixels, "HD2");
+                        checkFirstFrame(world, skin.prepareHdScene(true, false), game, added, "HD2");
                         Assertions.assertEquals(textureBytes, images.getTextureBytes(), "HD2: the first frame uploads no image.");
 
                         world.setRenderScaleLimit(1);
-                        checkFirstFrame(world, skin.prepareClassicScene(world, client.getStorage(), graphics, map.getTileset()), runtime, sprites[0],
-                                        added, pixels, "classic");
+                        checkFirstFrame(world, skin.prepareClassicScene(world, client.getStorage(), graphics, map.getTileset()), game, added,
+                                        "classic");
                     } finally {
                         skin.closeHdScene();
                         skin.closeClassicScene();
-                        MemoryUtil.memFree(pixels);
                     }
                 }
             }

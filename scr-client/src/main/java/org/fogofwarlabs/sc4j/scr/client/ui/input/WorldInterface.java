@@ -757,12 +757,23 @@ public final class WorldInterface implements WorldOverlayState, LocalSelection {
     }
 
     /**
+     * Shows units that a game change selected for the local player as the local selection, as an own selection shows them before its command
+     * runs ({@link ConsoleModel#showPendingSelection}): the health bars and selection circles move to them, nothing is sent and no sound plays.
+     *
+     * @param units the selected units in slot order, at most {@link LocalSelection#CAPACITY}
+     */
+    @Override
+    public void showSelection(@NotNull Unit @NotNull [] units) {
+        this.console.showPendingSelection(units);
+    }
+
+    /**
      * Returns the neutral target cursor while targeting is active, otherwise the arrow.
      *
      * @return the cursor over the minimap
      */
     public @NotNull Cursor getMinimapCursor() {
-        return this.console.getMode().getUnitTargetOrder() >= 0 ? Cursor.TARGET_NEUTRAL : Cursor.ARROW;
+        return this.console.getMode().isTargeting() ? Cursor.TARGET_NEUTRAL : Cursor.ARROW;
     }
 
 
@@ -1922,7 +1933,7 @@ public final class WorldInterface implements WorldOverlayState, LocalSelection {
             return Cursor.DRAG;
         }
 
-        boolean targeting = this.console.getMode().getUnitTargetOrder() >= 0;
+        boolean targeting = this.console.getMode().isTargeting();
 
         if (this.scrollDirection >= 0 && !targeting) {
             return Cursor.SCROLL;

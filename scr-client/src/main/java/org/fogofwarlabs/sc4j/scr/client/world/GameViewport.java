@@ -106,6 +106,7 @@ public final class GameViewport implements InterfaceTransform {
     private float gameRight;
     private float playRows;
     private @NotNull PointerClip screenClip;
+    private @NotNull PointerClip playClip;
 
     /**
      * Creates a {@link GameViewport} instance with the original interface width and unit scale.
@@ -129,6 +130,7 @@ public final class GameViewport implements InterfaceTransform {
         this.gameRight  = 0;
         this.playRows   = 0;
         this.screenClip = PointerClip.of(0, 0, 0, 0);
+        this.playClip   = PointerClip.of(0, 0, 0, 0);
     }
 
     /**
@@ -220,6 +222,16 @@ public final class GameViewport implements InterfaceTransform {
      */
     public @NotNull PointerClip getScreenClip() {
         return this.screenClip;
+    }
+
+    /**
+     * Returns the play view of the game screen as the window's pointer clip: the game screen's columns and the rows above the console's upper band
+     * ({@link #getPlayRows}) in screen pixels. An open selection box keeps the pointer in it.
+     *
+     * @return the play view's clip, recomputed with the geometry
+     */
+    public @NotNull PointerClip getPlayClip() {
+        return this.playClip;
     }
 
     /**
@@ -490,6 +502,8 @@ public final class GameViewport implements InterfaceTransform {
         boolean finite = Float.isFinite(this.gameLeft) && Float.isFinite(this.gameRight);
 
         this.screenClip = finite ? PointerClip.of(this.gameLeft, 0, Math.max(this.gameLeft, this.gameRight), Math.max(0, this.windowHeight))
+                                 : PointerClip.of(0, 0, 0, 0);
+        this.playClip   = finite ? PointerClip.of(this.gameLeft, 0, Math.max(this.gameLeft, this.gameRight), Math.max(0, this.playRows))
                                  : PointerClip.of(0, 0, 0, 0);
     }
 }

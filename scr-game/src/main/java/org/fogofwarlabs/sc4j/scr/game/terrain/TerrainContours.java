@@ -626,6 +626,22 @@ public final class TerrainContours {
     }
 
     /**
+     * Copies the footprint control WORDs ({@link #getControl}) of other contours, the extents their last placement query left.
+     *
+     * @param source the contours to copy from
+     */
+    public void copyFootprintControls(@NotNull TerrainContours source) {
+        this.upperExtent             = source.upperExtent;
+        this.negativeRightExtent     = source.negativeRightExtent;
+        this.negativeLowerExtent     = source.negativeLowerExtent;
+        this.leftExtent              = source.leftExtent;
+        this.upperExtentPlusOne      = source.upperExtentPlusOne;
+        this.complementedRightExtent = source.complementedRightExtent;
+        this.complementedLowerExtent = source.complementedLowerExtent;
+        this.leftExtentPlusOne       = source.leftExtentPlusOne;
+    }
+
+    /**
      * Sets the unit type's footprint extents and tests that no contour intersects the placement footprint.
      *
      * @param unitType  the unit type WORD, or radius with bit {@code 15} set

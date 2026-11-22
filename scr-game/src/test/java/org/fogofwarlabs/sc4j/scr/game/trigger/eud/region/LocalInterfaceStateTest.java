@@ -88,4 +88,19 @@ final class LocalInterfaceStateTest {
         Assertions.assertEquals(MAXIMUM_TICKS, state.advanceInterfaceTicks(lastTick + TICK_MILLISECONDS - 1, MAXIMUM_TICKS));
         Assertions.assertEquals(-lastTick, state.getInterfaceTick());
     }
+
+    @Test
+    void the_chat_is_open_while_the_supplied_chat_mode_is_nonzero() {
+        LocalInterfaceState state = new LocalInterfaceState();
+
+        Assertions.assertFalse(state.isChatOpen(), "an unknown chat mode");
+
+        state.setChatMode(1);
+
+        Assertions.assertTrue(state.isChatOpen());
+
+        state.setChatMode(0);
+
+        Assertions.assertFalse(state.isChatOpen());
+    }
 }

@@ -19,8 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
- * Checks the {@code stat_txt} string tables: the product name substitution of a parsed table, and the committed
- * game-specific button strings and hotkeys with their isolation from the next game.
+ * Checks the {@code stat_txt} string tables: the product name substitution of a parsed table, the committed game-specific button strings and
+ * hotkeys with their isolation from the next game, and the strings a plugin overrides, unit names included.
  */
 final class StatTextTest {
     private static final int MOVE = 664;
@@ -107,6 +107,42 @@ final class StatTextTest {
             Assertions.assertEquals('Y', profile.getHotkey(new ScrGameView(next), CUSTOM));
             Assertions.assertEquals("m\0Move [\u0003M\u0001]", profile.getString(new ScrGameView(next), MOVE), "A new game applies the profile.");
             Assertions.assertEquals('m', profile.getHotkey(new ScrGameView(next), MOVE));
+        }
+    }
+
+    @Test
+    void plugin_overrides_win_over_the_committed_table() throws IOException {
+        StatText text = StatTextScenario.createStatText(MOVE, identifier -> identifier == CUSTOM ? "Installed" : "");
+        Game game = Game.create(null, new GameMap(1, 1, 0, new int[1]), new LcgRandom(0));
+        ScrGameView view = new ScrGameView(game);
+
+        game.getGameContext().setStatTextTable(createCommittedTextTable());
+        game.getInterfaceLink().getStatTextOverrides().set(CUSTOM, "Script");
+        game.getInterfaceLink().getStatTextOverrides().set(MOVE + 1, "Beyond the table");
+
+        Assertions.assertEquals("Script", text.getString(view, CUSTOM));
+        Assertions.assertEquals("Beyond the table", text.getString(view, MOVE + 1));
+
+        game.getInterfaceLink().getStatTextOverrides().set(CUSTOM, null);
+
+        Assertions.assertEquals("q\0[Q] 스킬", text.getString(view, CUSTOM), "The committed table again.");
+    }
+
+    @RequiresInstallation
+    @Test
+    void an_overridden_unit_name_wins_over_the_installed_name() throws IOException {
+        StatText text = StatTextScenario.createStatText(MOVE, identifier -> identifier == 1 ? "Terran Marine" : "");
+
+        try (GameData data = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            Game game = Game.create(data.createGameCopy(), new GameMap(1, 1, 0, new int[1]), new LcgRandom(0));
+            ScrGameView view = new ScrGameView(game);
+
+            Assertions.assertEquals("Terran Marine", text.getUnitName(view, 0));
+
+            game.getInterfaceLink().getStatTextOverrides().set(1, "Space Marine");
+
+            Assertions.assertNull(game.getUnitDisplayName(0));
+            Assertions.assertEquals("Space Marine", text.getUnitName(view, 0));
         }
     }
 }

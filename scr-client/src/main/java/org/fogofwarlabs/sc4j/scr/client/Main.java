@@ -62,6 +62,7 @@ import org.fogofwarlabs.sc4j.scr.content.ScrRaceIds;
 import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
 import org.fogofwarlabs.sc4j.scr.core.FileNameUtils;
 import org.fogofwarlabs.sc4j.scr.core.GameSettings;
+import org.fogofwarlabs.sc4j.scr.data.format.casc.AssetResolver;
 import org.fogofwarlabs.sc4j.scr.data.format.casc.GameLocaleUtils;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkFile;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkUnit;
@@ -73,6 +74,8 @@ import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogControlUtils;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrDrawList;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrGamePlugin;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrScreenOverlay;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.map.MapStringSection;
@@ -91,6 +94,7 @@ import org.fogofwarlabs.sc4j.scr.game.session.setup.GameTemplate;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.MeleeGameSetup;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.load.ScrIscriptImporter;
+import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameEnd;
 import org.fogofwarlabs.sc4j.scr.game.terrain.GameMap;
 import org.fogofwarlabs.sc4j.scr.game.trigger.TransmissionPortraitTimer;
@@ -697,9 +701,10 @@ public final class Main {
             return started;
         }
 
-        byte[] scenario = MpqArchive.open(mapPath).readFile(ChkFile.ARCHIVE_ENTRY);
-        MeleeGameSetup setup = lobby.createGameSetup(scenario, request.getSpeed(), request.isExpansion());
+        MpqArchive mapArchive = MpqArchive.open(mapPath);
+        MeleeGameSetup setup = lobby.createGameSetup(mapArchive.readFile(ChkFile.ARCHIVE_ENTRY), request.getSpeed(), request.isExpansion());
 
+        setup.setMapArchive(mapArchive);
         setup.setClassicLimits((lanClient.getGameFlags() & CreateGameScreen.ORIGINAL_LIMITS_FLAG) != 0);
         LOGGER.info("LAN GAME SETUP: local player " + providerSession.getLocalIdentifier() + ", seed 0x" + Integer.toHexString(lobby.getSeed()) +
                     ", speed " + request.getSpeed() + ", options " + HexFormat.of().formatHex(providerSession.getGameData()));
@@ -1138,6 +1143,12 @@ public final class Main {
     private final @NotNull ScreenOverlayTexture screenOverlay;
     private final @NotNull ScreenOverlayTexture consoleSurfaces;
     private final int @NotNull [] screenOverlayCycled;
+    /**
+     * The painter of the plugins' draw lists ({@link #preparePluginPainter}), made with the interface renderer, and the minimap placement of
+     * this frame.
+     */
+    private @Nullable PluginDrawPainter pluginPainter;
+    private final float @NotNull [] minimapPlacement;
 
     private int seekSequenceIndex;
 
@@ -1424,6 +1435,8 @@ public final class Main {
         this.screenOverlay       = new ScreenOverlayTexture(PaletteAnimation.COLOR_COUNT);
         this.consoleSurfaces     = new ScreenOverlayTexture(PaletteAnimation.COLOR_COUNT);
         this.screenOverlayCycled = new int[PaletteAnimation.COLOR_COUNT];
+        this.pluginPainter       = null;
+        this.minimapPlacement    = new float[ConsoleView.MINIMAP_PLACEMENT_VALUES];
 
         this.seekSequenceIndex = -1;
 
@@ -1899,7 +1912,7 @@ public final class Main {
             return LOCATION_PROMPT_KEY;
         }
 
-        if (this.consoleModel != null && this.consoleModel.getMode().getUnitTargetOrder() >= 0) {
+        if (this.consoleModel != null && this.consoleModel.getMode().isTargeting()) {
             return TARGET_PROMPT_KEY;
         }
 
@@ -2229,6 +2242,12 @@ public final class Main {
 
         this.previousFrameTime = currentTime;
 
+        ClientSession pacedSession = this.session;
+
+        if (pacedSession != null) {
+            pacedSession.reportLivePacing();
+        }
+
         if (this.framebufferWidth == 0 || this.framebufferHeight == 0) {
             host.waitEvents(ICONIFIED_WINDOW_WAIT_SECONDS);
 
@@ -2266,6 +2285,12 @@ public final class Main {
         }
 
         this.presentFrame();
+
+        ClientSession presentedSession = this.session;
+
+        if (presentedSession != null) {
+            presentedSession.recordPresentedFrame();
+        }
 
         if (this.frameTiming != null) {
             this.frameTiming.mark(FramePhaseUtils.SWAP);
@@ -3097,8 +3122,9 @@ public final class Main {
 
         this.receiveChat();
 
-        int dueFrames = this.requireSession().isLive() && !this.playback.isUnlimited()
-                        ? this.playback.takeLiveDueFrame(elapsedSeconds, this.requireSession().getFrameDuration(), this.requireSession().getLiveLagLimit())
+        boolean livePaced = this.requireSession().isLive() && !this.playback.isUnlimited();
+        int dueFrames = livePaced
+                        ? this.playback.takeLiveDueFrames(elapsedSeconds, this.requireSession().getFrameDuration(), this.requireSession().getLiveLagLimit())
                         : this.playback.takeDueFrames(elapsedSeconds, this.requireSession().getFrameDuration());
         boolean audible = !this.playback.isUnlimited();
 
@@ -3106,6 +3132,7 @@ public final class Main {
             // Test harness (-Dsc4j.fastForwardTo): a live game runs unpaced and silent up to that frame.
             dueFrames = Integer.MAX_VALUE;
             audible   = false;
+            livePaced = false;
         }
 
         long deadline = System.nanoTime() + PLAYBACK_BUDGET_NANOSECONDS;
@@ -3122,6 +3149,10 @@ public final class Main {
             this.supplyLocalView();
 
             boolean stepped = this.requireSession().stepFrame(audible);
+
+            if (stepped) {
+                this.notifyFramePlayed();
+            }
 
             this.applyLocalViewWrite();
             // Trigger presentation (text, transmissions, pings, WAV) follows the trigger local player in replays too.
@@ -3141,8 +3172,13 @@ public final class Main {
             }
 
             if (!stepped && this.requireSession().isWaitingForTurns()) {
-                // A network game waits for a player's turn: no frame ran; retry on the next update.
-                this.playback.resetClock();
+                // A network game waits for a player's turn: no frame ran; retry on the next update. A paced live game keeps the time of this
+                // frame and of the later due ones, so it catches up once the turn arrived.
+                if (livePaced) {
+                    this.playback.refundLiveFrames(dueFrames - frame);
+                } else {
+                    this.playback.resetClock();
+                }
 
                 return;
             }
@@ -3185,6 +3221,10 @@ public final class Main {
             }
 
             if (System.nanoTime() >= deadline) {
+                if (livePaced) {
+                    this.playback.refundLiveFrames(dueFrames - frame - 1);
+                }
+
                 return;
             }
         }
@@ -4360,6 +4400,12 @@ public final class Main {
             this.consoleView.close();
         }
 
+        if (this.pluginPainter != null) {
+            this.pluginPainter.close();
+        }
+
+        this.pluginPainter = null;
+
         this.consoleView    = null;
         this.consoleModel   = null;
         this.worldInterface = null;
@@ -4601,8 +4647,16 @@ public final class Main {
             this.requireWorldInterface().expireMarkers(this.requireSession().getView().getCurrentFrame(), WorldInterface.MARKER_LIFETIME);
 
             ClientCamera camera = this.requireSession().getCamera();
+            ScrGameView gameView = this.requireSession().getView();
+            boolean plugins = gameView.hasPlugins();
+            PluginDrawPainter pluginPainter = plugins ? this.preparePluginPainter() : null;
 
             this.beginConsoleTarget();
+
+            if (pluginPainter != null) {
+                pluginPainter.setSpace(camera.worldToScreenX(0), camera.worldToScreenY(0), camera.getZoom(), camera.getZoom());
+                gameView.paintDrawLists(ScrDrawList.Space.WORLD, pluginPainter);
+            }
 
             if (this.debugView) {
                 this.debugOverlay.draw(this.requireSession().getView(), this.getInterfaceRenderer(), new DebugOverlay.View() {
@@ -4656,8 +4710,6 @@ public final class Main {
             this.consoleView.setShowTimer(this.options.getInterfaceSettings().isGameTimer());
             this.updateApmDisplay(perspective == CommandCard.Perspective.NATIVE_REPLAY);
 
-            ScrGameView gameView = this.requireSession().getView();
-            boolean plugins = gameView.hasPlugins();
             ScrConsolePlacement placement = plugins ? gameView.findConsolePlacement() : null;
 
             if (plugins) {
@@ -4676,6 +4728,17 @@ public final class Main {
                 if (placement != null) {
                     this.drawScreenOverlay(placement.getSurfaces(), this.consoleSurfaces);
                 }
+
+                if (pluginPainter != null && this.consoleView.placeMinimap(this.minimapPlacement)) {
+                    this.drawMinimapLists(gameView, pluginPainter);
+                }
+            }
+
+            if (pluginPainter != null) {
+                float scale = this.gameViewport.getScale();
+
+                pluginPainter.setSpace(this.gameViewport.toScreenX(0), this.gameViewport.toScreenY(0), scale, scale);
+                gameView.paintDrawLists(ScrDrawList.Space.SCREEN, pluginPainter);
             }
 
             if (this.debugView) {
@@ -4688,6 +4751,80 @@ public final class Main {
             this.getInterfaceRenderer().end();
         } catch (IOException | RuntimeException exception) {
             this.setAssetWarning("Console: " + exception);
+        }
+    }
+
+    /**
+     * Prepares the painter of the plugins' draw lists for this frame, made again when the interface renderer changed, and supplies the game screen
+     * of the frame to the game's local display: the interface size, the real pixels per interface unit (those of the SD interface layer while one
+     * is drawn), the graphics and the font measure.
+     *
+     * @return the painter, or {@code null} without an interface renderer
+     */
+    private @Nullable PluginDrawPainter preparePluginPainter() {
+        InterfaceRenderer interfaceRenderer = this.getInterfaceRenderer();
+
+        if (interfaceRenderer == null || this.clientContext == null) {
+            return null;
+        }
+
+        PluginDrawPainter painter = this.pluginPainter;
+
+        if (painter == null || !painter.isFor(interfaceRenderer)) {
+            if (painter != null) {
+                painter.close();
+            }
+
+            painter            = new PluginDrawPainter(interfaceRenderer, this.clientContext.getGameFonts());
+            this.pluginPainter = painter;
+        }
+
+        LocalDisplay display = this.requireSession().getPresentation().getInterfaceLink().getLocalDisplay();
+        float pixels = this.sdInterfaceFramebuffer != 0 ? (float) this.sdInterfaceHeight / Math.max(1, this.framebufferHeight) : 1;
+        float scale = this.gameViewport.getScale() * pixels;
+        HdRenderAssets.Quality quality = this.worldSkin.getQuality();
+
+        if (scale > 0) {
+            display.setScreen(this.gameViewport.getInterfaceWidth(), GameViewport.INTERFACE_HEIGHT, scale,
+                              quality == null
+                              ? AssetResolver.AssetSet.SD
+                              : quality == HdRenderAssets.Quality.HD2 ? AssetResolver.AssetSet.HD2 : AssetResolver.AssetSet.HD);
+        }
+
+        display.setTextMeasure(painter);
+
+        return painter;
+    }
+
+    /**
+     * Draws the minimap commands of the plugins' draw lists on the minimap placed in {@link #minimapPlacement}, limited to the minimap bitmap,
+     * then limits the drawing to the game screen again.
+     *
+     * @param gameView the game view
+     * @param painter  the painter
+     */
+    private void drawMinimapLists(@NotNull ScrGameView gameView, @NotNull PluginDrawPainter painter) {
+        InterfaceRenderer interfaceRenderer = this.getInterfaceRenderer();
+
+        if (interfaceRenderer == null) {
+            return;
+        }
+
+        float left = this.minimapPlacement[ConsoleView.MINIMAP_SCREEN_LEFT_INDEX];
+        float top = this.minimapPlacement[ConsoleView.MINIMAP_SCREEN_TOP_INDEX];
+        float scale = this.minimapPlacement[ConsoleView.MINIMAP_SCREEN_SCALE_INDEX];
+        int clipLeft = (int) Math.floor(left);
+        int clipTop = (int) Math.floor(top);
+        int clipRight = (int) Math.ceil(left + gameView.getMap().getWidth() * TerrainTileset.TILE_SIZE * scale);
+        int clipBottom = (int) Math.ceil(top + gameView.getMap().getHeight() * TerrainTileset.TILE_SIZE * scale);
+
+        interfaceRenderer.setClip(clipLeft, clipTop, clipRight - clipLeft, clipBottom - clipTop);
+        painter.setSpace(left, top, scale, this.gameViewport.getScale());
+
+        try {
+            gameView.paintDrawLists(ScrDrawList.Space.MINIMAP, painter);
+        } finally {
+            interfaceRenderer.setClip(Math.round(this.gameViewport.getGameLeft()), 0, Math.round(this.gameViewport.getGameWidth()), this.viewHeight);
         }
     }
 
@@ -5021,8 +5158,9 @@ public final class Main {
             public void step() {
                 Main.this.playing = false;
 
-                if (Main.this.session != null) {
-                    Main.this.requireSession().stepFrame();
+                if (Main.this.session != null && Main.this.requireSession().stepFrame()) {
+                    Main.this.notifyFramePlayed();
+                    Main.this.applyLocalViewWrite();
                 }
             }
 
@@ -6318,8 +6456,7 @@ public final class Main {
         ListBox list = this.consoleView.openPopupList(dialog, control);
 
         this.keystrokeHelpList = null;
-        this.chatHistory.open(list, text -> this.requireConsoleView().measurePopupText(control, text),
-                              control.getWidth(), this.consoleView.getPopupListRows(list));
+        this.chatHistory.open(list, text -> this.requireConsoleView().measurePopupText(control, text), this.consoleView.getPopupListRows(list));
     }
 
     /**
@@ -7070,7 +7207,7 @@ public final class Main {
     void pressEscape() {
         boolean targetingOrPlacing = this.worldInterface != null &&
                                      (this.worldInterface.getPlacementType() >= 0 ||
-                                      this.consoleModel != null && this.consoleModel.getMode().getUnitTargetOrder() >= 0);
+                                      this.consoleModel != null && this.consoleModel.getMode().isTargeting());
 
         if (targetingOrPlacing) {
             this.worldInterface.cancelMode();
@@ -7363,12 +7500,24 @@ public final class Main {
 
         if (activated >= 0) {
             boolean releasedQueued = press.isReleasedQueued();
-            CommandInput.Result commandResult = this.worldInterface.getCommandInput().pressSlot(activated, releasedQueued);
+            CommandInput.Result commandResult = this.worldInterface.getCommandInput().pressSlot(activated, releasedQueued, true);
 
             LOGGER.debug("UI HOTKEY RELEASE: slot " + activated + " " + commandResult);
         }
 
         return true;
+    }
+
+    /**
+     * Tells the game's plugins that the client played a frame ({@link ScrGamePlugin#onFramePlayed}).
+     */
+    private void notifyFramePlayed() {
+        Game game = this.requireSession().getGame();
+        int frame = game.getCurrentFrame();
+
+        for (ScrGamePlugin plugin : game.getPlugins()) {
+            plugin.onFramePlayed(frame);
+        }
     }
 
     /**
@@ -7423,7 +7572,7 @@ public final class Main {
     /**
      * Applies EUD interface and view writes for the next render, routing changed mouse coordinates through the current layout.
      */
-    private void applyLocalViewWrite() {
+    void applyLocalViewWrite() {
         if (this.session == null) {
             return;
         }
@@ -7489,7 +7638,7 @@ public final class Main {
 
         if (released >= 0) {
             boolean releasedQueued = press.isReleasedQueued();
-            CommandInput.Result commandResult = this.worldInterface.getCommandInput().pressSlot(released, releasedQueued);
+            CommandInput.Result commandResult = this.worldInterface.getCommandInput().pressSlot(released, releasedQueued, true);
 
             LOGGER.debug("UI HOTKEY RELEASE: slot " + released + " " + commandResult);
         }
@@ -8022,10 +8171,11 @@ public final class Main {
 
         if (live != null && live.isNetworkGame()) {
             String latency = glueText == null ? "" : glueText.get(StatusOverlay.getLatencyKey(live.getLatency()));
+            String scan = glueText == null || !live.isTurnRateScanning() ? "" : glueText.get(StatusOverlay.getScanKey());
 
-            this.statusOverlay.update(settings, true, live.getTurnRate(), latency);
+            this.statusOverlay.update(settings, true, live.getTurnRate(), latency, scan);
         } else {
-            this.statusOverlay.update(settings, false, 0, "");
+            this.statusOverlay.update(settings, false, 0, "", "");
         }
 
         interfaceRenderer.begin(framebuffer, viewportWidth, viewportHeight, this.framebufferWidth, this.framebufferHeight);

@@ -1214,7 +1214,7 @@ public final class ProviderSession {
     /**
      * Asks for a player's overdue turn: at most every request interval, a header-only
      * {@link ProviderPacket#FLAG_RESEND_REQUEST} packet to every known peer, carrying the player's identifier for everyone
-     * but the player itself.
+     * but the player itself. The request counts for the player ({@link ProviderPeer#takeTurnResendRequestsSent()}).
      *
      * @param owner the player whose turn is overdue
      * @param now   the current tick
@@ -1228,6 +1228,7 @@ public final class ProviderSession {
         }
 
         owner.setStallTime(now);
+        owner.countTurnResendRequestSent();
 
         int sequence = owner.getChannel(ProviderPacket.TURN).getExpectedSequence();
 
@@ -1540,7 +1541,7 @@ public final class ProviderSession {
      * local identifier as payload, the request is for this side's own packet: class {@code 0} or {@code 1} from the
      * requester's outgoing queue, class {@code 2} from the local turn queue. With another player's identifier, that
      * player's turn is relayed with {@link ProviderPacket#FLAG_RELAYED}, preceded by its departure information (subtype
-     * {@code 12}) when the player has left.
+     * {@code 12}) when the player has left. A turn request counts for the requester ({@link ProviderPeer#takeTurnResendRequestsReceived()}).
      *
      * @param requester the peer that sent the request
      * @param request   the resend request
@@ -1549,6 +1550,10 @@ public final class ProviderSession {
         int packetClass = request.getType();
         int sequence = request.getSequence();
         byte[] payload = request.getPayloadBytes();
+
+        if (packetClass == ProviderPacket.TURN) {
+            requester.countTurnResendRequestReceived();
+        }
 
         if (payload.length == 0 || (payload[0] & BYTE_MASK) == this.localIdentifier) {
             if (packetClass == ProviderPacket.TURN) {
@@ -2143,7 +2148,8 @@ public final class ProviderSession {
     }
 
     /**
-     * Requests the first missing packet of a class at most every request interval.
+     * Requests the first missing packet of a class at most every request interval. A turn request counts for the peer
+     * ({@link ProviderPeer#takeTurnResendRequestsSent()}).
      *
      * @param peer        the peer whose packets are missing
      * @param packetClass the packet class
@@ -2167,6 +2173,11 @@ public final class ProviderSession {
             }
 
             received.setRequestTime(now);
+
+            if (packetClass == ProviderPacket.TURN) {
+                peer.countTurnResendRequestSent();
+            }
+
             this.transmit(peer, ProviderPacket.create((previous + 1) & WORD_MASK, channel.getAcknowledgement(),
                                                       packetClass, 0,
                                                       this.self.getIdentifier(),

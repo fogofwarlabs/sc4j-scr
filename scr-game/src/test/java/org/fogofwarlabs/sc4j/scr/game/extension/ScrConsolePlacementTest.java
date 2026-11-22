@@ -4,8 +4,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Checks the console placement: dialogs and their controls keep their place until moved or hidden, the console is shown everywhere on the screen
- * until a mask pixel is set, and the change count follows the moves, the hidden dialogs and controls and the mask changes.
+ * Checks the console placement: dialogs and their controls keep their place until moved or hidden, a restored dialog returns to its place, the
+ * console is shown everywhere on the screen until a mask pixel is set, and the change count follows the moves, the hidden and restored dialogs
+ * and controls and the mask changes.
  */
 final class ScrConsolePlacementTest {
     private static final int WIDTH = 4;
@@ -41,6 +42,14 @@ final class ScrConsolePlacementTest {
         Assertions.assertFalse(placement.isDialogHidden(ScrConsolePlacement.Dialog.MENU));
         Assertions.assertFalse(placement.isDialogMoved(ScrConsolePlacement.Dialog.COMMAND_CARD));
         Assertions.assertEquals(3, placement.getChangeCount());
+
+        placement.restoreDialog(ScrConsolePlacement.Dialog.MENU);
+        placement.restoreDialog(ScrConsolePlacement.Dialog.MENU);
+        placement.restoreDialog(ScrConsolePlacement.Dialog.COMMAND_CARD);
+
+        Assertions.assertFalse(placement.isDialogMoved(ScrConsolePlacement.Dialog.MENU));
+        Assertions.assertFalse(placement.isDialogHidden(ScrConsolePlacement.Dialog.MENU));
+        Assertions.assertEquals(4, placement.getChangeCount());
     }
 
     @Test
@@ -70,6 +79,15 @@ final class ScrConsolePlacementTest {
 
         Assertions.assertFalse(placement.isControlHidden(ScrConsolePlacement.Dialog.TEXT_BOX, OTHER_CONTROL));
         Assertions.assertEquals(3, placement.getChangeCount());
+
+        placement.restoreControl(ScrConsolePlacement.Dialog.TEXT_BOX, OTHER_CONTROL);
+        placement.restoreControl(ScrConsolePlacement.Dialog.TEXT_BOX, OTHER_CONTROL);
+        placement.restoreControl(ScrConsolePlacement.Dialog.MENU, CONTROL);
+
+        Assertions.assertFalse(placement.isControlMoved(ScrConsolePlacement.Dialog.TEXT_BOX, OTHER_CONTROL));
+        Assertions.assertEquals(0, placement.getPlacedControls(ScrConsolePlacement.Dialog.TEXT_BOX).length);
+        Assertions.assertArrayEquals(new int[]{CONTROL}, placement.getPlacedControls(ScrConsolePlacement.Dialog.COMMAND_CARD));
+        Assertions.assertEquals(4, placement.getChangeCount());
     }
 
     @Test
