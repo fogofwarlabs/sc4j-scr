@@ -265,6 +265,37 @@ public final class DialogLayout {
     }
 
     /**
+     * Creates a {@link DialogLayout} instance with a top-level control at another size and this dialog grown or shrunk by the same amounts, its
+     * bottom-left corner kept; every control keeps its offset from the dialog's top-left corner.
+     *
+     * @param identifier the control identifier
+     * @param width      the control's width
+     * @param height     the control's height
+     * @return the created {@link DialogLayout} instance
+     * @throws IllegalArgumentException if the dialog has no such control, or a size becomes negative
+     */
+    public @NotNull DialogLayout createResizedLayout(int identifier, int width, int height) {
+        Control resized = this.getControl(identifier);
+        int growthX = width - resized.getWidth();
+        int growthY = height - resized.getHeight();
+        List<DialogControl> resizedControls = new ArrayList<>(this.definition.getControls().size());
+
+        for (DialogControl control : this.definition.getControls()) {
+            if (control.getId() == identifier) {
+                resizedControls.add(new DialogControl(control.getId(), control.getKind(),
+                                                      control.getX(), control.getY(), width, height,
+                                                      control.getText(), control.getTextAlignment(), control.getImage(),
+                                                      control.getAttributes(), control.getChildren()));
+            } else {
+                resizedControls.add(control);
+            }
+        }
+
+        return of(new DialogDefinition(this.definition.getName(), this.getX(), this.getY() - growthY, this.getWidth() + growthX,
+                                       this.getHeight() + growthY, resizedControls));
+    }
+
+    /**
      * Creates a {@link DialogLayout} instance with this dialog's top-left corner at a place and some top-level controls at places of their own; the
      * other controls keep their place in the dialog. The definition of the created layout holds the placed controls, so the dialog's runtime state
      * draws and hit-tests them at their places.

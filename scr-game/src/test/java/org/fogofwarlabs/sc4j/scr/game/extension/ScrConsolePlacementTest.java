@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Checks the console placement: dialogs and their controls keep their place until moved or hidden, a restored dialog returns to its place, the
- * console is shown everywhere on the screen until a mask pixel is set, and the change count follows the moves, the hidden and restored dialogs
- * and controls and the mask changes.
+ * classic screen of a dialog stands at its anchor's interface edge, the console is shown everywhere on the screen until a mask pixel is set, and
+ * the change count follows the moves, the hidden and restored dialogs and controls, the anchors, the minimap size and the mask changes.
  */
 final class ScrConsolePlacementTest {
     private static final int WIDTH = 4;
@@ -15,6 +15,11 @@ final class ScrConsolePlacementTest {
     private static final int TOP = 1;
     private static final int CONTROL = 3;
     private static final int OTHER_CONTROL = -10;
+    /**
+     * The interface width of a 16:9 screen.
+     */
+    private static final int WIDE_INTERFACE = 853;
+    private static final int LARGE_MINIMAP = 192;
 
     @Test
     void dialogs_move_and_hide_and_count_their_changes() {
@@ -50,6 +55,36 @@ final class ScrConsolePlacementTest {
         Assertions.assertFalse(placement.isDialogMoved(ScrConsolePlacement.Dialog.MENU));
         Assertions.assertFalse(placement.isDialogHidden(ScrConsolePlacement.Dialog.MENU));
         Assertions.assertEquals(4, placement.getChangeCount());
+    }
+
+    @Test
+    void anchors_place_the_classic_screen_at_an_interface_edge() {
+        Assertions.assertEquals(0, ScrConsolePlacement.Anchor.LEFT.computeClassicLeft(WIDE_INTERFACE));
+        Assertions.assertEquals(106, ScrConsolePlacement.Anchor.CENTER.computeClassicLeft(WIDE_INTERFACE));
+        Assertions.assertEquals(213, ScrConsolePlacement.Anchor.RIGHT.computeClassicLeft(WIDE_INTERFACE));
+
+        for (ScrConsolePlacement.Anchor anchor : ScrConsolePlacement.Anchor.values()) {
+            Assertions.assertEquals(0, anchor.computeClassicLeft(ScrConsolePlacement.CLASSIC_WIDTH), anchor::toString);
+        }
+    }
+
+    @Test
+    void dialog_anchors_and_the_minimap_size_count_their_changes() {
+        ScrConsolePlacement placement = new ScrConsolePlacement(WIDTH, HEIGHT);
+
+        Assertions.assertEquals(ScrConsolePlacement.Anchor.CENTER, placement.getDialogAnchor(ScrConsolePlacement.Dialog.MINIMAP));
+        Assertions.assertEquals(ScrConsolePlacement.MINIMAP_SIZE, placement.getMinimapSize());
+
+        placement.setDialogAnchor(ScrConsolePlacement.Dialog.MINIMAP, ScrConsolePlacement.Anchor.RIGHT);
+        placement.setDialogAnchor(ScrConsolePlacement.Dialog.MINIMAP, ScrConsolePlacement.Anchor.RIGHT);
+        placement.setMinimapSize(LARGE_MINIMAP);
+        placement.setMinimapSize(LARGE_MINIMAP);
+
+        Assertions.assertEquals(ScrConsolePlacement.Anchor.RIGHT, placement.getDialogAnchor(ScrConsolePlacement.Dialog.MINIMAP));
+        Assertions.assertEquals(ScrConsolePlacement.Anchor.CENTER, placement.getDialogAnchor(ScrConsolePlacement.Dialog.MENU));
+        Assertions.assertEquals(LARGE_MINIMAP, placement.getMinimapSize());
+        Assertions.assertEquals(2, placement.getChangeCount());
+        Assertions.assertThrows(IllegalArgumentException.class, () -> placement.setMinimapSize(0));
     }
 
     @Test

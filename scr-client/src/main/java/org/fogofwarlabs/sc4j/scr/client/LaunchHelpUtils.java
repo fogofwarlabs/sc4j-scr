@@ -29,7 +29,8 @@ final class LaunchHelpUtils {
                            " the default is remastered.");
         System.out.println("--settings path|none reads the client's settings file (default: sc4j-settings.json next to the executable," +
                            " i.e. the install folder with bin/ and lib/, or the working directory for development runs; visible windows only;" +
-                           " groups graphics, audio, input, game, logging, paths); launch options override it.");
+                           " groups graphics, audio, input, game, logging, paths); launch options override it. A --hidden run shows no startup" +
+                           " tips unless its settings file turns game.showTips on.");
         System.out.println("--data folder selects the StarCraft: Remastered data (the folder holding .build.info and Data);" +
                            " default: the settings file's paths.data, else data/ next to the executable.");
         System.out.println("Next to the executable: data/ (game data), maps/ (the map browser's only folder), replays/, logs/," +

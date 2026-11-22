@@ -446,6 +446,16 @@ public final class GameViewport implements InterfaceTransform {
     }
 
     /**
+     * Converts a screen row to an interface row, the inverse of {@link #toScreenY}: the row counts from the game view's top edge.
+     *
+     * @param screenY the screen y
+     * @return the interface row
+     */
+    public float toInterfaceY(float screenY) {
+        return (screenY - this.interfaceTop + this.extension) / this.scale;
+    }
+
+    /**
      * Converts a screen column to interface-scaled game-surface pixels.
      *
      * @param screenX the screen x

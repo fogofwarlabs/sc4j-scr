@@ -159,16 +159,23 @@ public final class ScrDrawList {
         void drawText(@NotNull String text, float x, float y, @NotNull Font font, @NotNull Align align, int color);
 
         /**
-         * Draws a picture stretched into a rectangle.
+         * Draws a rectangle of a picture stretched into a rectangle.
          *
-         * @param picture the picture
-         * @param x       the left coordinate
-         * @param y       the top coordinate
-         * @param width   the drawn width
-         * @param height  the drawn height
-         * @param opacity the opacity, {@code 0} to {@code 1}
+         * @param picture      the picture
+         * @param sourceX      the left of the drawn part in picture pixels
+         * @param sourceY      the top of the drawn part in picture pixels
+         * @param sourceWidth  the width of the drawn part in picture pixels
+         * @param sourceHeight the height of the drawn part in picture pixels
+         * @param x            the left coordinate
+         * @param y            the top coordinate
+         * @param width        the drawn width
+         * @param height       the drawn height
+         * @param opacity      the opacity, {@code 0} to {@code 1}
          */
-        void drawPicture(@NotNull Picture picture, float x, float y, float width, float height, float opacity);
+        void drawPicture(@NotNull Picture picture,
+                         float sourceX, float sourceY, float sourceWidth, float sourceHeight,
+                         float x, float y, float width, float height,
+                         float opacity);
     }
 
     private static final int FILL_RECTANGLE = 0;
@@ -181,9 +188,13 @@ public final class ScrDrawList {
     private static final int DRAW_PICTURE = 7;
 
     /**
-     * The float values of one command.
+     * The float values of one command: five, and the four of a picture's source rectangle after them.
      */
-    private static final int VALUE_STRIDE = 5;
+    private static final int VALUE_STRIDE = 9;
+    /**
+     * The offset of the source rectangle in the values of a picture command.
+     */
+    private static final int SOURCE_OFFSET = 5;
     private static final int INITIAL_CAPACITY = 16;
     private static final int GROWTH_FACTOR = 2;
     private static final int ALIGN_SHIFT = 8;
@@ -409,10 +420,38 @@ public final class ScrDrawList {
      * @param opacity the opacity, {@code 0} to {@code 1}
      */
     public void drawPicture(@NotNull Space space, @NotNull Picture picture, float x, float y, float width, float height, float opacity) {
+        this.drawPicture(space, picture, 0, 0, picture.getWidth(), picture.getHeight(), x, y, width, height, opacity);
+    }
+
+    /**
+     * Adds a rectangle of a picture stretched into a rectangle, as a frame of a sprite sheet or a cropped picture; the source rectangle lies
+     * inside the picture.
+     *
+     * @param space        the space
+     * @param picture      the picture
+     * @param sourceX      the left of the drawn part in picture pixels
+     * @param sourceY      the top of the drawn part in picture pixels
+     * @param sourceWidth  the width of the drawn part in picture pixels
+     * @param sourceHeight the height of the drawn part in picture pixels
+     * @param x            the left coordinate
+     * @param y            the top coordinate
+     * @param width        the drawn width
+     * @param height       the drawn height
+     * @param opacity      the opacity, {@code 0} to {@code 1}
+     */
+    public void drawPicture(@NotNull Space space, @NotNull Picture picture,
+                            float sourceX, float sourceY, float sourceWidth, float sourceHeight,
+                            float x, float y, float width, float height,
+                            float opacity) {
         Commands commands = this.spaces[space.ordinal()];
         int index = commands.add(DRAW_PICTURE, x, y, width, height, opacity, 0);
+        int offset = index * VALUE_STRIDE + SOURCE_OFFSET;
 
-        commands.objects[index] = picture;
+        commands.values[offset]     = sourceX;
+        commands.values[offset + 1] = sourceY;
+        commands.values[offset + 2] = sourceWidth;
+        commands.values[offset + 3] = sourceHeight;
+        commands.objects[index]     = picture;
     }
 
     /**
@@ -444,8 +483,14 @@ public final class ScrDrawList {
                     painter.drawText((String) commands.objects[index], values[offset], values[offset + 1], FONTS[option & OPTION_MASK],
                                      ALIGNS[option >>> ALIGN_SHIFT & OPTION_MASK], color);
                 }
-                case DRAW_PICTURE -> painter.drawPicture((Picture) commands.objects[index], values[offset], values[offset + 1],
-                                                         values[offset + 2], values[offset + 3], values[offset + 4]);
+                case DRAW_PICTURE -> {
+                    int source = offset + SOURCE_OFFSET;
+
+                    painter.drawPicture((Picture) commands.objects[index],
+                                        values[source], values[source + 1], values[source + 2], values[source + 3],
+                                        values[offset], values[offset + 1], values[offset + 2], values[offset + 3],
+                                        values[offset + 4]);
+                }
                 default -> throw Exceptions.newIllegalStateException("Unknown draw command kind {0}.", commands.kinds[index]);
             }
         }

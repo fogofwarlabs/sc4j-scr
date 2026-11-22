@@ -155,6 +155,21 @@ final class GameViewportTest {
     }
 
     @Test
+    void to_interface_x_and_y_should_invert_to_screen_x_and_y_at_any_window() {
+        int[][] sizes = {{640, 480}, {1920, 1080}, {960, 1000}, {1366, 2000}, {2560, 1080}};
+
+        for (int[] size : sizes) {
+            GameViewport viewport = createViewport(size[0], size[1], true, true);
+            String label = size[0] + "x" + size[1];
+
+            for (int unit = 0; unit <= GameViewport.INTERFACE_HEIGHT; unit += GameViewport.INTERFACE_HEIGHT / 4) {
+                Assertions.assertEquals(unit, viewport.toInterfaceX(viewport.toScreenX(unit)), PIXEL_TOLERANCE, label + " column " + unit);
+                Assertions.assertEquals(unit, viewport.toInterfaceY(viewport.toScreenY(unit)), PIXEL_TOLERANCE, label + " row " + unit);
+            }
+        }
+    }
+
+    @Test
     void camera_limits_follow_game_view_at_any_zoom() {
         int mapWidth = MAP_SIZE;
         int mapHeight = MAP_SIZE;

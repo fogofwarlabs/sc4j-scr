@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Checks the draw list: each space keeps its commands with their values in the order they were added, clearing keeps nothing, and a list that
- * grows past its first storage keeps every command.
+ * Checks the draw list: each space keeps its commands with their values in the order they were added, a picture its source rectangle (the whole
+ * picture by default), clearing keeps nothing, and a list that grows past its first storage keeps every command.
  */
 final class ScrDrawListTest {
     private static final int RED = 0xFFFF0000;
@@ -65,8 +65,12 @@ final class ScrDrawListTest {
         }
 
         @Override
-        public void drawPicture(@NotNull Picture picture, float x, float y, float width, float height, float opacity) {
-            this.commands.add("drawPicture " + picture.getWidth() + ' ' + x + ' ' + y + ' ' + width + ' ' + height + ' ' + opacity);
+        public void drawPicture(@NotNull Picture picture,
+                                float sourceX, float sourceY, float sourceWidth, float sourceHeight,
+                                float x, float y, float width, float height,
+                                float opacity) {
+            this.commands.add("drawPicture " + picture.getWidth() + ' ' + sourceX + ' ' + sourceY + ' ' + sourceWidth + ' ' + sourceHeight + ' ' +
+                              x + ' ' + y + ' ' + width + ' ' + height + ' ' + opacity);
         }
     }
 
@@ -91,13 +95,15 @@ final class ScrDrawListTest {
         list.drawLine(ScrDrawList.Space.SCREEN, 1, 2, 3, 4, 5, RED);
         list.drawPoint(ScrDrawList.Space.WORLD, 7, 8, RED);
         list.drawPicture(ScrDrawList.Space.SCREEN, picture, 5, 6, 20, 10, 0.5f);
+        list.drawPicture(ScrDrawList.Space.WORLD, picture, 1, 0, 1, 1, 30, 40, 16, 16, 1);
 
         Assertions.assertEquals(List.of("fillRectangle 1.5 2.0 3.0 4.0 ffff0000",
                                         "drawRectangle 0.25 0.0 8.0 9.0 2.0 800000ff",
                                         "drawLine 1.0 2.0 3.0 4.0 5.0 ffff0000",
-                                        "drawPicture 2 5.0 6.0 20.0 10.0 0.5"),
+                                        "drawPicture 2 0.0 0.0 2.0 1.0 5.0 6.0 20.0 10.0 0.5"),
                                 paint(list, ScrDrawList.Space.SCREEN));
-        Assertions.assertEquals(List.of("drawText a\nb 10.0 20.0 HUGE RIGHT 800000ff", "drawPoint 7.0 8.0 ffff0000"),
+        Assertions.assertEquals(List.of("drawText a\nb 10.0 20.0 HUGE RIGHT 800000ff", "drawPoint 7.0 8.0 ffff0000",
+                                        "drawPicture 2 1.0 0.0 1.0 1.0 30.0 40.0 16.0 16.0 1.0"),
                                 paint(list, ScrDrawList.Space.WORLD));
         Assertions.assertEquals(List.of("fillCircle 64.0 32.0 16.0 ffff0000", "drawCircle 1.0 2.0 3.0 0.5 ffff0000"),
                                 paint(list, ScrDrawList.Space.MINIMAP));

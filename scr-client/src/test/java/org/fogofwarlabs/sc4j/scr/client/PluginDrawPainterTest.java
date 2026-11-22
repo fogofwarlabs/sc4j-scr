@@ -85,7 +85,8 @@ final class PluginDrawPainterTest {
         public void drawTexture(@NotNull Texture texture, float x, float y, float width, float height,
                                 float left, float top, float right, float bottom,
                                 int color) {
-            this.drawTexture(texture, x, y, width, height, color);
+            this.commands.add("texture " + texture.getWidth() + ' ' + x + ' ' + y + ' ' + width + ' ' + height + ' ' + left + ' ' + top + ' ' +
+                              right + ' ' + bottom + ' ' + Integer.toHexString(color));
         }
 
         @Override
@@ -168,16 +169,20 @@ final class PluginDrawPainterTest {
     }
 
     @Test
-    void pictures_upload_once_and_draw_with_their_opacity() {
+    void pictures_upload_once_and_draw_their_source_rectangle_with_their_opacity() {
         RecordingCanvas canvas = new RecordingCanvas();
         PluginDrawPainter painter = createPainter(canvas);
         Picture picture = new Picture(2, 2, PixelLayer.ofRgba(new int[]{RED, RED, TRANSLUCENT_GREEN, TRANSLUCENT_GREEN}));
 
-        painter.drawPicture(picture, 1, 1, 2, 2, 0.5f);
-        painter.drawPicture(picture, 0, 0, 1, 1, 2);
+        painter.drawPicture(picture, 0, 0, 2, 2, 1, 1, 2, 2, 0.5f);
+        painter.drawPicture(picture, 0, 0, 2, 2, 0, 0, 1, 1, 2);
+        painter.drawPicture(picture, 1, 1, 1, 1, 0, 0, 1, 1, 1);
 
         Assertions.assertEquals(1, canvas.uploads);
-        Assertions.assertEquals(List.of("texture 2 102.0 52.0 4.0 4.0 ffffff80", "texture 2 100.0 50.0 2.0 2.0 ffffffff"), canvas.commands);
+        Assertions.assertEquals(List.of("texture 2 102.0 52.0 4.0 4.0 0.0 0.0 1.0 1.0 ffffff80",
+                                        "texture 2 100.0 50.0 2.0 2.0 0.0 0.0 1.0 1.0 ffffffff",
+                                        "texture 2 100.0 50.0 2.0 2.0 0.5 0.5 1.0 1.0 ffffffff"),
+                                canvas.commands);
     }
 
     @Test

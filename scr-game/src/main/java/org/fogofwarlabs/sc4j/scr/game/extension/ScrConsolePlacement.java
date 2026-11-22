@@ -3,6 +3,7 @@ package org.fogofwarlabs.sc4j.scr.game.extension;
 import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,10 +12,30 @@ import java.util.Map;
  * How a plugin places the console of a classic screen: the top-left corners of console dialogs and of their controls moved in the classic screen,
  * the dialogs and controls not shown, the mask of the pixels where the console and its dialogs are shown, and the pictures the dialogs show over it
  * ({@link #getSurfaces()}). A dialog or control that is neither moved nor hidden keeps its place in its dialog; a control is named by its
- * identifier in the dialog's definition. Without a mask the whole console is shown. The change count grows with every move, every hidden or
- * restored dialog, every hidden or restored control and every mask change.
+ * identifier in the dialog's definition. Without a mask the whole console is shown.
+ * <p>
+ * The classic screen of a dialog's positions stands centered in an interface wider than {@value #CLASSIC_WIDTH} units, or at its left or right
+ * edge ({@link #setDialogAnchor}), so that a layout at an edge follows the interface width; the mask and the surfaces stay centered. The minimap
+ * area, {@value #MINIMAP_SIZE} units on each side, may be drawn at another size from its top left ({@link #setMinimapSize}); the minimap dialog
+ * grows or shrinks with it.
+ * <p>
+ * The change count grows with every move, every hidden or restored dialog, every hidden or restored control, every anchor and minimap size change
+ * and every mask change.
  */
 public final class ScrConsolePlacement {
+    /**
+     * The width of the classic screen in interface units.
+     */
+    public static final int CLASSIC_WIDTH = 640;
+    /**
+     * The side of the minimap area in interface units, the installed size of the minimap.
+     */
+    public static final int MINIMAP_SIZE = 128;
+    /**
+     * The identifier of the minimap area control in the minimap dialog's definition.
+     */
+    public static final int MINIMAP_AREA_CONTROL = 1;
+
     /**
      * A console dialog.
      */
@@ -50,6 +71,40 @@ public final class ScrConsolePlacement {
     }
 
     /**
+     * Where the classic screen of a dialog's positions stands in an interface wider than the classic screen.
+     */
+    public enum Anchor {
+        /**
+         * At the interface's left edge.
+         */
+        LEFT,
+        /**
+         * Centered, the installed place.
+         */
+        CENTER,
+        /**
+         * At the interface's right edge.
+         */
+        RIGHT;
+
+        /**
+         * Computes the interface column of the classic screen's left edge.
+         *
+         * @param interfaceWidth the interface width in interface units
+         * @return the column, {@code 0} for an interface not wider than the classic screen
+         */
+        public int computeClassicLeft(float interfaceWidth) {
+            int spare = Math.max(0, (int) interfaceWidth - CLASSIC_WIDTH);
+
+            return switch (this) {
+                case LEFT -> 0;
+                case CENTER -> spare / 2;
+                case RIGHT -> spare;
+            };
+        }
+    }
+
+    /**
      * The place of one control: moved to a corner, hidden, or both.
      */
     private static final class ControlPlace {
@@ -76,10 +131,12 @@ public final class ScrConsolePlacement {
     private final boolean @NotNull [] hidden;
     private final int @NotNull [] lefts;
     private final int @NotNull [] tops;
+    private final @NotNull Anchor @NotNull [] anchors;
     private final boolean @NotNull [] mask;
     private final @NotNull Map<Dialog, Map<Integer, ControlPlace>> controls;
 
     private boolean masked;
+    private int minimapSize;
     private long changeCount;
 
     /**
@@ -97,11 +154,15 @@ public final class ScrConsolePlacement {
         this.hidden   = new boolean[Dialog.values().length];
         this.lefts    = new int[Dialog.values().length];
         this.tops     = new int[Dialog.values().length];
+        this.anchors  = new Anchor[Dialog.values().length];
         this.mask     = new boolean[width * height];
         this.controls = new EnumMap<>(Dialog.class);
 
         this.masked      = false;
+        this.minimapSize = MINIMAP_SIZE;
         this.changeCount = 0;
+
+        Arrays.fill(this.anchors, Anchor.CENTER);
     }
 
     /**
@@ -119,7 +180,8 @@ public final class ScrConsolePlacement {
     }
 
     /**
-     * @return the number of dialog and control moves, hidden and restored dialogs and controls and mask changes so far
+     * @return the number of dialog and control moves, hidden and restored dialogs and controls, anchor and minimap size changes and mask changes
+     * so far
      */
     public long getChangeCount() {
         return this.changeCount;
@@ -176,6 +238,62 @@ public final class ScrConsolePlacement {
 
         this.moved[index]  = false;
         this.hidden[index] = false;
+        this.changeCount++;
+    }
+
+    /**
+     * @param dialog the dialog
+     * @return where the classic screen of the dialog's positions stands in the interface
+     */
+    public @NotNull Anchor getDialogAnchor(@NotNull Dialog dialog) {
+        return this.anchors[dialog.ordinal()];
+    }
+
+    /**
+     * Sets where the classic screen of a dialog's positions, and those of its controls, stands in an interface wider than the classic screen.
+     *
+     * @param dialog the dialog
+     * @param anchor the anchor
+     */
+    public void setDialogAnchor(@NotNull Dialog dialog, @NotNull Anchor anchor) {
+        int index = dialog.ordinal();
+
+        if (this.anchors[index] == anchor) {
+            return;
+        }
+
+        this.anchors[index] = anchor;
+        this.changeCount++;
+    }
+
+    /**
+     * @return the side of the drawn minimap area in interface units
+     */
+    public int getMinimapSize() {
+        return this.minimapSize;
+    }
+
+    /**
+     * Sets the side of the drawn minimap area: the minimap, its view frame and its pings are drawn and hit scaled by
+     * {@code minimapSize / }{@value #MINIMAP_SIZE} from the area's top left.
+     * <p>
+     * The minimap dialog grows or shrinks with the area, by {@code minimapSize - }{@value #MINIMAP_SIZE} in width and height, and its other
+     * controls keep their offsets from the dialog's top left. A moved dialog keeps its top left; at its installed place the dialog keeps its
+     * bottom-left corner, so that the area stays inside the console.
+     *
+     * @param minimapSize the side in interface units
+     * @throws IllegalArgumentException if the side is not positive
+     */
+    public void setMinimapSize(int minimapSize) {
+        if (minimapSize <= 0) {
+            throw Exceptions.newIllegalArgumentException("Invalid minimap size {0}", minimapSize);
+        }
+
+        if (this.minimapSize == minimapSize) {
+            return;
+        }
+
+        this.minimapSize = minimapSize;
         this.changeCount++;
     }
 

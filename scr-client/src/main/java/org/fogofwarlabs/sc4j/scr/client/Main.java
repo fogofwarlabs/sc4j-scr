@@ -4757,7 +4757,7 @@ public final class Main {
     /**
      * Prepares the painter of the plugins' draw lists for this frame, made again when the interface renderer changed, and supplies the game screen
      * of the frame to the game's local display: the interface size, the real pixels per interface unit (those of the SD interface layer while one
-     * is drawn), the graphics and the font measure.
+     * is drawn), the graphics, the font measure and the console rectangles (none while a plugin hides the console).
      *
      * @return the painter, or {@code null} without an interface renderer
      */
@@ -4792,6 +4792,7 @@ public final class Main {
         }
 
         display.setTextMeasure(painter);
+        display.setConsoleRectangles(this.consoleView != null && !this.requireSession().getView().isConsoleHidden() ? this.consoleView : null);
 
         return painter;
     }
@@ -7521,12 +7522,27 @@ public final class Main {
     }
 
     /**
+     * Supplies the pointer position in interface units, the units of the screen space of the plugins' draw lists, to the running game.
+     */
+    void supplyInterfacePointer() {
+        if (this.session == null) {
+            return;
+        }
+
+        LocalDisplay display = this.requireSession().getPresentation().getInterfaceLink().getLocalDisplay();
+
+        display.setPointer(this.gameViewport.toInterfaceX(this.pointerHorizontal), this.gameViewport.toInterfaceY(this.pointerVertical));
+    }
+
+    /**
      * Supplies camera geometry, interface pointer coordinates and the displayed local-interface state to the running game.
      */
     private void supplyLocalView() {
         if (this.session == null) {
             return;
         }
+
+        this.supplyInterfacePointer();
 
         ClientCamera camera = this.requireSession().getCamera();
         int viewX = Math.round(camera.screenToWorldX(this.gameViewport.getGameLeft()));

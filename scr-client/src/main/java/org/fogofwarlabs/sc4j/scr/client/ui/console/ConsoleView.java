@@ -54,6 +54,7 @@ import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsoleArt;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrConsolePlacement;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.presentation.InterfaceTimers;
+import org.fogofwarlabs.sc4j.scr.game.presentation.LocalDisplay;
 import org.fogofwarlabs.sc4j.scr.game.presentation.MessageLines;
 import org.fogofwarlabs.sc4j.scr.game.presentation.TimerTextUtils;
 import org.fogofwarlabs.sc4j.scr.game.terrain.GameMap;
@@ -76,7 +77,7 @@ import java.util.function.Function;
  * The view owns its cached textures and interface timers; fonts, renderer, cursor and storage are supplied by the client.
  * Loaded control identifiers select status values, wireframes, production icons, tooltips and dialog state.
  */
-public final class ConsoleView implements AutoCloseable {
+public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRectangles {
     /**
      * The {@code tblink} row {@code 16}, red: the minimap ping of attack alerts.
      */
@@ -117,6 +118,22 @@ public final class ConsoleView implements AutoCloseable {
      * The index of the map pixels per minimap pixel in the result of {@link #getMinimapGeometry}.
      */
     public static final int MINIMAP_PIXEL_SCALE_INDEX = 6;
+    /**
+     * The index of the left edge in a rectangle of {@link #findDialogRectangle} and {@link #findControlRectangle}.
+     */
+    public static final int RECTANGLE_LEFT_INDEX = 0;
+    /**
+     * The index of the top edge in a rectangle of {@link #findDialogRectangle} and {@link #findControlRectangle}.
+     */
+    public static final int RECTANGLE_TOP_INDEX = 1;
+    /**
+     * The index of the width in a rectangle of {@link #findDialogRectangle} and {@link #findControlRectangle}.
+     */
+    public static final int RECTANGLE_WIDTH_INDEX = 2;
+    /**
+     * The index of the height in a rectangle of {@link #findDialogRectangle} and {@link #findControlRectangle}.
+     */
+    public static final int RECTANGLE_HEIGHT_INDEX = 3;
     /**
      * The index of the minimap bitmap's left screen column in the result of {@link #placeMinimap}.
      */
@@ -320,10 +337,6 @@ public final class ConsoleView implements AutoCloseable {
      * The portrait control of the {@code statport} dialog.
      */
     private static final int PORTRAIT_CONTROL = 1;
-    /**
-     * The minimap area control of the {@code minimap} dialog.
-     */
-    private static final int MINIMAP_AREA_CONTROL = 1;
     /**
      * The gap between a cost icon and its number (icon width + {@code 2}).
      */
@@ -692,25 +705,27 @@ public final class ConsoleView implements AutoCloseable {
 
     /**
      * Places the minimap bitmap in its control: the control rectangle shrinks by {@code (128 - size) / 2} per side (truncating), and the
-     * bitmap is drawn unscaled at its origin.
+     * bitmap is drawn at its origin, scaled by the minimap scale from the control's top left.
      *
-     * @param area  the minimap area control
-     * @param image the minimap bitmap
+     * @param area         the minimap area control
+     * @param image        the minimap bitmap
+     * @param minimapScale the interface pixels per bitmap pixel ({@link #getMinimapScale()})
      * @return the bitmap's left in interface pixels
      */
-    private static int getMinimapLeft(DialogLayout.@NotNull Control area, @NotNull MinimapImage image) {
-        return area.getX() + (MINIMAP_BITMAP_SIDE - image.getWidth()) / 2;
+    private static float getMinimapLeft(DialogLayout.@NotNull Control area, @NotNull MinimapImage image, float minimapScale) {
+        return area.getX() + (MINIMAP_BITMAP_SIDE - image.getWidth()) / 2 * minimapScale;
     }
 
     /**
      * Places the minimap bitmap in its control, as {@link #getMinimapLeft}.
      *
-     * @param area  the minimap area control
-     * @param image the minimap bitmap
+     * @param area         the minimap area control
+     * @param image        the minimap bitmap
+     * @param minimapScale the interface pixels per bitmap pixel ({@link #getMinimapScale()})
      * @return the bitmap's top in interface pixels
      */
-    private static int getMinimapTop(DialogLayout.@NotNull Control area, @NotNull MinimapImage image) {
-        return area.getY() + (MINIMAP_BITMAP_SIDE - image.getHeight()) / 2;
+    private static float getMinimapTop(DialogLayout.@NotNull Control area, @NotNull MinimapImage image, float minimapScale) {
+        return area.getY() + (MINIMAP_BITMAP_SIDE - image.getHeight()) / 2 * minimapScale;
     }
 
     /**
@@ -1156,6 +1171,101 @@ public final class ConsoleView implements AutoCloseable {
      */
     public @Nullable ConsoleLayout getLayout() {
         return this.layout;
+    }
+
+    /**
+     * Finds the rectangle of a console dialog as it was last drawn, placed by the console placement, in interface units from the game screen's
+     * top: the console's rows moved down by the view extension, as {@link GameViewport#toScreenY} places the game screen. The minimap dialog is
+     * sized by the minimap size of the placement ({@link ScrConsolePlacement#setMinimapSize}).
+     *
+     * @param dialog    the dialog
+     * @param rectangle receives the left, top, width and height
+     * @return {@code true} if the console was drawn with the dialog shown, {@code false} if the dialog is hidden or not drawn yet, the rectangle
+     * then unchanged
+     */
+    @Override
+    public boolean findDialogRectangle(ScrConsolePlacement.@NotNull Dialog dialog, float @NotNull [] rectangle) {
+        DialogLayout layout = this.findShownDialog(dialog);
+
+        if (layout == null) {
+            return false;
+        }
+
+        rectangle[RECTANGLE_LEFT_INDEX]   = layout.getX();
+        rectangle[RECTANGLE_TOP_INDEX]    = layout.getY() + this.getViewExtensionRows();
+        rectangle[RECTANGLE_WIDTH_INDEX]  = layout.getWidth();
+        rectangle[RECTANGLE_HEIGHT_INDEX] = layout.getHeight();
+
+        return true;
+    }
+
+    /**
+     * Finds the rectangle of a control of a console dialog as it was last drawn, placed by the console placement, in interface units; the minimap
+     * area takes the minimap size of the placement.
+     *
+     * @param dialog    the dialog
+     * @param control   the control's identifier in the dialog's definition
+     * @param rectangle receives the left, top, width and height
+     * @return {@code true} if the console was drawn with the dialog and the control shown, {@code false} otherwise, the rectangle then unchanged
+     */
+    @Override
+    public boolean findControlRectangle(ScrConsolePlacement.@NotNull Dialog dialog, int control, float @NotNull [] rectangle) {
+        DialogLayout layout = this.findShownDialog(dialog);
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        if (layout == null || shownPlacement != null && shownPlacement.isControlHidden(dialog, control)) {
+            return false;
+        }
+
+        for (DialogLayout.Control shown : layout.getControls()) {
+            if (shown.getIdentifier() != control) {
+                continue;
+            }
+
+            rectangle[RECTANGLE_LEFT_INDEX]   = shown.getX();
+            rectangle[RECTANGLE_TOP_INDEX]    = shown.getY() + this.getViewExtensionRows();
+            rectangle[RECTANGLE_WIDTH_INDEX]  = shown.getWidth();
+            rectangle[RECTANGLE_HEIGHT_INDEX] = shown.getHeight();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return the view extension of the last drawn console in interface rows, {@code 0} before drawing
+     */
+    private float getViewExtensionRows() {
+        ConsoleLayout console = this.layout;
+
+        return console == null ? 0 : console.getViewExtension() / console.getScale();
+    }
+
+    /**
+     * Finds the drawn layout of a shown console dialog.
+     *
+     * @return the placed layout of the last drawn console, or {@code null} before drawing or for a hidden dialog
+     */
+    private @Nullable DialogLayout findShownDialog(ScrConsolePlacement.@NotNull Dialog dialog) {
+        ConsoleLayout console = this.layout;
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        if (console == null || shownPlacement != null && shownPlacement.isDialogHidden(dialog)) {
+            return null;
+        }
+
+        DialogLayout layout = switch (dialog) {
+            case COMMAND_CARD -> console.getCommandButtons();
+            case SELECTION -> console.getSelectionPanel();
+            case RESOURCES -> console.getResources();
+            case PORTRAIT -> console.getPortrait();
+            case MINIMAP -> console.getMinimap();
+            case MENU -> console.getMenu();
+            case TEXT_BOX -> this.textBox == null ? null : this.textBox.getLayout();
+        };
+
+        return layout != null && this.isConsoleDialogShown(layout) ? layout : null;
     }
 
     /**
@@ -4510,10 +4620,11 @@ public final class ConsoleView implements AutoCloseable {
         }
 
         MinimapImage image = this.minimapImage;
-        DialogLayout.Control area = console.getMinimap().getControl(MINIMAP_AREA_CONTROL);
-        int left = getMinimapLeft(area, image);
-        int top = getMinimapTop(area, image);
-        float scale = console.getScale();
+        DialogLayout.Control area = console.getMinimap().getControl(ScrConsolePlacement.MINIMAP_AREA_CONTROL);
+        float minimapScale = this.getMinimapScale();
+        float left = getMinimapLeft(area, image, minimapScale);
+        float top = getMinimapTop(area, image, minimapScale);
+        float scale = console.getScale() * minimapScale;
         // Black, then each layer texture stretched into the bitmap box (terrain and creep unless Tab hid
         // them, the linearly filtered fog, the dots); the layers are uploaded only when refreshed.
         float boxX = console.toScreenX(left);
@@ -4532,23 +4643,32 @@ public final class ConsoleView implements AutoCloseable {
         }
 
         this.renderer.drawTexture(this.minimapDotTexture, boxX, boxY, boxWidth, boxHeight, WHITE_RGBA);
-        this.drawMinimapBorder(console, left, top, image.getWidth(), image.getHeight(), loaded);
-        this.drawMinimapPings(model, console, loaded, image, left, top);
+        this.drawMinimapBorder(console, left, top, image.getWidth(), image.getHeight(), minimapScale, loaded);
+        this.drawMinimapPings(model, console, loaded, image, left, top, minimapScale);
 
-        // Camera rectangle: origin and size in tiles scaled like the dots; only the bottom is clamped.
-        int frameLeft = left + image.toBitmap((int) Math.floor(viewLeft / TerrainTileset.TILE_SIZE));
-        int frameTop = top + image.toBitmap((int) Math.floor(viewTop / TerrainTileset.TILE_SIZE));
+        // Camera rectangle in bitmap pixels: origin and size in tiles scaled like the dots; only the bottom is clamped.
+        int frameLeft = image.toBitmap((int) Math.floor(viewLeft / TerrainTileset.TILE_SIZE));
+        int frameTop = image.toBitmap((int) Math.floor(viewTop / TerrainTileset.TILE_SIZE));
         int frameRight = frameLeft + image.toBitmap((int) Math.ceil(viewWidth / TerrainTileset.TILE_SIZE));
-        int bottom = top + image.getHeight() - 1;
         int extent = image.toBitmap((int) Math.ceil(viewHeight / TerrainTileset.TILE_SIZE));
-        int frameBottom = frameTop + (frameTop + extent <= bottom + 1 ? extent : bottom + 1 - frameTop);
+        int frameBottom = frameTop + (frameTop + extent <= image.getHeight() ? extent : image.getHeight() - frameTop);
 
         if (frameRight > frameLeft && frameBottom > frameTop) {
-            this.renderer.drawRectangle(console.toScreenX(frameLeft), console.toScreenY(frameTop),
+            this.renderer.drawRectangle(console.toScreenX(left + frameLeft * minimapScale), console.toScreenY(top + frameTop * minimapScale),
                                         (frameRight - frameLeft) * scale, (frameBottom - frameTop) * scale,
-                                        Math.max(1, scale),
+                                        Math.max(1, console.getScale()),
                                         WHITE_RGBA);
         }
+    }
+
+    /**
+     * @return the interface pixels per minimap bitmap pixel: the minimap size of the console placement over the installed {@code 128}, else
+     * {@code 1}
+     */
+    private float getMinimapScale() {
+        ScrConsolePlacement shownPlacement = this.placement;
+
+        return shownPlacement == null ? 1 : shownPlacement.getMinimapSize() / (float) MINIMAP_BITMAP_SIDE;
     }
 
     /**
@@ -4669,7 +4789,7 @@ public final class ConsoleView implements AutoCloseable {
                                   @NotNull ConsoleLayout console,
                                   @NotNull InterfaceAssets loaded,
                                   @NotNull MinimapImage image,
-                                  int left, int top) throws IOException {
+                                  float left, float top, float minimapScale) throws IOException {
         if (!this.minimapPings.isAnyActive()) {
             return;
         }
@@ -4679,8 +4799,8 @@ public final class ConsoleView implements AutoCloseable {
 
         this.renderer.setClip(clipLeft,
                               clipTop,
-                              (int) Math.ceil(console.toScreenX(left + image.getWidth())) - clipLeft,
-                              (int) Math.ceil(console.toScreenY(top + image.getHeight())) - clipTop);
+                              (int) Math.ceil(console.toScreenX(left + image.getWidth() * minimapScale)) - clipLeft,
+                              (int) Math.ceil(console.toScreenY(top + image.getHeight() * minimapScale)) - clipTop);
 
         try {
             for (int slot = 0; slot < MINIMAP_PING_SLOTS; slot++) {
@@ -4688,8 +4808,8 @@ public final class ConsoleView implements AutoCloseable {
                     continue;
                 }
 
-                int x = left + image.toBitmap(this.minimapPings.getX(slot) >>> TerrainTileset.TILE_SHIFT) - PING_ORIGIN_OFFSET;
-                int y = top + image.toBitmap(this.minimapPings.getY(slot) >>> TerrainTileset.TILE_SHIFT) - PING_ORIGIN_OFFSET;
+                float x = left + image.toBitmap(this.minimapPings.getX(slot) >>> TerrainTileset.TILE_SHIFT) * minimapScale - PING_ORIGIN_OFFSET;
+                float y = top + image.toBitmap(this.minimapPings.getY(slot) >>> TerrainTileset.TILE_SHIFT) * minimapScale - PING_ORIGIN_OFFSET;
                 int color = this.minimapPings.isPlayerColor(slot)
                             ? MinimapImage.getPlayerColor(model.getView(), loaded, this.minimapPings.getColor(slot), this.minimapColorMode)
                             : loaded.getBlinkColor(this.minimapPings.getColor(slot));
@@ -4705,27 +4825,30 @@ public final class ConsoleView implements AutoCloseable {
 
     /**
      * Draws the frame around a bitmap narrower or shorter than {@code 128} pixels; colors are the palette entries nearest
-     * RGB({@code 208},{@code 208},{@code 208}) and RGB({@code 160},{@code 160},{@code 160}).
+     * RGB({@code 208},{@code 208},{@code 208}) and RGB({@code 160},{@code 160},{@code 160}). The bitmap is scaled by the minimap scale; the
+     * frame's lines keep one interface pixel.
      */
-    private void drawMinimapBorder(@NotNull ConsoleLayout console, int left, int top, int width, int height, @NotNull InterfaceAssets loaded) {
+    private void drawMinimapBorder(@NotNull ConsoleLayout console, float left, float top, int width, int height, float minimapScale,
+                                   @NotNull InterfaceAssets loaded) {
         float scale = console.getScale();
         int light = loaded.getNearestPaletteColor(MINIMAP_BORDER_LIGHT);
         int dark = loaded.getNearestPaletteColor(MINIMAP_BORDER_DARK);
-        int right = left + width - 1;
-        int bottom = top + height - 1;
+        float drawnWidth = width * minimapScale;
+        float drawnHeight = height * minimapScale;
 
         if (width < MINIMAP_BITMAP_SIDE && height < MINIMAP_BITMAP_SIDE) {
             this.renderer.drawRectangle(console.toScreenX(left), console.toScreenY(top - 1),
-                                        (right + MINIMAP_RIGHT_BORDER_GROWTH - left) * scale,
-                                        (bottom + MINIMAP_BOTTOM_BORDER_GROWTH - top + 1) * scale,
+                                        (drawnWidth - 1 + MINIMAP_RIGHT_BORDER_GROWTH) * scale,
+                                        (drawnHeight - 1 + MINIMAP_BOTTOM_BORDER_GROWTH + 1) * scale,
                                         Math.max(1, scale),
                                         light);
         } else if (width < MINIMAP_BITMAP_SIDE) {
-            this.renderer.fillRectangle(console.toScreenX(left - 1), console.toScreenY(top), scale, height * scale, light);
-            this.renderer.fillRectangle(console.toScreenX(right + MINIMAP_RIGHT_BORDER_GROWTH), console.toScreenY(top), scale, height * scale, dark);
+            this.renderer.fillRectangle(console.toScreenX(left - 1), console.toScreenY(top), scale, drawnHeight * scale, light);
+            this.renderer.fillRectangle(console.toScreenX(left + drawnWidth - 1 + MINIMAP_RIGHT_BORDER_GROWTH), console.toScreenY(top), scale,
+                                        drawnHeight * scale, dark);
         } else if (height < MINIMAP_BITMAP_SIDE) {
-            this.renderer.fillRectangle(console.toScreenX(left), console.toScreenY(top - 1), width * scale, scale, light);
-            this.renderer.fillRectangle(console.toScreenX(left), console.toScreenY(bottom + 1), width * scale, scale, dark);
+            this.renderer.fillRectangle(console.toScreenX(left), console.toScreenY(top - 1), drawnWidth * scale, scale, light);
+            this.renderer.fillRectangle(console.toScreenX(left), console.toScreenY(top + drawnHeight), drawnWidth * scale, scale, dark);
         }
     }
 
@@ -4745,12 +4868,13 @@ public final class ConsoleView implements AutoCloseable {
             return null;
         }
 
-        DialogLayout.Control area = console.getMinimap().getControl(MINIMAP_AREA_CONTROL);
-        int left = getMinimapLeft(area, image);
-        int top = getMinimapTop(area, image);
+        DialogLayout.Control area = console.getMinimap().getControl(ScrConsolePlacement.MINIMAP_AREA_CONTROL);
+        float minimapScale = this.getMinimapScale();
+        float left = getMinimapLeft(area, image, minimapScale);
+        float top = getMinimapTop(area, image, minimapScale);
 
-        return new int[]{(int) Math.floor(console.toInterfaceX(screenX)) - left,
-                         (int) Math.floor(console.toInterfaceY(screenY)) - top,
+        return new int[]{(int) Math.floor((console.toInterfaceX(screenX) - left) / minimapScale),
+                         (int) Math.floor((console.toInterfaceY(screenY) - top) / minimapScale),
                          image.getWidth(), image.getHeight(),
                          image.getDivisor(),
                          image.getZoom(),
@@ -4773,11 +4897,13 @@ public final class ConsoleView implements AutoCloseable {
             return false;
         }
 
-        DialogLayout.Control area = console.getMinimap().getControl(MINIMAP_AREA_CONTROL);
+        DialogLayout.Control area = console.getMinimap().getControl(ScrConsolePlacement.MINIMAP_AREA_CONTROL);
+        float minimapScale = this.getMinimapScale();
 
-        placement[MINIMAP_SCREEN_LEFT_INDEX]  = console.toScreenX(getMinimapLeft(area, image));
-        placement[MINIMAP_SCREEN_TOP_INDEX]   = console.toScreenY(getMinimapTop(area, image));
-        placement[MINIMAP_SCREEN_SCALE_INDEX] = console.getScale() * (1 << image.getZoom()) / image.getDivisor() / TerrainTileset.TILE_SIZE;
+        placement[MINIMAP_SCREEN_LEFT_INDEX]  = console.toScreenX(getMinimapLeft(area, image, minimapScale));
+        placement[MINIMAP_SCREEN_TOP_INDEX]   = console.toScreenY(getMinimapTop(area, image, minimapScale));
+        placement[MINIMAP_SCREEN_SCALE_INDEX] = console.getScale() * minimapScale * (1 << image.getZoom()) / image.getDivisor() /
+                                                TerrainTileset.TILE_SIZE;
 
         return true;
     }
@@ -4795,12 +4921,13 @@ public final class ConsoleView implements AutoCloseable {
             return null;
         }
 
-        DialogLayout.Control area = console.getMinimap().getControl(MINIMAP_AREA_CONTROL);
-        int left = getMinimapLeft(area, image);
-        int top = getMinimapTop(area, image);
+        DialogLayout.Control area = console.getMinimap().getControl(ScrConsolePlacement.MINIMAP_AREA_CONTROL);
+        float minimapScale = this.getMinimapScale();
+        float left = getMinimapLeft(area, image, minimapScale);
+        float top = getMinimapTop(area, image, minimapScale);
 
         return PointerClip.of(console.toScreenX(left), console.toScreenY(top),
-                              console.toScreenX(left + image.getWidth()), console.toScreenY(top + image.getHeight()));
+                              console.toScreenX(left + image.getWidth() * minimapScale), console.toScreenY(top + image.getHeight() * minimapScale));
     }
 
     /**
@@ -5360,8 +5487,8 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
-     * Moves the dialogs of a layout and their controls to the places the placement gives them, in the classic screen centered in the interface
-     * width, and the hidden dialogs and controls out of the interface.
+     * Moves the dialogs of a layout and their controls to the places the placement gives them, in the classic screen at each dialog's anchor,
+     * and the hidden dialogs and controls out of the interface.
      *
      * @param base the layout of the interface width
      * @return the layout with the dialogs placed, the same layout while the placement is unchanged, or {@code base} without a placed dialog
@@ -5398,7 +5525,7 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
-     * Places the text box where the placement moves it, in the classic screen centered in the interface width, or as a popup.
+     * Places the text box where the placement moves it, in the classic screen at its anchor, or as a popup.
      *
      * @param textBox the installed text box
      * @param console the console layout
@@ -5425,45 +5552,52 @@ public final class ConsoleView implements AutoCloseable {
     }
 
     /**
-     * Places one dialog and its controls: a moved dialog or control at its place in the classic screen centered in the interface width, a hidden one
-     * past the interface's right edge, where it is neither drawn nor hit; the controls of a hidden dialog are hidden with it.
+     * Places one dialog and its controls: a moved dialog or control at its place in the classic screen, which stands where the dialog's anchor
+     * puts it in the interface width ({@link ScrConsolePlacement.Anchor#computeClassicLeft}), a hidden one past the interface's right edge, where
+     * it is neither drawn nor hit; the controls of a hidden dialog are hidden with it. The minimap dialog first grows or shrinks with its area to
+     * the minimap size of the placement, its bottom-left corner kept ({@link DialogLayout#createResizedLayout}), so that a moved dialog keeps its
+     * top left and an unmoved one the bottom of its area.
      *
      * @param layout         the dialog
      * @param dialog         the dialog's name in the placement
      * @param placement      the placement
      * @param interfaceWidth the interface width
-     * @return the placed dialog, or {@code layout} when neither it nor a control of it is placed
+     * @return the placed dialog, or {@code layout} when neither it nor a control of it is placed and its size is the installed one
      */
-    private static @NotNull DialogLayout placeDialog(@NotNull DialogLayout layout,
-                                                     ScrConsolePlacement.@NotNull Dialog dialog,
-                                                     @NotNull ScrConsolePlacement placement,
-                                                     float interfaceWidth) {
-        int center = InterfaceTransform.getCenteredDialogLeft(interfaceWidth);
+    static @NotNull DialogLayout placeDialog(@NotNull DialogLayout layout,
+                                             ScrConsolePlacement.@NotNull Dialog dialog,
+                                             @NotNull ScrConsolePlacement placement,
+                                             float interfaceWidth) {
+        int minimapSize = placement.getMinimapSize();
+        DialogLayout sized = dialog == ScrConsolePlacement.Dialog.MINIMAP && minimapSize != ScrConsolePlacement.MINIMAP_SIZE
+                             ? layout.createResizedLayout(ScrConsolePlacement.MINIMAP_AREA_CONTROL, minimapSize, minimapSize)
+                             : layout;
+        int classicLeft = placement.getDialogAnchor(dialog).computeClassicLeft(interfaceWidth);
         int hiddenLeft = (int) Math.ceil(interfaceWidth);
         int[] controls = placement.getPlacedControls(dialog);
-        int left = layout.getX();
-        int top = layout.getY();
+        int left = sized.getX();
+        int top = sized.getY();
 
         if (placement.isDialogHidden(dialog)) {
-            return layout.createPlacedLayout(hiddenLeft, top, identifier -> null);
+            return sized.createPlacedLayout(hiddenLeft, top, identifier -> null);
         }
 
         if (placement.isDialogMoved(dialog)) {
-            left = placement.getDialogLeft(dialog) + center;
+            left = placement.getDialogLeft(dialog) + classicLeft;
             top  = placement.getDialogTop(dialog);
         } else if (controls.length == 0) {
-            return layout;
+            return sized;
         }
 
         int dialogTop = top;
 
-        return layout.createPlacedLayout(left, top, identifier -> {
+        return sized.createPlacedLayout(left, top, identifier -> {
             if (placement.isControlHidden(dialog, identifier)) {
                 return new int[]{hiddenLeft, dialogTop};
             }
 
             if (placement.isControlMoved(dialog, identifier)) {
-                return new int[]{placement.getControlLeft(dialog, identifier) + center, placement.getControlTop(dialog, identifier)};
+                return new int[]{placement.getControlLeft(dialog, identifier) + classicLeft, placement.getControlTop(dialog, identifier)};
             }
 
             return null;

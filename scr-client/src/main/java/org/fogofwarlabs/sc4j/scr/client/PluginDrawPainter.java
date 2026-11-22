@@ -338,21 +338,33 @@ final class PluginDrawPainter implements ScrDrawList.Painter, LocalDisplay.TextM
     }
 
     /**
-     * Draws a picture stretched into a rectangle.
+     * Draws a rectangle of a picture stretched into a rectangle: the source rectangle as texture coordinates of the picture's texture.
      *
-     * @param picture the picture, whose colour layer is RGBA
-     * @param x       the left coordinate
-     * @param y       the top coordinate
-     * @param width   the drawn width
-     * @param height  the drawn height
-     * @param opacity the opacity, {@code 0} to {@code 1}
+     * @param picture      the picture, whose colour layer is RGBA
+     * @param sourceX      the left of the drawn part in picture pixels
+     * @param sourceY      the top of the drawn part in picture pixels
+     * @param sourceWidth  the width of the drawn part in picture pixels
+     * @param sourceHeight the height of the drawn part in picture pixels
+     * @param x            the left coordinate
+     * @param y            the top coordinate
+     * @param width        the drawn width
+     * @param height       the drawn height
+     * @param opacity      the opacity, {@code 0} to {@code 1}
      */
     @Override
-    public void drawPicture(@NotNull Picture picture, float x, float y, float width, float height, float opacity) {
+    public void drawPicture(@NotNull Picture picture,
+                            float sourceX, float sourceY, float sourceWidth, float sourceHeight,
+                            float x, float y, float width, float height,
+                            float opacity) {
         Texture texture = this.textures.findTexture(this.canvas, picture);
         int alpha = Math.round(Math.clamp(opacity, 0, 1) * MAXIMUM_ALPHA);
+        float textureWidth = texture.getWidth();
+        float textureHeight = texture.getHeight();
 
-        this.canvas.drawTexture(texture, this.toScreenX(x), this.toScreenY(y), width * this.scale, height * this.scale, WHITE_RGBA | alpha);
+        this.canvas.drawTexture(texture, this.toScreenX(x), this.toScreenY(y), width * this.scale, height * this.scale,
+                                sourceX / textureWidth, sourceY / textureHeight,
+                                (sourceX + sourceWidth) / textureWidth, (sourceY + sourceHeight) / textureHeight,
+                                WHITE_RGBA | alpha);
     }
 
     private float toScreenX(float x) {

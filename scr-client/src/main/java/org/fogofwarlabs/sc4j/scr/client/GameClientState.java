@@ -821,6 +821,7 @@ final class GameClientState implements InputListener {
      * Updates minimap dragging, dialog hover and the map pointer from the current client coordinates.
      */
     void moveInterfacePointer() {
+        this.main.supplyInterfacePointer();
         this.dragMinimap();
 
         if (this.main.consoleView != null) {
