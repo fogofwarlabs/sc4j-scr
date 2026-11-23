@@ -1,5 +1,6 @@
 package org.fogofwarlabs.sc4j.scr.render;
 
+import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.TextureSheet;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.jetbrains.annotations.NotNull;
@@ -139,6 +140,21 @@ public interface SceneRenderer {
     int DRAW_FUNCTION_WARP_FLASH = 17;
 
     /**
+     * Draws into the target of a scene with another renderer ({@link SceneRenderer#drawExternal}).
+     */
+    @FunctionalInterface
+    interface ExternalDrawing {
+        /**
+         * Draws into the scene's target, whose color target alone takes the drawing.
+         *
+         * @param framebuffer the framebuffer of the scene's target
+         * @param width       the target width in pixels
+         * @param height      the target height in pixels
+         */
+        void draw(int framebuffer, int width, int height);
+    }
+
+    /**
      * Returns the multiply alpha of a shadow drawn without Shadow Stacking ({@link #drawShadowImage}): {@code data / frames}, the primary image's
      * data over the frame count of the Warp Texture's anim, for a {@link #SHADOW_RELATION} image over a warping-in primary image, else {@code 1}.
      *
@@ -258,6 +274,21 @@ public interface SceneRenderer {
      */
     default void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles) throws IOException {
         this.drawTerrain(tileIdentifiers);
+    }
+
+    /**
+     * Draws the visible terrain from the current game tile identifiers, including creep edges, with megatile pictures that replace installed ones:
+     * the classic pictures of {@link #drawTerrain(IntUnaryOperator, IntFunction)}, and pictures of any size that the HD backend draws instead,
+     * stretched over the tile with their alpha over the HD tile. The default draws the classic pictures only.
+     *
+     * @param tileIdentifiers  the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles        the classic picture of a megatile index, the same array while it is unchanged, or {@code null} for the installed one
+     * @param megatilePictures the picture of a megatile index, the same instance while it is unchanged, or {@code null} for none
+     * @throws IOException if a tile identifier is outside the installed assets
+     */
+    default void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles,
+                             @NotNull IntFunction<@Nullable Picture> megatilePictures) throws IOException {
+        this.drawTerrain(tileIdentifiers, megatiles);
     }
 
     /**
@@ -471,6 +502,17 @@ public interface SceneRenderer {
      * @param observer     whether the local human is an observer slot ({@code 0x80..0x83})
      */
     void drawFog(@NotNull IntUnaryOperator tileFlags, int visionMask, int visibleLevel, boolean observer);
+
+    /**
+     * Lets another renderer draw into the scene between the scene's own draws, such as above the terrain and below the sprites: submits the
+     * pending draws, runs the drawing with the scene's target, then restores the scene's state. The drawing's coordinates are the target's
+     * pixels from its top left corner: a map position is at {@code (x - cameraX) * scale} of the {@link WorldRenderer} the scene draws with, and
+     * the view covers the top left {@link WorldRenderer#getViewWidth} by {@link WorldRenderer#getViewHeight} pixels. The fog of war and the
+     * lighting of the scene apply to what the drawing draws.
+     *
+     * @param drawing the drawing
+     */
+    void drawExternal(@NotNull ExternalDrawing drawing);
 
 
     /**

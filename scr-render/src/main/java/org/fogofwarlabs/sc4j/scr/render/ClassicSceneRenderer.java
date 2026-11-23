@@ -584,6 +584,24 @@ public final class ClassicSceneRenderer implements SceneRenderer, AutoCloseable 
     }
 
     /**
+     * Lets another renderer draw into the scene between the scene's own draws, such as above the terrain and below the sprites: submits the
+     * pending draws, runs the drawing with the scene's target, then restores the scene's state. The drawing's coordinates are the target's
+     * pixels from its top left corner: a map position is at {@code (x - cameraX) * scale} of the {@link WorldRenderer} the scene draws with, and
+     * the view covers the top left {@link WorldRenderer#getViewWidth} by {@link WorldRenderer#getViewHeight} pixels. The fog of war and the
+     * lighting of the scene apply to what the drawing draws.
+     * <p>
+     * The drawing writes the colors of the world frame ({@link WorldRenderer#drawExternal}); the palette indices of the classic effects keep those
+     * of the terrain.
+     *
+     * @param drawing the drawing
+     */
+    @Override
+    public void drawExternal(@NotNull ExternalDrawing drawing) {
+        this.overlay.end(false);
+        this.renderer.drawExternal(drawing);
+    }
+
+    /**
      * Completes the scene so that the {@link WorldRenderer} can resolve the world and draw overlays.
      */
     @Override
