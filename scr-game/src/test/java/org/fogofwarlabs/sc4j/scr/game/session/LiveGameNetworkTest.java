@@ -16,6 +16,7 @@ import org.fogofwarlabs.sc4j.scr.game.replay.ReplayRuntime;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplaySession;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.MeleeGameSetup;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
+import org.fogofwarlabs.sc4j.scr.game.test.LockstepMapGameScenario;
 import org.fogofwarlabs.sc4j.scr.game.test.RunningGameScenario;
 import org.fogofwarlabs.sc4j.scr.game.unit.UnitPool;
 import org.jetbrains.annotations.NotNull;
@@ -26,13 +27,14 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Checks multiplayer frame waits, turns in transit, sender identifiers, the frames that exchange turns and the drawing values their Sync records take
- * with an in-memory {@link LockstepTransport}.
+ * with an in-memory {@link LockstepTransport}, and a game of several human peers in one process ({@link LockstepMapGameScenario}).
  */
 @RequiresInstallation
 final class LiveGameNetworkTest {
@@ -84,6 +86,12 @@ final class LiveGameNetworkTest {
     private static final @NotNull String PLAYER_NAME = "tester";
     private static final @NotNull String HOST_NAME = "host";
     private static final @NotNull String JOINER_NAME = "joiner";
+    /**
+     * The installed map, the seed and the frames of the game of several peers.
+     */
+    private static final @NotNull String BOTTLENECK_MAP = "(2)Bottleneck.scm";
+    private static final int LOCKSTEP_SEED = 0x2F6A11;
+    private static final int LOCKSTEP_FRAMES = 24;
 
     /**
      * A network of one player at {@link #LOW_TURN_RATE} turns per second whose sent turns come back as its own.
@@ -435,5 +443,46 @@ final class LiveGameNetworkTest {
         Assertions.assertEquals(1, hostHistory.getFirst().getPlayerId());
         Assertions.assertEquals(STOP_COMMAND_TYPE, hostHistory.getFirst().getTypeId());
         Assertions.assertEquals(1, joiner.getHistory().size());
+    }
+
+    @Test
+    void human_peers_of_a_use_map_settings_game_play_the_same_game_each_with_its_own_local_player() throws IOException {
+        Path map = ExternalInput.INSTALLATION.resolveFile(ExternalInput.MAPS_FOLDER, BOTTLENECK_MAP);
+
+        try (GameData gameData = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            LockstepMapGameScenario scenario = LockstepMapGameScenario.startUseMapSettings(gameData, map, NETWORK_PLAYER_COUNT, LOCKSTEP_SEED);
+
+            scenario.stepFrames(LOCKSTEP_FRAMES);
+
+            Assertions.assertTrue(scenario.getLiveGame(1).submit(ReplayCommandIds.STOP, new byte[]{0}));
+
+            scenario.stepFrames(LOCKSTEP_FRAMES);
+
+            Assertions.assertEquals(NETWORK_PLAYER_COUNT, scenario.getPeerCount());
+            Assertions.assertNotEquals(scenario.getLiveGame(0).getLocalPlayer(), scenario.getLiveGame(1).getLocalPlayer());
+            Assertions.assertEquals(scenario.getGame(0).getCurrentFrame(), scenario.getGame(1).getCurrentFrame());
+            Assertions.assertEquals(0, scenario.getSyncMismatches());
+
+            UnitPool first = scenario.getGame(0).getUnitSystem().requireUnitPool();
+            UnitPool second = scenario.getGame(1).getUnitSystem().requireUnitPool();
+
+            for (int slot = 1; slot <= first.getCapacity(); slot++) {
+                Assertions.assertEquals(first.isAllocated(slot), second.isAllocated(slot));
+
+                if (first.isAllocated(slot)) {
+                    Assertions.assertEquals(first.getUnit(slot).getUnitId(), second.getUnit(slot).getUnitId());
+                    Assertions.assertEquals(first.getUnit(slot).getPositionX(), second.getUnit(slot).getPositionX());
+                    Assertions.assertEquals(first.getUnit(slot).getPositionY(), second.getUnit(slot).getPositionY());
+                }
+            }
+
+            for (int peer = 0; peer < NETWORK_PLAYER_COUNT; peer++) {
+                List<ReplayCommand> history = scenario.getLiveGame(peer).getHistory();
+
+                Assertions.assertEquals(1, history.size(), "the Stop of the second player on every peer");
+                Assertions.assertEquals(1, history.getFirst().getPlayerId());
+                Assertions.assertEquals(STOP_COMMAND_TYPE, history.getFirst().getTypeId());
+            }
+        }
     }
 }

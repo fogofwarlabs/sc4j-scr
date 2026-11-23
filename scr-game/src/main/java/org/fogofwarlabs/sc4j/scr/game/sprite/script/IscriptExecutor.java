@@ -11,6 +11,7 @@ import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrImageTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.ImageIds;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.SpriteIds;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrSimulationPlugins;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameExecutionScope;
 import org.fogofwarlabs.sc4j.scr.game.movement.FlingyMotionUtils;
 import org.fogofwarlabs.sc4j.scr.game.presentation.UnitSounds;
@@ -1993,7 +1994,8 @@ public final class IscriptExecutor {
     }
 
     /**
-     * Creates a sprite effect at an image's position plus an offset, with the given elevation, visibility and optionally the image's heading.
+     * Creates a sprite effect at an image's position plus an offset, with the given elevation, visibility and optionally the image's heading. The
+     * simulation plugins hear the created sprite ({@link ScrSimulationPlugins#reportSpriteCreated}).
      *
      * @param image            the creating image
      * @param sprite           the creating image's sprite
@@ -2051,6 +2053,12 @@ public final class IscriptExecutor {
             }
 
             applySpriteDirection(this.game, created, (frameDirection * FlingyMotionUtils.DIRECTION_THIRTY_SECOND_TURN) & BYTE_MASK);
+        }
+
+        ScrSimulationPlugins simulation = this.game.getSimulationPlugins();
+
+        if (simulation != null) {
+            simulation.reportSpriteCreated(created, image, sprite);
         }
     }
 

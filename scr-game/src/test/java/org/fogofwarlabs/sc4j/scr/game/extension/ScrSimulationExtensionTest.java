@@ -23,6 +23,7 @@ import org.fogofwarlabs.sc4j.scr.game.replay.ReplayRuntime;
 import org.fogofwarlabs.sc4j.scr.game.save.*;
 import org.fogofwarlabs.sc4j.scr.game.session.LiveGame;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.MeleeGameSetup;
+import org.fogofwarlabs.sc4j.scr.game.sprite.SpritePool;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
 import org.fogofwarlabs.sc4j.scr.game.terrain.MapTileFlags;
@@ -44,11 +45,11 @@ import java.util.Random;
 
 /**
  * Checks the simulation plugins of a running game: plugin creation sees the scenario of live, replayed and saved games and the map archive of a
- * live game started from a map file, the frame start runs before the triggers, a death by weapon damage names its killer and
- * weapon, a weapon damage decision and an order decision change what the routines do, an order decision keeps the position a command asked for
- * and offers the orders a routine inserts into a queue, the adjustments change a unit's weapon range, speed and maximum hit points, a mod
- * command reaches the plugins and is kept in the
- * written replay, the mod command submitter a live session supplies queues the local player's commands, a replay section a live game sets is
+ * live game started from a map file, the frame start runs before the triggers, a death by weapon damage names its killer and weapon, a death
+ * animation reports the sprite its iscript creates, a weapon damage decision and an order decision change what the routines do, an order
+ * decision keeps the position a command asked for and offers the orders a routine inserts into a queue, the adjustments change a unit's weapon
+ * range, speed and maximum hit points, a mod command reaches the plugins and is kept in the written replay, the mod command submitter a live
+ * session supplies queues the local player's commands, a replay section a live game sets is
  * offered when its replay plays back, and a plugin that does not allow a save stops it.
  */
 @RequiresInstallation
@@ -259,6 +260,38 @@ final class ScrSimulationExtensionTest {
             Assertions.assertEquals(ScrWeaponIds.GAUSS_RIFLE, death.getWeapon());
             Assertions.assertEquals(ScrUnitIds.ZERG_ZERGLING, death.getUnit().getUnitType());
             Assertions.assertEquals(RunningGameScenario.COMPUTER, death.getUnit().getOwnerIndex());
+        });
+    }
+
+    @Test
+    void death_animation_reports_the_sprite_its_iscript_creates(@NotNull InstallationTestResources resources) throws Throwable {
+        RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
+
+        RecordingSimulationPluginSource.record(recording, () -> {
+            ReplayRuntime runtime = RunningGameScenario.start(resources.getGameData());
+            Game game = runtime.getGame();
+            Unit marine = createUnit(runtime, ScrUnitIds.TERRAN_MARINE, 0, RunningGameScenario.HUMAN);
+            Unit zergling = createUnit(runtime, ScrUnitIds.ZERG_ZERGLING, TARGET_OFFSET, RunningGameScenario.COMPUTER);
+            int zerglingSprite = zergling.requireSprite().getPoolIndex();
+            int zerglingImage = zergling.requireSprite().requireMainImage().getImageTypeId();
+
+            recording.getEvents().clear();
+            zergling.setHitPoints(WEAK_HIT_POINTS);
+            hit(runtime, marine, zergling);
+
+            for (int step = 0; step < STEPPED_FRAMES; step++) {
+                Assertions.assertTrue(runtime.step(0, game.getCurrentFrame() * runtime.getFrameDuration()));
+            }
+
+            List<SpriteCreatedEvent> created = recording.findEvents(SpriteCreatedEvent.class).stream()
+                                                        .filter(event -> event.getSourceSprite() == zerglingSprite)
+                                                        .toList();
+            SpritePool sprites = game.getSpriteSystem().getSpritePool();
+
+            Assertions.assertEquals(1, created.size(), "one sprite of the death animation");
+            Assertions.assertEquals(zerglingImage, created.getFirst().getSourceImageType());
+            Assertions.assertNotNull(sprites);
+            Assertions.assertEquals(created.getFirst().getSpriteType(), sprites.getSprite(created.getFirst().getSprite()).getSpriteTypeId());
         });
     }
 
