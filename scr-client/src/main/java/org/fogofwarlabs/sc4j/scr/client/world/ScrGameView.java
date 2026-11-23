@@ -190,7 +190,7 @@ public final class ScrGameView implements GameView {
          */
         @Override
         public int getMaximumHitPoints() {
-            return UnitQueries.getMaximumHitPoints(ScrGameView.this.getUnitTypes(), this.unit);
+            return ScrGameView.this.getUnitQueries().getMaximumHitPoints(this.unit);
         }
 
         /**

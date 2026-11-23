@@ -7,6 +7,8 @@ import org.fogofwarlabs.sc4j.scr.game.unit.UnitQueries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.ToIntFunction;
+
 /**
  * Selects the wireframe of a unit: the frame of the wireframe sheets and the {@code twire.pcx} entry of each of its six cells.
  * <p>
@@ -110,11 +112,13 @@ public final class Wireframe {
     /**
      * Creates a {@link Wireframe} instance for the status panel: the active unit of a single selection at the frame of its displayed type.
      *
-     * @param selection the interface selection
-     * @param units     the {@code units.dat} table
+     * @param selection        the interface selection
+     * @param units            the {@code units.dat} table
+     * @param maximumHitPoints the whole maximum hit points of a unit ({@link UnitQueries#getMaximumHitPoints(Unit)})
      * @return the created {@link Wireframe} instance, or {@code null} if the selection does not hold exactly one unit
      */
-    public static @Nullable Wireframe createStatusWireframe(@NotNull InterfaceSelection selection, @NotNull ScrUnitTypeView units) {
+    public static @Nullable Wireframe createStatusWireframe(@NotNull InterfaceSelection selection, @NotNull ScrUnitTypeView units,
+                                                           @NotNull ToIntFunction<Unit> maximumHitPoints) {
         Unit active = selection.getActiveUnit();
 
         if (active == null || selection.getCount() != 1) {
@@ -123,18 +127,20 @@ public final class Wireframe {
 
         int frame = UnitQueries.getDisplayedType(units, active);
 
-        return new Wireframe(frame, computeCellEntries(active, units, frame));
+        return new Wireframe(frame, computeCellEntries(active, units, maximumHitPoints.applyAsInt(active), frame));
     }
 
     /**
      * Creates a {@link Wireframe} instance for a multi-selection or cargo slot: the unit at the frame of its unit type.
      *
-     * @param unit  the unit in the slot
-     * @param units the {@code units.dat} table
+     * @param unit             the unit in the slot
+     * @param units            the {@code units.dat} table
+     * @param maximumHitPoints the whole maximum hit points of a unit ({@link UnitQueries#getMaximumHitPoints(Unit)})
      * @return the created {@link Wireframe} instance
      */
-    public static @NotNull Wireframe createSlotWireframe(@NotNull Unit unit, @NotNull ScrUnitTypeView units) {
-        return new Wireframe(unit.getUnitId(), computeCellEntries(unit, units, unit.getUnitId()));
+    public static @NotNull Wireframe createSlotWireframe(@NotNull Unit unit, @NotNull ScrUnitTypeView units,
+                                                         @NotNull ToIntFunction<Unit> maximumHitPoints) {
+        return new Wireframe(unit.getUnitId(), computeCellEntries(unit, units, maximumHitPoints.applyAsInt(unit), unit.getUnitId()));
     }
 
     /**
@@ -160,16 +166,16 @@ public final class Wireframe {
     /**
      * Computes the {@code twire.pcx} entry of each cell of a unit drawn at a frame.
      *
-     * @param unit  the unit
-     * @param units the {@code units.dat} table
-     * @param frame the wireframe frame
+     * @param unit             the unit
+     * @param units            the {@code units.dat} table
+     * @param maximumHitPoints the unit's whole maximum hit points
+     * @param frame            the wireframe frame
      * @return six entries, negative for the shield cells of a unit without shields
      */
-    private static int @NotNull [] computeCellEntries(@NotNull Unit unit, @NotNull ScrUnitTypeView units, int frame) {
+    private static int @NotNull [] computeCellEntries(@NotNull Unit unit, @NotNull ScrUnitTypeView units, int maximumHitPoints, int frame) {
         int type = unit.getUnitId();
         int randomizer = unit.getWireframeRandomizer();
         int hitPoints = UnitQueries.getHitPoints(unit);
-        int maximumHitPoints = UnitQueries.getMaximumHitPoints(units, unit);
         int[] entries = new int[CELL_COUNT];
         int[] permutation = {0, 1, 2, 3};
 

@@ -85,7 +85,7 @@ public final class UnitCompletion {
         }
 
         if (unit.getRemainingBuildTime() != 0) {
-            unit.setHitPoints(units.getHitPoints(unitType));
+            unit.setHitPoints(this.game.getUnitHealth().getMaximumHitPoints(unit));
             unit.setShieldPoints(units.getShieldAmount(unitType) << FIXED_POINT_SHIFT);
             unit.setRemainingBuildTime(0);
         }

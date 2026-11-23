@@ -202,7 +202,7 @@ public final class ComputerTargets {
 
             boolean hallucination = (status & UnitStatusFlags.HALLUCINATION) != 0;
 
-            if (hallucination && UnitQueries.getLife(units, candidate) < UnitQueries.getMaximumLife(units, candidate)) {
+            if (hallucination && UnitQueries.getLife(units, candidate) < this.game.getUnitQueries().getMaximumLife(candidate)) {
                 continue;
             }
 

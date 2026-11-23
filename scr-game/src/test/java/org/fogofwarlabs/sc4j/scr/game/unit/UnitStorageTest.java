@@ -635,7 +635,7 @@ final class UnitStorageTest {
                                                          UnitsDat.REQUIREMENT_INDEX,
                                                          (column, index) -> 0);
 
-        unit.applyIscriptMovementSpeed(traitTypes, ISCRIPT_MOVEMENT_SPEED);
+        unit.applyIscriptMovementSpeed(unit.calculateModifiedMovementSpeed(traitTypes, ISCRIPT_MOVEMENT_SPEED));
 
         Assertions.assertEquals(SCOUT_TYPE, unit.getUnitId());
         Assertions.assertEquals(NEUTRAL_PLAYER, unit.getOwnerIndex());

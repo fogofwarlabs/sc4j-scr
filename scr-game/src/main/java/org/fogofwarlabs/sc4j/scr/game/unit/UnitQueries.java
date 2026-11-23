@@ -96,15 +96,15 @@ public final class UnitQueries {
     }
 
     /**
-     * Returns the maximum hit points of a unit in whole points: the {@code units.dat} hit points of its unit type, or for zero its current hit points
-     * ({@link #getHitPoints}), or for zero again {@code 1}. A negative {@code units.dat} value stays negative.
+     * Returns the maximum hit points of a unit in whole points from its maximum with eight fractional bits, or for zero its current hit points
+     * ({@link #getHitPoints}), or for zero again {@code 1}. A negative maximum stays negative.
      *
-     * @param units the unit type table
-     * @param unit  the unit
+     * @param maximumHitPoints the unit's maximum hit points with eight fractional bits ({@link UnitHealth#getMaximumHitPoints})
+     * @param unit             the unit
      * @return the maximum hit points
      */
-    public static int getMaximumHitPoints(@NotNull ScrUnitTypeView units, @NotNull Unit unit) {
-        int maximum = units.getHitPoints(unit.getUnitId()) >> POINT_FRACTION_BITS;
+    public static int getMaximumHitPoints(int maximumHitPoints, @NotNull Unit unit) {
+        int maximum = maximumHitPoints >> POINT_FRACTION_BITS;
 
         if (maximum != 0) {
             return maximum;
@@ -116,27 +116,27 @@ public final class UnitQueries {
     }
 
     /**
-     * Returns the hit points of a unit ({@link #getHitPoints}) as a whole percentage of its maximum hit points ({@link #getMaximumHitPoints}),
-     * rounded toward zero.
+     * Returns the hit points of a unit ({@link #getHitPoints}) as a whole percentage of its maximum hit points
+     * ({@link #getMaximumHitPoints(int, Unit)}), rounded toward zero.
      *
-     * @param units the unit type table
-     * @param unit  the unit
+     * @param maximumHitPoints the unit's maximum hit points with eight fractional bits ({@link UnitHealth#getMaximumHitPoints})
+     * @param unit             the unit
      * @return the hit point percentage
      */
-    public static int getHitPointPercent(@NotNull ScrUnitTypeView units, @NotNull Unit unit) {
-        return getHitPoints(unit) * PERCENT / getMaximumHitPoints(units, unit);
+    public static int getHitPointPercent(int maximumHitPoints, @NotNull Unit unit) {
+        return getHitPoints(unit) * PERCENT / getMaximumHitPoints(maximumHitPoints, unit);
     }
 
     /**
-     * Tests whether a unit is heavily damaged: its hit point percentage ({@link #getHitPointPercent}), compared unsigned, is at most
+     * Tests whether a unit is heavily damaged: its hit point percentage ({@link #getHitPointPercent(int, Unit)}), compared unsigned, is at most
      * {@code 33}. A heavily damaged Terran building burns, and the status panel and the building responses show the damage.
      *
-     * @param units the unit type table
-     * @param unit  the unit
+     * @param maximumHitPoints the unit's maximum hit points with eight fractional bits ({@link UnitHealth#getMaximumHitPoints})
+     * @param unit             the unit
      * @return {@code true} if the unit is heavily damaged, {@code false} otherwise
      */
-    public static boolean isHeavilyDamaged(@NotNull ScrUnitTypeView units, @NotNull Unit unit) {
-        return Integer.compareUnsigned(getHitPointPercent(units, unit), HEAVY_DAMAGE_PERCENT) <= 0;
+    public static boolean isHeavilyDamaged(int maximumHitPoints, @NotNull Unit unit) {
+        return Integer.compareUnsigned(getHitPointPercent(maximumHitPoints, unit), HEAVY_DAMAGE_PERCENT) <= 0;
     }
 
     /**
@@ -153,18 +153,19 @@ public final class UnitQueries {
     }
 
     /**
-     * Returns the maximum life of a unit: its maximum hit points ({@link #getMaximumHitPoints}) plus the {@code units.dat} shield amount when its
-     * unit type has shields.
+     * Returns the maximum life of a unit: its maximum hit points ({@link #getMaximumHitPoints(int, Unit)}) plus the {@code units.dat} shield
+     * amount when its unit type has shields.
      *
-     * @param units the unit type table
-     * @param unit  the unit
+     * @param units            the unit type table
+     * @param maximumHitPoints the unit's maximum hit points with eight fractional bits ({@link UnitHealth#getMaximumHitPoints})
+     * @param unit             the unit
      * @return the maximum life in whole points
      */
-    public static int getMaximumLife(@NotNull ScrUnitTypeView units, @NotNull Unit unit) {
+    public static int getMaximumLife(@NotNull ScrUnitTypeView units, int maximumHitPoints, @NotNull Unit unit) {
         int type = unit.getUnitId();
         int shields = units.getShieldEnabled(type) != 0 ? units.getShieldAmount(type) : 0;
 
-        return getMaximumHitPoints(units, unit) + shields;
+        return getMaximumHitPoints(maximumHitPoints, unit) + shields;
     }
 
     /**
@@ -391,6 +392,51 @@ public final class UnitQueries {
      */
     public UnitQueries(@NotNull Game game) {
         this.game = game;
+    }
+
+    /**
+     * Returns the maximum hit points of a unit in whole points ({@link #getMaximumHitPoints(int, Unit)} of
+     * {@link UnitHealth#getMaximumHitPoints}).
+     *
+     * @param unit the unit
+     * @return the maximum hit points
+     * @throws NullPointerException if the world was built without game data
+     */
+    public int getMaximumHitPoints(@NotNull Unit unit) {
+        return getMaximumHitPoints(this.game.getUnitHealth().getMaximumHitPoints(unit), unit);
+    }
+
+    /**
+     * Returns the hit point percentage of a unit ({@link #getHitPointPercent(int, Unit)} of {@link UnitHealth#getMaximumHitPoints}).
+     *
+     * @param unit the unit
+     * @return the hit point percentage
+     * @throws NullPointerException if the world was built without game data
+     */
+    public int getHitPointPercent(@NotNull Unit unit) {
+        return getHitPointPercent(this.game.getUnitHealth().getMaximumHitPoints(unit), unit);
+    }
+
+    /**
+     * Tests whether a unit is heavily damaged ({@link #isHeavilyDamaged(int, Unit)} of {@link UnitHealth#getMaximumHitPoints}).
+     *
+     * @param unit the unit
+     * @return {@code true} if the unit is heavily damaged, {@code false} otherwise
+     * @throws NullPointerException if the world was built without game data
+     */
+    public boolean isHeavilyDamaged(@NotNull Unit unit) {
+        return isHeavilyDamaged(this.game.getUnitHealth().getMaximumHitPoints(unit), unit);
+    }
+
+    /**
+     * Returns the maximum life of a unit ({@link #getMaximumLife(ScrUnitTypeView, int, Unit)} of {@link UnitHealth#getMaximumHitPoints}).
+     *
+     * @param unit the unit
+     * @return the maximum life in whole points
+     * @throws NullPointerException if the world was built without game data
+     */
+    public int getMaximumLife(@NotNull Unit unit) {
+        return getMaximumLife(this.game.requireGameData().getUnitTypes(), this.game.getUnitHealth().getMaximumHitPoints(unit), unit);
     }
 
     /**

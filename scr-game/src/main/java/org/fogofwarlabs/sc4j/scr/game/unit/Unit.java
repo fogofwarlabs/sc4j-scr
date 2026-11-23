@@ -3340,15 +3340,13 @@ public final class Unit extends org.fogofwarlabs.sc4j.engine.entity.Unit {
     }
 
     /**
-     * Applies the movement speed modifiers and stores the next speed; a changed speed also updates the current speed and
-     * the velocity along the movement direction.
+     * Stores the next speed of an iscript movement; a changed speed also updates the current speed and the velocity along the movement
+     * direction.
      *
-     * @param units the unit type table
-     * @param speed the input DWORD speed in units with eight fraction bits
+     * @param speed the DWORD speed after the speed modifiers ({@link org.fogofwarlabs.sc4j.scr.game.movement.UnitSpeed#calculateModifiedSpeed}), in
+     *              units with eight fraction bits
      */
-    public void applyIscriptMovementSpeed(@NotNull ScrUnitTypeView units, int speed) {
-        speed = this.calculateModifiedMovementSpeed(units, speed);
-
+    public void applyIscriptMovementSpeed(int speed) {
         this.setNextSpeed(speed);
 
         if (this.getCurrentSpeed() != speed) {

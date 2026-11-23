@@ -873,7 +873,7 @@ public final class UnitConstruction {
         // The geyser under construction takes the cancel-construction button set.
         UnitMorphing.writeButtonSet(units, target, ButtonSetIds.CANCEL_CONSTRUCTION);
         this.game.getIscriptExecutor().createImageBelowMain(target, ImageIds.VESPENE_GEYSER2, instructionLimit);
-        target.setHitPoints(units.getHitPoints(refineryType) / UnitInitializer.CONSTRUCTION_START_DIVISOR);
+        target.setHitPoints(this.game.getUnitHealth().getMaximumHitPoints(target) / UnitInitializer.CONSTRUCTION_START_DIVISOR);
 
         return target;
     }
@@ -900,7 +900,7 @@ public final class UnitConstruction {
                                     ? ButtonSetIds.CANCEL_BUILDING_WITH_RALLY
                                     : ButtonSetIds.CANCEL_BUILDING);
         this.game.getIscriptExecutor().initializeConstructionImage(building, IscriptExecutor.CONSTRUCTION_IMAGE_MODE, instructionLimit);
-        building.setHitPoints(units.getHitPoints(building.getUnitId()) / UnitInitializer.CONSTRUCTION_START_DIVISOR);
+        building.setHitPoints(this.game.getUnitHealth().getMaximumHitPoints(building) / UnitInitializer.CONSTRUCTION_START_DIVISOR);
         this.game.getOrders().issueUntargeted(building, ScrOrderIds.INCOMPLETE_MORPHING, instructionLimit);
         UnitLifecycle.clearCurrentQueueSlot(building);
     }

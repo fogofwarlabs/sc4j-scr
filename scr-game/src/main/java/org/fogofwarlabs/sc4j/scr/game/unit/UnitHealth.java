@@ -4,6 +4,7 @@ import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrImageTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.ImageIds;
 import org.fogofwarlabs.sc4j.scr.game.ai.UnitStrengthTable;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrSimulationPlugins;
 import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
@@ -13,7 +14,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 
 /**
- * Applies shared hit-point writes, strength refresh and pooled damage overlays.
+ * Applies shared hit-point writes, strength refresh and pooled damage overlays, and reads the maximum hit points of a unit
+ * ({@link #getMaximumHitPoints}), which every read of a unit's maximum goes through.
  */
 public final class UnitHealth {
     /**
@@ -64,6 +66,21 @@ public final class UnitHealth {
     }
 
     /**
+     * Returns the maximum hit points of a unit: the {@code units.dat} hit points of its type, adjusted by the simulation plugins
+     * ({@link ScrSimulationPlugins#adjustMaximumHitPoints}).
+     *
+     * @param unit the unit
+     * @return the maximum hit points with eight fractional bits
+     * @throws NullPointerException if the world was built without game data
+     */
+    public int getMaximumHitPoints(@NotNull Unit unit) {
+        int maximum = this.game.requireGameData().getUnitTypes().getHitPoints(unit.getUnitId());
+        ScrSimulationPlugins plugins = this.game.getSimulationPlugins();
+
+        return plugins != null ? plugins.adjustMaximumHitPoints(unit, maximum) : maximum;
+    }
+
+    /**
      * Sets bounded fixed-point health and refreshes completed-unit presentation and strength.
      *
      * @param unit             the receiving unit
@@ -74,7 +91,7 @@ public final class UnitHealth {
      * @throws UnsupportedOperationException if the strength tables are not initialized
      */
     public void setHitPoints(@NotNull Unit unit, int hitPoints, int instructionLimit) {
-        unit.setHitPoints(Math.min(hitPoints, this.game.requireGameData().getUnitTypes().getHitPoints(unit.getUnitId())));
+        unit.setHitPoints(Math.min(hitPoints, this.getMaximumHitPoints(unit)));
 
         Sprite sprite = unit.requireSprite();
 
@@ -126,7 +143,7 @@ public final class UnitHealth {
 
         try {
             int states = this.game.requireGameData().getImageDamageOverlayCount(mainImage.getImageTypeId());
-            int maximum = this.game.requireGameData().getUnitTypes().getHitPoints(unit.getUnitId());
+            int maximum = this.getMaximumHitPoints(unit);
             int twoThirds = maximum - maximum / HIT_POINT_THIRDS;
             int healthPerState = Math.max(1, twoThirds / (states + 1));
             int damageState = Math.max(0, (unit.getHitPoints() - twoThirds % healthPerState - maximum / HIT_POINT_THIRDS - 1) / healthPerState);
