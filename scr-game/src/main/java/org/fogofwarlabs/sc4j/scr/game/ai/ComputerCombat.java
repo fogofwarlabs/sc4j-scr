@@ -205,7 +205,7 @@ public final class ComputerCombat {
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
 
         if ((target.getStatus() & UnitStatusFlags.HALLUCINATION) != 0 &&
-            UnitQueries.getLife(units, target) != UnitQueries.getMaximumLife(units, target)) {
+            UnitQueries.getLife(units, target) != this.game.getUnitQueries().getMaximumLife(target)) {
             return false;
         }
 
@@ -1153,7 +1153,7 @@ public final class ComputerCombat {
             return false;
         }
 
-        if (UnitQueries.getHitPoints(unit) < UnitQueries.getMaximumHitPoints(units, unit) / STIM_HEALTH_DIVISOR) {
+        if (UnitQueries.getHitPoints(unit) < this.game.getUnitQueries().getMaximumHitPoints(unit) / STIM_HEALTH_DIVISOR) {
             return false;
         }
 
@@ -1205,7 +1205,8 @@ public final class ComputerCombat {
         int group = units.getGroupFlags(type);
         boolean terran = (group & UnitGroupFlags.ZERG) == 0 && (group & UnitGroupFlags.PROTOSS) == 0 && (group & UnitGroupFlags.TERRAN) != 0;
 
-        if (terran && (units.getFlags(type) & UnitTypeFlags.MECHANICAL) != 0 && unit.getHitPoints() != units.getHitPoints(type)) {
+        if (terran && (units.getFlags(type) & UnitTypeFlags.MECHANICAL) != 0 &&
+            unit.getHitPoints() != this.game.getUnitHealth().getMaximumHitPoints(unit)) {
             return false;
         }
 
@@ -1361,7 +1362,7 @@ public final class ComputerCombat {
                 return candidate;
             }
 
-            int maximum = UnitQueries.getMaximumHitPoints(units, candidate);
+            int maximum = this.game.getUnitQueries().getMaximumHitPoints(candidate);
 
             if (UnitQueries.getHitPoints(candidate) < maximum * TRANSPORT_HEALTH_NUMERATOR / TRANSPORT_HEALTH_DENOMINATOR &&
                 (units.getShieldEnabled(type) == 0 || candidate.getShieldPoints() >> SHIELD_POINT_FRACTION_BITS != units.getShieldAmount(type))) {

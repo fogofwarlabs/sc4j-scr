@@ -159,7 +159,7 @@ public final class UnitTimers {
 
         int abilityFlags = units.getFlags(unitType);
         int hitPoints = unit.getHitPoints();
-        int maximumHitPoints = units.getHitPoints(unitType);
+        int maximumHitPoints = this.game.getUnitHealth().getMaximumHitPoints(unit);
 
         if ((abilityFlags & UnitTypeFlags.REGENERATES_HIT_POINTS) != 0 && hitPoints > 0 && hitPoints != maximumHitPoints) {
             this.game.getUnitHealth().setHitPoints(unit, hitPoints + HIT_POINT_REGENERATION, instructionLimit);
@@ -222,7 +222,7 @@ public final class UnitTimers {
 
         if ((raceFlags & (UnitGroupFlags.ZERG | UnitGroupFlags.TERRAN | UnitGroupFlags.PROTOSS)) == UnitGroupFlags.TERRAN &&
             (UnitQueries.isGroundedBuilding(unit) || (abilityFlags & UnitTypeFlags.FLYING_BUILDING) != 0)) {
-            if (UnitQueries.isHeavilyDamaged(units, unit)) {
+            if (this.game.getUnitQueries().isHeavilyDamaged(unit)) {
                 this.game.getUnitDamage().dealUnitDamage(unit, BURN_DAMAGE, null, unit.getLastAttackingPlayer(), true, instructionLimit);
             }
         }

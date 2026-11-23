@@ -78,7 +78,7 @@ public final class GeyserRestoreHook implements UnitRemainsHook, GameSystem {
         scrUnit.setOrderTargetY(0);
         scrUnit.setPrimaryOrderState(0);
         scrUnit.setOrderTargetUnitType(ScrUnitIds.NONE);
-        scrUnit.setHitPoints(units.getHitPoints(ScrUnitIds.RESOURCE_VESPENE_GEYSER));
+        scrUnit.setHitPoints(attached.getUnitHealth().getMaximumHitPoints(scrUnit));
         attached.getUnitOwnership().changeOwner(scrUnit, PlayerTable.NEUTRAL_PLAYER_ID, false, instructionLimit);
         scrUnit.setStatus(scrUnit.getStatus() | UnitStatusFlags.COMPLETED);
         accounting.updateCompleted(scrUnit, units, 1, true, attached.getPlayerTable().getProductionStatistics());

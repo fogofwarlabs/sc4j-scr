@@ -1564,6 +1564,20 @@ public final class Main {
             public @Nullable FrameTiming getFrameTiming() {
                 return Main.this.frameTiming;
             }
+
+            /**
+             * Draws the commands of the plugins' draw lists in {@link ScrDrawList.Space#GROUND} into the world view's target
+             * ({@link SceneRenderer#drawExternal}).
+             *
+             * @param framebuffer the framebuffer of the target
+             * @param width       the target width in pixels
+             * @param height      the target height in pixels
+             * @param renderer    the world renderer of the pass, whose camera, scale and view place the map in the target
+             */
+            @Override
+            public void paintGround(int framebuffer, int width, int height, @NotNull WorldRenderer renderer) {
+                Main.this.drawGroundLists(framebuffer, width, height, renderer);
+            }
         };
 
         this.placementLayer = new PlacementPreviewLayer(() -> this.session, this.gameClientState.getInspection(), worldContext);
@@ -4789,6 +4803,36 @@ public final class Main {
         display.setConsoleRectangles(this.consoleView != null && !this.requireSession().getView().isConsoleHidden() ? this.consoleView : null);
 
         return painter;
+    }
+
+    /**
+     * Draws the ground commands of the plugins' draw lists ({@link ScrDrawList.Space#GROUND}) into the world view's target with the interface
+     * renderer, limited to the view, at the camera of the world renderer.
+     *
+     * @param framebuffer the framebuffer of the target
+     * @param width       the target width in pixels
+     * @param height      the target height in pixels
+     * @param renderer    the world renderer of the pass
+     */
+    private void drawGroundLists(int framebuffer, int width, int height, @NotNull WorldRenderer renderer) {
+        InterfaceRenderer interfaceRenderer = this.getInterfaceRenderer();
+        PluginDrawPainter painter = this.preparePluginPainter();
+
+        if (interfaceRenderer == null || painter == null) {
+            return;
+        }
+
+        float scale = renderer.getScale();
+
+        interfaceRenderer.begin(framebuffer, width, height, width, height);
+        interfaceRenderer.setClip(0, 0, renderer.getViewWidth(), renderer.getViewHeight());
+        painter.setSpace(-renderer.getCameraX() * scale, -renderer.getCameraY() * scale, scale, scale);
+
+        try {
+            this.requireSession().getView().paintDrawLists(ScrDrawList.Space.GROUND, painter);
+        } finally {
+            interfaceRenderer.end();
+        }
     }
 
     /**

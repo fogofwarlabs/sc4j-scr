@@ -7,6 +7,7 @@ import org.fogofwarlabs.sc4j.engine.client.render.WorldLayer;
 import org.fogofwarlabs.sc4j.engine.client.render.WorldView;
 import org.fogofwarlabs.sc4j.engine.client.render.WorldViewport;
 import org.fogofwarlabs.sc4j.scr.client.debug.FramePhaseUtils;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrDrawList;
 import org.fogofwarlabs.sc4j.scr.render.SceneRenderer;
 import org.fogofwarlabs.sc4j.scr.render.WorldRenderer;
 import org.jetbrains.annotations.NotNull;
@@ -19,8 +20,9 @@ import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
 
 /**
- * Draws the SC:R world of a frame as an engine {@link WorldView}: the SC:R layers terrain, scene (the sprites extracted from the game while it
- * plays) and scene finish (overlays, fog and lighting) over the scene backend of the frame's {@link WorldSkin}, then the client's own layers.
+ * Draws the SC:R world of a frame as an engine {@link WorldView}: the SC:R layers terrain, ground (the plugins' draw lists of
+ * {@link ScrDrawList.Space#GROUND}), scene (the sprites extracted from the game while it plays) and scene finish (overlays, fog and lighting) over
+ * the scene backend of the frame's {@link WorldSkin}, then the client's own layers.
  * The skin and its backends reach the engine view only through these layers.
  */
 public final class ScrWorldPass {
@@ -64,6 +66,17 @@ public final class ScrWorldPass {
          * @return the frame timing that marks each drawn layer, or {@code null} when timing is off
          */
         @Nullable FrameTiming getFrameTiming();
+
+        /**
+         * Draws the commands of the plugins' draw lists in {@link ScrDrawList.Space#GROUND} into the world view's target
+         * ({@link SceneRenderer#drawExternal}).
+         *
+         * @param framebuffer the framebuffer of the target
+         * @param width       the target width in pixels
+         * @param height      the target height in pixels
+         * @param renderer    the world renderer of the pass, whose camera, scale and view place the map in the target
+         */
+        void paintGround(int framebuffer, int width, int height, @NotNull WorldRenderer renderer);
     }
 
     /**
@@ -81,7 +94,8 @@ public final class ScrWorldPass {
                 ScrGameView view = ScrWorldPass.this.context.getView();
 
                 if (view.hasPlugins()) {
-                    ScrWorldPass.this.requireScene().drawTerrain(view.getMap()::getTileIdentifier, view::findTerrainTile);
+                    ScrWorldPass.this.requireScene().drawTerrain(view.getMap()::getTileIdentifier,
+                                                                 view::findTerrainTile, view::findTerrainTilePicture);
                 } else {
                     ScrWorldPass.this.requireScene().drawTerrain(view.getMap()::getTileIdentifier);
                 }
@@ -90,6 +104,31 @@ public final class ScrWorldPass {
             }
 
             ScrWorldPass.this.markTiming(FramePhaseUtils.TERRAIN);
+        }
+    }
+
+    /**
+     * Draws the plugins' draw lists of {@link ScrDrawList.Space#GROUND} above the terrain and below the sprites while the game plays; nothing when
+     * no plugin draws there.
+     */
+    private final class GroundLayer implements WorldLayer {
+        /**
+         * Draws the layer for a frame.
+         *
+         * @param viewport the frame's viewport
+         */
+        @Override
+        public void draw(@NotNull WorldViewport viewport) {
+            Context client = ScrWorldPass.this.context;
+            ScrGameView view = client.getView();
+
+            if (!client.isPlaybackRequested() || !view.hasPlugins() || !view.hasDrawCommands(ScrDrawList.Space.GROUND)) {
+                return;
+            }
+
+            WorldRenderer renderer = ScrWorldPass.this.requireRenderer();
+
+            ScrWorldPass.this.requireScene().drawExternal((framebuffer, width, height) -> client.paintGround(framebuffer, width, height, renderer));
         }
     }
 
@@ -150,13 +189,13 @@ public final class ScrWorldPass {
     private @Nullable WorldRenderer renderer;
 
     /**
-     * Creates a {@link ScrWorldPass} instance with the three SC:R layers followed by the client's own layers.
+     * Creates a {@link ScrWorldPass} instance with the four SC:R layers followed by the client's own layers.
      *
      * @param context      what the layers read from the client
      * @param clientLayers the layers drawn after the SC:R layers, in order
      */
     public ScrWorldPass(@NotNull Context context, @NotNull List<WorldLayer> clientLayers) {
-        List<WorldLayer> layers = new ArrayList<>(List.of(new TerrainLayer(), new SceneLayer(), new SceneFinishLayer()));
+        List<WorldLayer> layers = new ArrayList<>(List.of(new TerrainLayer(), new GroundLayer(), new SceneLayer(), new SceneFinishLayer()));
 
         layers.addAll(clientLayers);
 

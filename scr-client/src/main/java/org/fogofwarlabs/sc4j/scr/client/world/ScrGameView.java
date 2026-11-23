@@ -190,7 +190,7 @@ public final class ScrGameView implements GameView {
          */
         @Override
         public int getMaximumHitPoints() {
-            return UnitQueries.getMaximumHitPoints(ScrGameView.this.getUnitTypes(), this.unit);
+            return ScrGameView.this.getUnitQueries().getMaximumHitPoints(this.unit);
         }
 
         /**
@@ -604,6 +604,25 @@ public final class ScrGameView implements GameView {
     }
 
     /**
+     * Finds the picture a terrain megatile draws instead of its installed one in the HD and HD2 graphics: the first picture a plugin of the game
+     * gives ({@link ScrGamePlugin#findTerrainTilePicture}).
+     *
+     * @param megatile the megatile index of a drawn tile
+     * @return the picture, or {@code null} for the classic picture or the installed one
+     */
+    public @Nullable Picture findTerrainTilePicture(int megatile) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            Picture picture = plugin.findTerrainTilePicture(megatile);
+
+            if (picture != null) {
+                return picture;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Finds the picture drawn over the game screen and its console: the first overlay a plugin of the game gives
      * ({@link ScrGamePlugin#findScreenOverlay}).
      *
@@ -771,6 +790,24 @@ public final class ScrGameView implements GameView {
                 list.paint(space, painter);
             }
         }
+    }
+
+    /**
+     * Checks whether a plugin's draw list ({@link ScrGamePlugin#findDrawList}) has a command in a space.
+     *
+     * @param space the space
+     * @return {@code true} if a plugin's draw list has a command in the space, {@code false} otherwise
+     */
+    public boolean hasDrawCommands(ScrDrawList.@NotNull Space space) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            ScrDrawList list = plugin.findDrawList();
+
+            if (list != null && list.getCount(space) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

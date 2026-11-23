@@ -120,7 +120,7 @@ public final class UnitNydus {
 
             ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
 
-            exit.setHitPoints(units.getHitPoints(ScrUnitIds.ZERG_NYDUS_CANAL) / UnitInitializer.CONSTRUCTION_START_DIVISOR);
+            exit.setHitPoints(this.game.getUnitHealth().getMaximumHitPoints(exit) / UnitInitializer.CONSTRUCTION_START_DIVISOR);
             this.game.getOrders().issueUntargeted(exit, ScrOrderIds.INCOMPLETE_MORPHING, instructionLimit);
             UnitMorphing.writeButtonSet(units, exit, ButtonSetIds.EMPTY);
 

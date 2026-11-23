@@ -10,20 +10,27 @@ import org.fogofwarlabs.sc4j.scr.data.format.mpq.MpqArchive;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommand;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommandIds;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayFile;
+import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
 import org.fogofwarlabs.sc4j.scr.game.NetworkReplayScenario;
 import org.fogofwarlabs.sc4j.scr.game.extension.simulation.*;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
+import org.fogofwarlabs.sc4j.scr.game.movement.UnitGroupMovement;
+import org.fogofwarlabs.sc4j.scr.game.order.OrderPool;
+import org.fogofwarlabs.sc4j.scr.game.order.UnitSelection;
 import org.fogofwarlabs.sc4j.scr.game.replay.GameSourceFile;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayLoaderUtils;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayRuntime;
 import org.fogofwarlabs.sc4j.scr.game.save.*;
 import org.fogofwarlabs.sc4j.scr.game.session.LiveGame;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.MeleeGameSetup;
+import org.fogofwarlabs.sc4j.scr.game.sprite.SpritePool;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
+import org.fogofwarlabs.sc4j.scr.game.terrain.MapTileFlags;
 import org.fogofwarlabs.sc4j.scr.game.test.*;
 import org.fogofwarlabs.sc4j.scr.game.trigger.TriggerContext;
 import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
+import org.fogofwarlabs.sc4j.scr.game.unit.finder.UnitPositioning;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -32,14 +39,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 /**
  * Checks the simulation plugins of a running game: plugin creation sees the scenario of live, replayed and saved games and the map archive of a
- * live game started from a map file, the frame start runs before the triggers, a death by weapon damage names its killer and
- * weapon, a weapon damage decision and an order decision change what the routines do, a mod command reaches the plugins and is kept in the
- * written replay, the mod command submitter a live session supplies queues the local player's commands, a replay section a live game sets is
+ * live game started from a map file, the frame start runs before the triggers, a death by weapon damage names its killer and weapon, a death
+ * animation reports the sprite its iscript creates, a weapon damage decision and an order decision change what the routines do, an order
+ * decision keeps the position a command asked for and offers the orders a routine inserts into a queue, the adjustments change a unit's weapon
+ * range, speed and maximum hit points, a mod command reaches the plugins and is kept in the written replay, the mod command submitter a live
+ * session supplies queues the local player's commands, a replay section a live game sets is
  * offered when its replay plays back, and a plugin that does not allow a save stops it.
  */
 @RequiresInstallation
@@ -52,6 +62,7 @@ final class ScrSimulationExtensionTest {
     private static final int POSITION_X = 1000;
     private static final int POSITION_Y = 1000;
     private static final int TARGET_OFFSET = 24;
+    private static final int WORD_MASK = 0xFFFF;
     /**
      * The hit points the weakened target keeps, with eight fractional bits.
      */
@@ -60,6 +71,19 @@ final class ScrSimulationExtensionTest {
      * The base damage a decision gives a hit, with eight fractional bits: more than any Zergling has hit points.
      */
     private static final int LETHAL_DAMAGE = 1000 << 8;
+    /**
+     * The range an adjustment adds to a weapon, in pixels.
+     */
+    private static final int RANGE_BONUS = 64;
+    /**
+     * The speed an adjusted unit is asked for, and the factor of its adjustment.
+     */
+    private static final int ADJUSTED_SPEED = 0x100;
+    private static final int SPEED_FACTOR = 2;
+    /**
+     * The adjusted maximum hit points, with eight fractional bits: more than a Marine has.
+     */
+    private static final int MAXIMUM_HIT_POINTS = 100 << 8;
     private static final byte @NotNull [] MOD_COMMAND_DATA = {0x53, 0x43, 0x34, 0x4A};
     private static final @NotNull String REPLAY_SECTION_TAG = "TEST";
     /**
@@ -86,6 +110,41 @@ final class ScrSimulationExtensionTest {
                                                                                                             owner));
 
         return created[0];
+    }
+
+    private static @NotNull Unit createUnitAt(@NotNull ReplayRuntime runtime, int unitType, int positionX, int positionY) {
+        Unit[] created = new Unit[1];
+
+        RunningGameScenario.runInCommandDispatch(runtime, () -> created[0] = RunningGameScenario.createUnit(runtime.getGame(),
+                                                                                                            unitType,
+                                                                                                            positionX, positionY,
+                                                                                                            RunningGameScenario.HUMAN));
+
+        return created[0];
+    }
+
+    /**
+     * Finds the center of a tile without walkable mini-tiles whose left neighbor tile carries a Marine.
+     *
+     * @return the blocked position and the position of the Marine on its left, as {@code x, y, x, y}
+     */
+    private static int @NotNull [] findBlockedPositionBesideGround(@NotNull Game game) {
+        UnitPositioning positioning = game.getUnitPositioning();
+
+        for (int tileY = 2; tileY < game.getMap().getHeight() - 2; tileY++) {
+            for (int tileX = 2; tileX < game.getMap().getWidth() - 1; tileX++) {
+                int blockedX = tileX * TerrainTileset.TILE_SIZE + TerrainTileset.TILE_SIZE / 2;
+                int blockedY = tileY * TerrainTileset.TILE_SIZE + TerrainTileset.TILE_SIZE / 2;
+                int groundX = blockedX - TerrainTileset.TILE_SIZE;
+
+                if ((game.getMap().getTileFlags(tileX, tileY) & (MapTileFlags.WALKABLE | MapTileFlags.PARTIALLY_WALKABLE)) == 0 &&
+                    positioning.isTerrainPlacementWalkable(ScrUnitIds.TERRAN_MARINE, groundX, blockedY)) {
+                    return new int[]{blockedX, blockedY, groundX, blockedY};
+                }
+            }
+        }
+
+        return Assertions.fail("The map has no unwalkable tile beside ground.");
     }
 
     private static void hit(@NotNull ReplayRuntime runtime, @NotNull Unit source, @NotNull Unit target) {
@@ -205,6 +264,38 @@ final class ScrSimulationExtensionTest {
     }
 
     @Test
+    void death_animation_reports_the_sprite_its_iscript_creates(@NotNull InstallationTestResources resources) throws Throwable {
+        RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
+
+        RecordingSimulationPluginSource.record(recording, () -> {
+            ReplayRuntime runtime = RunningGameScenario.start(resources.getGameData());
+            Game game = runtime.getGame();
+            Unit marine = createUnit(runtime, ScrUnitIds.TERRAN_MARINE, 0, RunningGameScenario.HUMAN);
+            Unit zergling = createUnit(runtime, ScrUnitIds.ZERG_ZERGLING, TARGET_OFFSET, RunningGameScenario.COMPUTER);
+            int zerglingSprite = zergling.requireSprite().getPoolIndex();
+            int zerglingImage = zergling.requireSprite().requireMainImage().getImageTypeId();
+
+            recording.getEvents().clear();
+            zergling.setHitPoints(WEAK_HIT_POINTS);
+            hit(runtime, marine, zergling);
+
+            for (int step = 0; step < STEPPED_FRAMES; step++) {
+                Assertions.assertTrue(runtime.step(0, game.getCurrentFrame() * runtime.getFrameDuration()));
+            }
+
+            List<SpriteCreatedEvent> created = recording.findEvents(SpriteCreatedEvent.class).stream()
+                                                        .filter(event -> event.getSourceSprite() == zerglingSprite)
+                                                        .toList();
+            SpritePool sprites = game.getSpriteSystem().getSpritePool();
+
+            Assertions.assertEquals(1, created.size(), "one sprite of the death animation");
+            Assertions.assertEquals(zerglingImage, created.getFirst().getSourceImageType());
+            Assertions.assertNotNull(sprites);
+            Assertions.assertEquals(created.getFirst().getSpriteType(), sprites.getSprite(created.getFirst().getSprite()).getSpriteTypeId());
+        });
+    }
+
+    @Test
     void weapon_damage_decision_cancels_or_raises_the_damage(@NotNull InstallationTestResources resources) throws Throwable {
         RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
 
@@ -234,6 +325,45 @@ final class ScrSimulationExtensionTest {
 
             Assertions.assertEquals(0, zergling.getHitPoints(), "a raised hit kills the target");
             Assertions.assertEquals(ScrWeaponIds.GAUSS_RIFLE, findDeath(recording, zergling).getWeapon());
+        });
+    }
+
+    @Test
+    void adjustments_change_the_weapon_range_the_speed_and_the_maximum_hit_points(@NotNull InstallationTestResources resources) throws Throwable {
+        RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
+
+        RecordingSimulationPluginSource.record(recording, () -> {
+            ReplayRuntime runtime = RunningGameScenario.start(resources.getGameData());
+            Game game = runtime.getGame();
+            Unit marine = createUnit(runtime, ScrUnitIds.TERRAN_MARINE, 0, RunningGameScenario.HUMAN);
+            int range = game.getUnitTargeting().getWeaponMaximumRange(marine, ScrWeaponIds.GAUSS_RIFLE);
+            int speed = game.getUnitSpeed().calculateModifiedSpeed(marine, ADJUSTED_SPEED);
+
+            recording.setAdjuster(new ScrSimulationPlugin() {
+                @Override
+                public int adjustWeaponRange(@NotNull Unit unit, int weapon, int range) {
+                    return unit == marine ? range + RANGE_BONUS : range;
+                }
+
+                @Override
+                public int adjustMovementSpeed(@NotNull Unit unit, int speed) {
+                    return unit == marine ? speed * SPEED_FACTOR : speed;
+                }
+
+                @Override
+                public int adjustMaximumHitPoints(@NotNull Unit unit, int maximumHitPoints) {
+                    return unit == marine ? MAXIMUM_HIT_POINTS : maximumHitPoints;
+                }
+            });
+
+            Assertions.assertEquals(range + RANGE_BONUS, game.getUnitTargeting().getWeaponMaximumRange(marine, ScrWeaponIds.GAUSS_RIFLE));
+            Assertions.assertEquals(speed * SPEED_FACTOR, game.getUnitSpeed().calculateModifiedSpeed(marine, ADJUSTED_SPEED));
+            Assertions.assertEquals(MAXIMUM_HIT_POINTS >> Byte.SIZE, game.getUnitQueries().getMaximumHitPoints(marine));
+
+            RunningGameScenario.runInCommandDispatch(runtime, () -> game.getUnitHealth().setHitPoints(marine, MAXIMUM_HIT_POINTS + 1,
+                                                                                                      RunningGameScenario.INSTRUCTION_LIMIT));
+
+            Assertions.assertEquals(MAXIMUM_HIT_POINTS, marine.getHitPoints(), "the hit points stop at the adjusted maximum");
         });
     }
 
@@ -277,6 +407,113 @@ final class ScrSimulationExtensionTest {
             Assertions.assertEquals(ScrOrderIds.HOLD_POSITION, marine.getPrimaryOrder(), "a changed order is issued instead");
             Assertions.assertSame(marine, issued.getUnit().getUnit());
             Assertions.assertEquals(ScrOrderIds.HOLD_POSITION, issued.getOrderId());
+        });
+    }
+
+    @Test
+    void order_decision_of_a_command_on_blocked_ground_keeps_the_requested_position(@NotNull InstallationTestResources resources) throws Throwable {
+        RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
+
+        RecordingSimulationPluginSource.record(recording, () -> {
+            ReplayRuntime runtime = RunningGameScenario.start(resources.getGameData());
+            Game game = runtime.getGame();
+            int[] positions = findBlockedPositionBesideGround(game);
+            int blockedX = positions[0];
+            int blockedY = positions[1];
+            Unit marine = createUnitAt(runtime, ScrUnitIds.TERRAN_MARINE, positions[2], positions[3]);
+            List<OrderDecision> decisions = new ArrayList<>();
+            UnitSelection selection = game.getSelection();
+
+            Assertions.assertNotNull(selection);
+
+            recording.setDecider(decision -> {
+                if (decision instanceof OrderDecision order && order.getUnit().getUnit() == marine) {
+                    decisions.add(order);
+                }
+            });
+            RunningGameScenario.runInCommandDispatch(runtime, () -> {
+                selection.select(game, RunningGameScenario.HUMAN, new Unit[]{marine});
+
+                Assertions.assertTrue(game.getUnitCommands().rightClick(RunningGameScenario.HUMAN,
+                                                                        blockedX, blockedY,
+                                                                        null,
+                                                                        ScrUnitIds.NONE,
+                                                                        false,
+                                                                        RunningGameScenario.INSTRUCTION_LIMIT));
+            });
+
+            Assertions.assertEquals(1, decisions.size(), "one decision for the command");
+
+            OrderDecision decision = decisions.getFirst();
+
+            Assertions.assertFalse(decision.isInserted());
+            Assertions.assertEquals(blockedX, decision.getRequestedPositionX());
+            Assertions.assertEquals(blockedY, decision.getRequestedPositionY());
+            Assertions.assertTrue(game.getUnitPositioning().isTerrainPlacementWalkable(ScrUnitIds.TERRAN_MARINE,
+                                                                                       decision.getPositionX(), decision.getPositionY()),
+                                  "the command moves its target off the blocked ground");
+
+            int destination = UnitGroupMovement.calculateUnitPosition(game, ScrUnitIds.TERRAN_MARINE, positions[2], positions[3], blockedX, blockedY);
+
+            Assertions.assertEquals(destination & WORD_MASK, decision.getPositionX(), "the destination of a command for one unit");
+            Assertions.assertEquals(destination >>> Short.SIZE, decision.getPositionY());
+        });
+    }
+
+    @Test
+    void inserted_order_decision_leaves_a_rejected_order_out_of_the_queue(@NotNull InstallationTestResources resources) throws Throwable {
+        RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
+
+        RecordingSimulationPluginSource.record(recording, () -> {
+            ReplayRuntime runtime = RunningGameScenario.start(resources.getGameData());
+            Game game = runtime.getGame();
+            Unit marine = createUnit(runtime, ScrUnitIds.TERRAN_MARINE, 0, RunningGameScenario.HUMAN);
+            List<OrderDecision> decisions = new ArrayList<>();
+            int[] insertedOrder = {ScrOrderIds.PATROL};
+
+            recording.setDecider(decision -> {
+                if (!(decision instanceof OrderDecision order) || order.getUnit().getUnit() != marine) {
+                    return;
+                }
+
+                decisions.add(order);
+
+                if (order.isInserted()) {
+                    order.setOrderId(insertedOrder[0]);
+                    order.setRejected(insertedOrder[0] == ScrOrderIds.PATROL);
+                }
+            });
+            RunningGameScenario.runInCommandDispatch(runtime, () -> game.getOrders().issue(marine,
+                                                                                           ScrOrderIds.MOVE,
+                                                                                           null,
+                                                                                           POSITION_X, POSITION_Y + TARGET_OFFSET,
+                                                                                           ScrUnitIds.NONE,
+                                                                                           false,
+                                                                                           RunningGameScenario.INSTRUCTION_LIMIT));
+
+            Assertions.assertEquals(1, decisions.size(), "the queue work of an issued order offers no second decision");
+            Assertions.assertFalse(decisions.getFirst().isInserted());
+            Assertions.assertEquals(POSITION_Y + TARGET_OFFSET, decisions.getFirst().getRequestedPositionY());
+
+            Runnable insert = () -> game.getOrders().queueBack(marine, ScrOrderIds.PATROL, null, POSITION_X, POSITION_Y, ScrUnitIds.NONE);
+
+            recording.getEvents().clear();
+            decisions.clear();
+            RunningGameScenario.runInCommandDispatch(runtime, insert);
+
+            Assertions.assertEquals(1, decisions.size());
+            Assertions.assertTrue(decisions.getFirst().isInserted());
+            Assertions.assertEquals(POSITION_X, decisions.getFirst().getRequestedPositionX());
+            Assertions.assertNull(marine.getLastOrder(), "a rejected inserted order is not queued");
+            Assertions.assertTrue(recording.findEvents(OrderIssuedEvent.class).isEmpty(), "an inserted order reports no issued order");
+
+            insertedOrder[0] = ScrOrderIds.HOLD_POSITION;
+            RunningGameScenario.runInCommandDispatch(runtime, insert);
+
+            OrderPool.Order queued = marine.getLastOrder();
+
+            Assertions.assertNotNull(queued);
+            Assertions.assertEquals(ScrOrderIds.HOLD_POSITION, queued.getOrderId(), "a changed inserted order is queued instead");
         });
     }
 

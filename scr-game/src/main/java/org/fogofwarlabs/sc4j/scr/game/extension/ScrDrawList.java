@@ -8,9 +8,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
 /**
- * The shapes, texts and pictures a plugin draws over the game ({@link ScrGamePlugin#findDrawList()}), in three spaces: the game screen above the
- * console, the map above the units and below the console, and the map on the minimap. Each space keeps its commands in the order they were added,
- * which is the order they are drawn. Coordinates are floats; colours are packed {@code 0xAARRGGBB} with straight alpha.
+ * The shapes, texts and pictures a plugin draws over the game ({@link ScrGamePlugin#findDrawList()}), in four spaces: the game screen above the
+ * console, the map above the units and below the console, the map above the terrain and below the units, and the map on the minimap. Each space
+ * keeps its commands in the order they were added, which is the order they are drawn. Coordinates are floats; colours are packed
+ * {@code 0xAARRGGBB} with straight alpha.
  * <p>
  * A list is reused: {@link #clear()} keeps its storage, so a list that is refilled every frame allocates only while it grows.
  */
@@ -29,6 +30,12 @@ public final class ScrDrawList {
          * pixels, so they follow the camera zoom as the units do.
          */
         WORLD,
+        /**
+         * The map in map pixels, following the camera: drawn into the world view above the terrain and its creep and below the units, their
+         * shadows and the HD foliage, at the resolution of the world view, which the SD graphics draw at their {@code 480} lines. Sizes, line
+         * thicknesses and texts are in map pixels. The fog of war and the HD lighting apply to it as to the terrain.
+         */
+        GROUND,
         /**
          * The map in map pixels mapped onto the minimap, drawn above it. Positions and sizes are in map pixels; line thicknesses, point sizes and
          * texts are in interface units.

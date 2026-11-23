@@ -522,7 +522,8 @@ public final class UnitTargeting {
     }
 
     /**
-     * Applies Bunker, unit range upgrade and hero bonuses to the weapon's maximum range.
+     * Applies Bunker, unit range upgrade and hero bonuses to the weapon's maximum range, then the simulation plugins' adjustment
+     * ({@link ScrSimulationPlugins#adjustWeaponRange}).
      *
      * @param unit   the attacking unit
      * @param weapon the weapon
@@ -548,7 +549,9 @@ public final class UnitTargeting {
             range += ALAN_SCHEZAR_RANGE_BONUS;
         }
 
-        return range;
+        ScrSimulationPlugins plugins = this.game.getSimulationPlugins();
+
+        return plugins != null ? plugins.adjustWeaponRange(unit, weapon, range) : range;
     }
 
     /**

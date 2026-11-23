@@ -382,7 +382,8 @@ public final class UnitStrengthTable {
         }
 
         int currentHealth = UnitQueries.getLife(units, unit);
-        int maximumHealth = UnitQueries.getMaximumLife(units, unit);
+        int maximumHitPoints = game != null ? game.getUnitHealth().getMaximumHitPoints(unit) : units.getHitPoints(unitType);
+        int maximumHealth = UnitQueries.getMaximumLife(units, maximumHitPoints, unit);
 
         if ((unit.getStatus() & UnitStatusFlags.HALLUCINATION) != 0 && currentHealth < maximumHealth) {
             return 0;

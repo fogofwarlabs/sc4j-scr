@@ -1060,7 +1060,7 @@ public final class ComputerSpells {
             return false;
         }
 
-        if (UnitQueries.getMaximumHitPoints(this.units, target) <= MATRIX_MAXIMUM_HIT_POINTS_LIMIT ||
+        if (this.game.getUnitQueries().getMaximumHitPoints(target) <= MATRIX_MAXIMUM_HIT_POINTS_LIMIT ||
             UnitQueries.getHitPoints(target) >= MATRIX_HIT_POINTS_LIMIT) {
             return false;
         }

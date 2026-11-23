@@ -2593,6 +2593,27 @@ public final class WorldRenderer implements AutoCloseable {
     }
 
     /**
+     * Lets another renderer draw into the world frame ({@link SceneRenderer#drawExternal}): submits the pending world quads, runs the drawing with
+     * the world framebuffer, whose color target alone takes the drawing, then restores this renderer's state ({@link #endExternalWorldPass()}).
+     *
+     * @param drawing the drawing
+     * @throws IllegalStateException if no world frame is active
+     */
+    public void drawExternal(SceneRenderer.@NotNull ExternalDrawing drawing) {
+        this.beginExternalWorldPass();
+        glColorMaski(EFFECT_TARGET, false, false, false, false);
+        glColorMaski(INDEX_TARGET, false, false, false, false);
+
+        try {
+            drawing.draw(this.worldFramebuffer, this.framebufferWidth, this.framebufferHeight);
+        } finally {
+            glColorMaski(EFFECT_TARGET, true, true, true, true);
+            glColorMaski(INDEX_TARGET, true, true, true, true);
+            this.endExternalWorldPass();
+        }
+    }
+
+    /**
      * Resolves the world shadow mask before screen-space overlays and selection markers.
      * <p>
      * Repeated calls have no effect. Callers draw all world images before this boundary.

@@ -242,12 +242,12 @@ final class UnitQueriesTest {
         marine.setHitPoints(CURRENT_HIT_POINTS << POINT_FRACTION_BITS);
         ghost.setHitPoints(CURRENT_HIT_POINTS << POINT_FRACTION_BITS);
 
-        Assertions.assertEquals(MARINE_HIT_POINTS, UnitQueries.getMaximumHitPoints(units, marine));
-        Assertions.assertEquals(CURRENT_HIT_POINTS, UnitQueries.getMaximumHitPoints(units, ghost));
+        Assertions.assertEquals(MARINE_HIT_POINTS, UnitQueries.getMaximumHitPoints(units.getHitPoints(marine.getUnitId()), marine));
+        Assertions.assertEquals(CURRENT_HIT_POINTS, UnitQueries.getMaximumHitPoints(units.getHitPoints(ghost.getUnitId()), ghost));
 
         ghost.setHitPoints(0);
 
-        Assertions.assertEquals(1, UnitQueries.getMaximumHitPoints(units, ghost));
+        Assertions.assertEquals(1, UnitQueries.getMaximumHitPoints(units.getHitPoints(ghost.getUnitId()), ghost));
     }
 
     @Test
@@ -256,7 +256,9 @@ final class UnitQueriesTest {
 
         firebat.setHitPoints(CURRENT_HIT_POINTS << POINT_FRACTION_BITS);
 
-        Assertions.assertEquals(NEGATIVE_UNITS_DAT_HIT_POINTS, UnitQueries.getMaximumHitPoints(createUnitTypes(), firebat));
+        int maximumHitPoints = createUnitTypes().getHitPoints(firebat.getUnitId());
+
+        Assertions.assertEquals(NEGATIVE_UNITS_DAT_HIT_POINTS, UnitQueries.getMaximumHitPoints(maximumHitPoints, firebat));
     }
 
     @Test
@@ -279,16 +281,16 @@ final class UnitQueriesTest {
 
         marine.setHitPoints(HEAVILY_DAMAGED_HIT_POINTS << POINT_FRACTION_BITS);
 
-        Assertions.assertTrue(UnitQueries.isHeavilyDamaged(units, marine));
+        Assertions.assertTrue(UnitQueries.isHeavilyDamaged(units.getHitPoints(marine.getUnitId()), marine));
 
         marine.setHitPoints(DAMAGED_HIT_POINTS << POINT_FRACTION_BITS);
 
-        Assertions.assertFalse(UnitQueries.isHeavilyDamaged(units, marine));
+        Assertions.assertFalse(UnitQueries.isHeavilyDamaged(units.getHitPoints(marine.getUnitId()), marine));
 
         marine.setHitPoints(NEGATIVE_HIT_POINTS << POINT_FRACTION_BITS);
 
-        Assertions.assertTrue(UnitQueries.getHitPointPercent(units, marine) < 0);
-        Assertions.assertFalse(UnitQueries.isHeavilyDamaged(units, marine));
+        Assertions.assertTrue(UnitQueries.getHitPointPercent(units.getHitPoints(marine.getUnitId()), marine) < 0);
+        Assertions.assertFalse(UnitQueries.isHeavilyDamaged(units.getHitPoints(marine.getUnitId()), marine));
     }
 
     @Test
@@ -303,9 +305,10 @@ final class UnitQueriesTest {
         marine.setShieldPoints(ZEALOT_CURRENT_SHIELDS << POINT_FRACTION_BITS);
 
         Assertions.assertEquals(CURRENT_HIT_POINTS + ZEALOT_CURRENT_SHIELDS, UnitQueries.getLife(units, zealot));
-        Assertions.assertEquals(ZEALOT_HIT_POINTS + ZEALOT_SHIELDS, UnitQueries.getMaximumLife(units, zealot));
+        Assertions.assertEquals(ZEALOT_HIT_POINTS + ZEALOT_SHIELDS,
+                                UnitQueries.getMaximumLife(units, units.getHitPoints(zealot.getUnitId()), zealot));
         Assertions.assertEquals(CURRENT_HIT_POINTS, UnitQueries.getLife(units, marine));
-        Assertions.assertEquals(MARINE_HIT_POINTS, UnitQueries.getMaximumLife(units, marine));
+        Assertions.assertEquals(MARINE_HIT_POINTS, UnitQueries.getMaximumLife(units, units.getHitPoints(marine.getUnitId()), marine));
     }
 
     @Test

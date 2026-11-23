@@ -18,7 +18,10 @@ import org.fogofwarlabs.sc4j.scr.game.sprite.SelectionImages;
 import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpritePool;
-import org.fogofwarlabs.sc4j.scr.game.unit.*;
+import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
+import org.fogofwarlabs.sc4j.scr.game.unit.UnitPool;
+import org.fogofwarlabs.sc4j.scr.game.unit.UnitStatusFlags;
+import org.fogofwarlabs.sc4j.scr.game.unit.UnitTypeTraitsUtils;
 import org.fogofwarlabs.sc4j.scr.game.visibility.LocalVision;
 import org.fogofwarlabs.sc4j.scr.render.SceneRenderer;
 import org.fogofwarlabs.sc4j.scr.render.WorldRenderer;
@@ -596,7 +599,7 @@ public final class WorldSceneExtraction {
         ScrSpriteTypeView spriteTable = gameView.requireGameData().getSpriteTypes();
         int type = unit.getUnitId();
 
-        int hitPointsPercent = UnitQueries.getHitPointPercent(units, unit);
+        int hitPointsPercent = gameView.getUnitQueries().getHitPointPercent(unit);
 
         int shieldPercent = -1;
 

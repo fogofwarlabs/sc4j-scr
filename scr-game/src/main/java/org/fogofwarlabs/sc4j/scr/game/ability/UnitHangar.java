@@ -599,10 +599,8 @@ public final class UnitHangar {
                 return;
             }
 
-            ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
-
             for (Unit fighter = unit.getFirstHangarUnit(false); fighter != null; fighter = fighter.getNextHangarUnit()) {
-                if (fighter.getHitPoints() >= units.getHitPoints(fighter.getUnitId())) {
+                if (fighter.getHitPoints() >= this.game.getUnitHealth().getMaximumHitPoints(fighter)) {
                     continue;
                 }
 
@@ -1417,7 +1415,6 @@ public final class UnitHangar {
      * @throws UnsupportedOperationException if the creation context is missing
      */
     private @Nullable Unit releaseFighter(@NotNull Unit unit) {
-        ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
         Unit released = null;
         int bestHitPoints = 0;
 
@@ -1441,7 +1438,7 @@ public final class UnitHangar {
         }
 
         if (this.game.getBaseType(released) == ScrUnitIds.PROTOSS_INTERCEPTOR &&
-            released.getHitPoints() < units.getHitPoints(released.getUnitId()) / INTERCEPTOR_RELEASE_HEALTH_DIVISOR) {
+            released.getHitPoints() < this.game.getUnitHealth().getMaximumHitPoints(released) / INTERCEPTOR_RELEASE_HEALTH_DIVISOR) {
             return null;
         }
 

@@ -174,6 +174,18 @@ public interface ScrGamePlugin {
     }
 
     /**
+     * Finds the picture a terrain megatile draws instead of its installed one in the HD and HD2 graphics: a picture of any size, stretched over
+     * the tile with linear filtering and drawn with its alpha over the installed HD tile, in place of the picture of {@link #findTerrainTile}. The
+     * classic graphics keep {@link #findTerrainTile}. The same instance is returned while the picture is unchanged.
+     *
+     * @param megatile the megatile index of a drawn tile
+     * @return the picture, or {@code null} for the picture of {@link #findTerrainTile} or the installed one
+     */
+    default @Nullable Picture findTerrainTilePicture(int megatile) {
+        return null;
+    }
+
+    /**
      * Finds the picture the plugin draws over the game screen and its console.
      *
      * @return the overlay, or {@code null} for none
@@ -251,7 +263,8 @@ public interface ScrGamePlugin {
      * Finds the shapes, texts and pictures the plugin draws over the game in the frame being drawn. The client draws the list of every plugin, in
      * extension order, at the real resolution: the {@link ScrDrawList.Space#WORLD} commands above the units and below the console, the
      * {@link ScrDrawList.Space#MINIMAP} commands above the minimap, and the {@link ScrDrawList.Space#SCREEN} commands above the console, below
-     * the game menus. The client reads the list while it draws and keeps nothing of it but the uploaded pictures, so the plugin may refill the
+     * the game menus; the {@link ScrDrawList.Space#GROUND} commands above the terrain and below the units, at the resolution of the world view.
+     * The client reads the list while it draws and keeps nothing of it but the uploaded pictures, so the plugin may refill the
      * same list for the next frame.
      *
      * @return the list, or {@code null} for none

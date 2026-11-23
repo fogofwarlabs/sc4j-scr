@@ -4,7 +4,7 @@ import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.engine.content.modifier.Stat;
 import org.fogofwarlabs.sc4j.engine.content.type.ContentType;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrFlingyTypeView;
-import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
+import org.fogofwarlabs.sc4j.scr.game.extension.ScrSimulationPlugins;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameExecutionScope;
 import org.fogofwarlabs.sc4j.scr.game.modifier.ScrSpeedModifier;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerUpgrades;
@@ -15,7 +15,8 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Recalculates the movement fields of a unit (top speed, acceleration and turn rate) from {@code flingy.dat} and its speed modifiers, and refreshes
- * its speed and cooldown upgrade flags.
+ * its speed and cooldown upgrade flags. The speeds and the acceleration after the speed modifiers go through the simulation plugins'
+ * adjustments ({@link ScrSimulationPlugins#adjustMovementSpeed}, {@link ScrSimulationPlugins#adjustAcceleration}).
  */
 public final class UnitSpeed {
     /**
@@ -84,23 +85,41 @@ public final class UnitSpeed {
 
         int modifier = unit.getSpeedModifier();
 
-        unit.setAcceleration(applySpeedModifier(flingyTypes.getAcceleration(flingyType), modifier));
+        int acceleration = applySpeedModifier(flingyTypes.getAcceleration(flingyType), modifier);
+        ScrSimulationPlugins plugins = this.game.getSimulationPlugins();
+
+        unit.setAcceleration(plugins != null ? plugins.adjustAcceleration(unit, acceleration) : acceleration);
         unit.setTurnRate(applySpeedModifier(flingyTypes.getTurnRate(flingyType), modifier));
     }
 
     /**
      * Calculates the top speed of a unit: the {@code flingy.dat} top speed of its type's flingy with its speed modifiers
-     * ({@link Unit#calculateModifiedMovementSpeed}).
+     * ({@link #calculateModifiedSpeed}).
      *
      * @param unit the unit
      * @return the modified top speed in units with eight fraction bits
      * @throws NullPointerException if the world was built without game data
      */
     public int calculateModifiedTopSpeed(@NotNull Unit unit) {
-        ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
-        int flingyType = units.getFlingyType(unit.getUnitId());
+        int flingyType = this.game.requireGameData().getUnitTypes().getFlingyType(unit.getUnitId());
 
-        return unit.calculateModifiedMovementSpeed(units, this.game.requireGameData().getFlingyTypes().getTopSpeed(flingyType));
+        return this.calculateModifiedSpeed(unit, this.game.requireGameData().getFlingyTypes().getTopSpeed(flingyType));
+    }
+
+    /**
+     * Calculates a speed of a unit after its speed modifiers ({@link Unit#calculateModifiedMovementSpeed}) and the simulation plugins' adjustment
+     * ({@link ScrSimulationPlugins#adjustMovementSpeed}): the {@code flingy.dat} top speed, and the speed of an iscript {@code move}.
+     *
+     * @param unit  the unit
+     * @param speed the input DWORD speed in units with eight fraction bits
+     * @return the modified DWORD speed
+     * @throws NullPointerException if the world was built without game data
+     */
+    public int calculateModifiedSpeed(@NotNull Unit unit, int speed) {
+        int modified = unit.calculateModifiedMovementSpeed(this.game.requireGameData().getUnitTypes(), speed);
+        ScrSimulationPlugins plugins = this.game.getSimulationPlugins();
+
+        return plugins != null ? plugins.adjustMovementSpeed(unit, modified) : modified;
     }
 
     /**

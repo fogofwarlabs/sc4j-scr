@@ -2718,7 +2718,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
 
         DialogLayout panel = console.getSelectionPanel();
         ScrUnitTypeView units = model.getView().requireGameData().getUnitTypes();
-        Wireframe wireframe = Wireframe.createStatusWireframe(selection, units);
+        Wireframe wireframe = Wireframe.createStatusWireframe(selection, units, model.getView().getUnitQueries()::getMaximumHitPoints);
 
         if (wireframe != null) {
             DialogLayout.Control control = panel.getControl(MAIN_WIREFRAME_CONTROL);
@@ -2810,7 +2810,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
         String sheet = isStandardDefinition(loaded) ? cargo ? TRANSPORT_SHEET : GROUP_SHEET : WIREFRAME_SHEET;
         float x = control.getX() + (control.getWidth() - boxWidth) / 2f;
         float y = control.getY() + (control.getHeight() - boxHeight) / 2f;
-        Wireframe wireframe = Wireframe.createSlotWireframe(unit, units);
+        Wireframe wireframe = Wireframe.createSlotWireframe(unit, units, model.getView().getUnitQueries()::getMaximumHitPoints);
 
         this.drawWireframe(console, loaded, wireframe, model.getView().requireGameData().getWireframe(wireframe.getFrame()), sheet, x, y, boxWidth,
                            boxHeight, !sheet.equals(WIREFRAME_SHEET));

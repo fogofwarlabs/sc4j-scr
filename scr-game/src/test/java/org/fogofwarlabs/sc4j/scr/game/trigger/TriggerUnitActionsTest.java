@@ -12,6 +12,7 @@ import org.fogofwarlabs.sc4j.scr.data.type.ArrayDatColumn;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.TriggerUnitGroups;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitTypeFlags;
+import org.fogofwarlabs.sc4j.scr.game.presentation.CommandErrorEvents;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayRuntime;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteScenario;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
@@ -21,6 +22,7 @@ import org.fogofwarlabs.sc4j.scr.game.terrain.GameMapScenario;
 import org.fogofwarlabs.sc4j.scr.game.test.RunningGameScenario;
 import org.fogofwarlabs.sc4j.scr.game.test.UnitTestUtils;
 import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
+import org.fogofwarlabs.sc4j.scr.game.unit.finder.UnitPositioning;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.IOException;
 
 /**
- * Checks the unit creation of the trigger actions and the building-flight exclusion of Move Unit for types beyond units.dat.
+ * Checks the unit creation of the trigger actions, with and without the messages of a failed creation, the search of the position a creation
+ * places a unit at, and the building-flight exclusion of Move Unit for types beyond units.dat.
  */
 @RequiresInstallation
 final class TriggerUnitActionsTest {
@@ -137,6 +140,60 @@ final class TriggerUnitActionsTest {
 
             Assertions.assertTrue(game.getTriggerUnitActions().acceptsMoveUnit(new TriggerContext(), units, gameData.getTerrainTileset(0),
                                                                                unit, 0, TriggerUnitGroups.ANY_UNIT, 0));
+        }
+    }
+
+    @Test
+    void find_create_position_should_give_the_position_create_unit_places_the_unit_at() throws IOException {
+        try (GameData data = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            ReplayRuntime runtime = RunningGameScenario.start(data);
+
+            RunningGameScenario.runInCommandDispatch(runtime, () -> {
+                Game game = runtime.getGame();
+                TriggerUnitActions actions = game.getTriggerUnitActions();
+                int[] position = new int[UnitPositioning.POSITION_COORDINATES];
+
+                Assertions.assertNotNull(actions.createUnit(ScrUnitIds.TERRAN_MARINE, MARINE_X, MARINE_Y, RunningGameScenario.HUMAN,
+                                                            RunningGameScenario.INSTRUCTION_LIMIT));
+                Assertions.assertTrue(actions.findCreatePosition(ScrUnitIds.TERRAN_MARINE, MARINE_X, MARINE_Y, RunningGameScenario.HUMAN, position));
+
+                Unit second = actions.createUnit(ScrUnitIds.TERRAN_MARINE, MARINE_X, MARINE_Y, RunningGameScenario.HUMAN,
+                                                 RunningGameScenario.INSTRUCTION_LIMIT);
+
+                Assertions.assertNotNull(second);
+                Assertions.assertTrue(position[UnitPositioning.X_INDEX] != MARINE_X || position[UnitPositioning.Y_INDEX] != MARINE_Y,
+                                      "the first Marine blocks the requested position");
+                Assertions.assertEquals(position[UnitPositioning.X_INDEX], second.getPositionX());
+                Assertions.assertEquals(position[UnitPositioning.Y_INDEX], second.getPositionY());
+                Assertions.assertFalse(actions.findCreatePosition(ScrUnitIds.SPECIAL_FLOOR_GUN_TRAP, MARINE_X, MARINE_Y, RunningGameScenario.HUMAN,
+                                                                  position), "a type without the unit listing flag is not created");
+            });
+        }
+    }
+
+    @Test
+    void create_unit_without_failure_messages_should_fail_without_the_placement_warning() throws IOException {
+        try (GameData data = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            ReplayRuntime runtime = RunningGameScenario.start(data);
+
+            RunningGameScenario.runInCommandDispatch(runtime, () -> {
+                Game game = runtime.getGame();
+                int[] site = findHatcherySite(game);
+                CommandErrorEvents errors = game.getInterfaceLink().getCommandErrorEvents();
+
+                Assertions.assertNotNull(game.getTriggerUnitActions().createUnit(ScrUnitIds.ZERG_HATCHERY, site[0], site[1], RunningGameScenario.HUMAN,
+                                                                                 RunningGameScenario.INSTRUCTION_LIMIT));
+
+                int errorCount = errors.getCount();
+
+                Assertions.assertNull(game.getTriggerUnitActions().createUnit(ScrUnitIds.ZERG_HATCHERY, site[0], site[1], RunningGameScenario.HUMAN,
+                                                                              false, RunningGameScenario.INSTRUCTION_LIMIT));
+                Assertions.assertEquals(errorCount, errors.getCount(), "a quiet failure raises no error message");
+
+                Assertions.assertNull(game.getTriggerUnitActions().createUnit(ScrUnitIds.ZERG_HATCHERY, site[0], site[1], RunningGameScenario.HUMAN,
+                                                                              RunningGameScenario.INSTRUCTION_LIMIT));
+                Assertions.assertEquals(errorCount + 1, errors.getCount(), "Create Unit shows the placement warning");
+            });
         }
     }
 

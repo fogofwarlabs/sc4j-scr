@@ -851,7 +851,7 @@ public final class UnitDamage {
         }
 
         ScrUnitTypeView unitTypes = this.game.requireGameData().getUnitTypes();
-        int maximumHitPoints = UnitQueries.getMaximumHitPoints(unitTypes, target);
+        int maximumHitPoints = this.game.getUnitQueries().getMaximumHitPoints(target);
 
         if (unitTypes.getShieldEnabled(target.getUnitId()) != 0) {
             maximumHitPoints += unitTypes.getShieldAmount(target.getUnitId());

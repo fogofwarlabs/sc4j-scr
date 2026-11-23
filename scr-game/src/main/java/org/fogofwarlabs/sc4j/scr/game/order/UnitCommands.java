@@ -434,7 +434,8 @@ public final class UnitCommands {
      * Issues an explicit order to every selected unit that can receive it.
      * <p>
      * Excluded orders are rejected, eligibility and self-target checks precede the medic heal-move substitution, and {@code AttackDefault} resolves
-     * to the unit and subunit attack-unit or attack-move order. Point orders without a target type use the shared group destination.
+     * to the unit and subunit attack-unit or attack-move order. Point orders without a target type use the shared group destination; every issued
+     * order requests the command position.
      *
      * @param owner            the command player
      * @param orderId          the requested order
@@ -590,10 +591,17 @@ public final class UnitCommands {
 
                 int orderUnitType = target != null ? ScrUnitIds.NONE : targetUnitType;
 
-                this.game.getOrders().issue(unit, unitOrder, target, orderX, orderY, orderUnitType, queue, instructionLimit);
+                this.game.getOrders().issue(unit, unitOrder, target, orderX, orderY, positionX, positionY, orderUnitType, queue, instructionLimit);
 
                 if (subunitOrder != ScrOrderIds.NOTHING) {
-                    this.game.getOrders().issue(subunit, subunitOrder, target, orderX, orderY, orderUnitType, queue, instructionLimit);
+                    this.game.getOrders().issue(subunit,
+                                                subunitOrder,
+                                                target,
+                                                orderX, orderY,
+                                                positionX, positionY,
+                                                orderUnitType,
+                                                queue,
+                                                instructionLimit);
                 }
             }
 
@@ -607,7 +615,8 @@ public final class UnitCommands {
      * Issues movement, gathering and attack orders using the selected units and actual target identity.
      * <p>
      * Fog target lookup and unrepresented default actions remain explicit boundaries. Rally points and subunit attack orders are applied before the
-     * owner is tested through the order check, so a selected enemy turret's subunit link receives the attack order.
+     * owner is tested through the order check, so a selected enemy turret's subunit link receives the attack order. A position order goes to the
+     * group destination and requests the command position.
      *
      * @param owner            the command player
      * @param positionX        the unsigned input horizontal coordinate
@@ -727,6 +736,7 @@ public final class UnitCommands {
                                             orderId,
                                             null,
                                             destination & WORD_MASK, destination >>> POSITION_VERTICAL_SHIFT,
+                                            positionX, positionY,
                                             ScrUnitIds.NONE,
                                             queue,
                                             instructionLimit);

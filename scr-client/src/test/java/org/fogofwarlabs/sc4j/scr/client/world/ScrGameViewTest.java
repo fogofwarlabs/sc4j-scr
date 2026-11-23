@@ -57,7 +57,7 @@ final class ScrGameViewTest {
             Assertions.assertTrue(workerView.isPlaced());
             Assertions.assertTrue(workerView.getLeft() < workerView.getX() && workerView.getRight() > workerView.getX());
             Assertions.assertEquals(UnitQueries.getHitPoints(worker), workerView.getHitPoints());
-            Assertions.assertEquals(UnitQueries.getMaximumHitPoints(game.requireGameData().getUnitTypes(), worker), workerView.getMaximumHitPoints());
+            Assertions.assertEquals(game.getUnitQueries().getMaximumHitPoints(worker), workerView.getMaximumHitPoints());
 
             List<org.fogofwarlabs.sc4j.engine.entity.Unit> found = new ArrayList<>();
 

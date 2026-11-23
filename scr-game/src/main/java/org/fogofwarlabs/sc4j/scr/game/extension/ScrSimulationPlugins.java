@@ -1,10 +1,13 @@
 package org.fogofwarlabs.sc4j.scr.game.extension;
 
 import org.fogofwarlabs.sc4j.scr.content.ScrOrderIds;
+import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitTypeFlags;
 import org.fogofwarlabs.sc4j.scr.game.combat.ProjectilePhase;
 import org.fogofwarlabs.sc4j.scr.game.extension.simulation.*;
 import org.fogofwarlabs.sc4j.scr.game.player.Player;
+import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
+import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
 import org.jetbrains.annotations.NotNull;
@@ -119,33 +122,37 @@ public final class ScrSimulationPlugins {
      * Offers an order issued to a unit ({@link OrderDecision}) and reports it ({@link OrderIssuedEvent}) unless it is rejected. The Die order and
      * the orders of a turret are reported without a decision.
      *
-     * @param unit           the receiving unit
-     * @param orderId        the orders.dat entry
-     * @param targetUnit     the target unit, or {@code null} for a position target
-     * @param positionX      the target X coordinate
-     * @param positionY      the target Y coordinate
-     * @param targetUnitType the target unit type of a build or placement order
-     * @param queued         whether the order is requested as a queued order
+     * @param unit               the receiving unit
+     * @param orderId            the orders.dat entry
+     * @param targetUnit         the target unit, or {@code null} for a position target
+     * @param positionX          the target X coordinate
+     * @param positionY          the target Y coordinate
+     * @param requestedPositionX the X coordinate the order was asked for
+     * @param requestedPositionY the Y coordinate the order was asked for
+     * @param targetUnitType     the target unit type of a build or placement order
+     * @param queued             whether the order is requested as a queued order
      * @return the decision, which the plugins decided unless it offers no decision
      */
     public @NotNull OrderDecision decideOrder(@NotNull Unit unit,
                                               int orderId,
                                               @Nullable Unit targetUnit,
                                               int positionX, int positionY,
+                                              int requestedPositionX, int requestedPositionY,
                                               int targetUnitType,
                                               boolean queued) {
         boolean turret = this.isTurret(unit);
         SimulationUnit captured = this.capture(unit);
-        OrderDecision decision = new OrderDecision(captured, orderId, targetUnit, positionX, positionY, targetUnitType, queued);
+        OrderDecision decision = new OrderDecision(captured,
+                                                   orderId,
+                                                   targetUnit,
+                                                   positionX, positionY,
+                                                   requestedPositionX, requestedPositionY,
+                                                   targetUnitType,
+                                                   queued,
+                                                   false);
 
         if (!this.decidingOrder && !turret && orderId != ScrOrderIds.DIE) {
-            this.decidingOrder = true;
-
-            try {
-                this.decide(decision);
-            } finally {
-                this.decidingOrder = false;
-            }
+            this.offerOrder(decision);
         }
 
         if (!decision.isRejected() && !turret) {
@@ -158,6 +165,50 @@ public final class ScrSimulationPlugins {
         }
 
         return decision;
+    }
+
+    /**
+     * Offers an order a game routine inserts into a unit's queue ({@link OrderDecision#isInserted()}); it reports no event.
+     *
+     * @param unit           the receiving unit
+     * @param orderId        the orders.dat entry
+     * @param targetUnit     the target unit, or {@code null} for a position target
+     * @param positionX      the target X coordinate
+     * @param positionY      the target Y coordinate
+     * @param targetUnitType the target unit type, or {@link ScrUnitIds#NONE} for none
+     * @return the decision the plugins decided, or {@code null} for the Die order, an order of a turret and while an order is being decided
+     */
+    public @Nullable OrderDecision decideInsertedOrder(@NotNull Unit unit,
+                                                       int orderId,
+                                                       @Nullable Unit targetUnit,
+                                                       int positionX, int positionY,
+                                                       int targetUnitType) {
+        if (this.decidingOrder || orderId == ScrOrderIds.DIE || this.isTurret(unit)) {
+            return null;
+        }
+
+        OrderDecision decision = new OrderDecision(this.capture(unit),
+                                                   orderId,
+                                                   targetUnit,
+                                                   positionX, positionY,
+                                                   positionX, positionY,
+                                                   targetUnitType,
+                                                   false,
+                                                   true);
+
+        this.offerOrder(decision);
+
+        return decision;
+    }
+
+    private void offerOrder(@NotNull OrderDecision decision) {
+        this.decidingOrder = true;
+
+        try {
+            this.decide(decision);
+        } finally {
+            this.decidingOrder = false;
+        }
     }
 
     /**
@@ -197,6 +248,68 @@ public final class ScrSimulationPlugins {
 
 
     /**
+     * Adjusts the maximum range of a unit's weapon through every plugin ({@link ScrSimulationPlugin#adjustWeaponRange}).
+     *
+     * @param unit   the attacking unit or turret
+     * @param weapon the weapons.dat entry
+     * @param range  the range in pixels after the native bonuses
+     * @return the adjusted range in pixels
+     */
+    public int adjustWeaponRange(@NotNull Unit unit, int weapon, int range) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            range = plugin.adjustWeaponRange(unit, weapon, range);
+        }
+
+        return range;
+    }
+
+    /**
+     * Adjusts a movement speed of a unit through every plugin ({@link ScrSimulationPlugin#adjustMovementSpeed}).
+     *
+     * @param unit  the unit
+     * @param speed the speed after the speed modifiers in {@code 1/256} pixels per frame
+     * @return the adjusted speed
+     */
+    public int adjustMovementSpeed(@NotNull Unit unit, int speed) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            speed = plugin.adjustMovementSpeed(unit, speed);
+        }
+
+        return speed;
+    }
+
+    /**
+     * Adjusts the acceleration of a unit through every plugin ({@link ScrSimulationPlugin#adjustAcceleration}).
+     *
+     * @param unit         the unit
+     * @param acceleration the acceleration after the speed modifiers
+     * @return the adjusted acceleration
+     */
+    public int adjustAcceleration(@NotNull Unit unit, int acceleration) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            acceleration = plugin.adjustAcceleration(unit, acceleration);
+        }
+
+        return acceleration;
+    }
+
+    /**
+     * Adjusts the maximum hit points of a unit through every plugin ({@link ScrSimulationPlugin#adjustMaximumHitPoints}).
+     *
+     * @param unit             the unit
+     * @param maximumHitPoints the {@code units.dat} hit points of the unit's type in {@code 1/256} points
+     * @return the adjusted maximum hit points
+     */
+    public int adjustMaximumHitPoints(@NotNull Unit unit, int maximumHitPoints) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            maximumHitPoints = plugin.adjustMaximumHitPoints(unit, maximumHitPoints);
+        }
+
+        return maximumHitPoints;
+    }
+
+
+    /**
      * Reports a created unit ({@link UnitCreatedEvent}).
      *
      * @param unit the created unit
@@ -224,6 +337,17 @@ public final class ScrSimulationPlugins {
      */
     public void reportUnitDied(@NotNull Unit unit, @Nullable Unit killer, int killerPlayer, int weapon) {
         this.report(new UnitDiedEvent(this.capture(unit), this.captureNullable(killer), killerPlayer, weapon));
+    }
+
+    /**
+     * Reports a sprite an image's iscript created ({@link SpriteCreatedEvent}).
+     *
+     * @param sprite      the created sprite
+     * @param sourceImage the image whose iscript created it
+     * @param source      the sprite of that image
+     */
+    public void reportSpriteCreated(@NotNull Sprite sprite, @NotNull SpriteImage sourceImage, @NotNull Sprite source) {
+        this.report(new SpriteCreatedEvent(sprite.getPoolIndex(), sprite.getSpriteTypeId(), source.getPoolIndex(), sourceImage.getImageTypeId()));
     }
 
     /**

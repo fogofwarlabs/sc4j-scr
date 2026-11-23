@@ -85,7 +85,7 @@ public final class UnitHallucination {
         accounting.update(unit, units, -1, preserveNegativeTypeCounts);
         UnitMorphing.writeButtonSet(units, unit, ButtonSetIds.MIXED_UNITS);
 
-        int hitPoints = units.getHitPoints(unit.getUnitId());
+        int hitPoints = this.game.getUnitHealth().getMaximumHitPoints(unit);
 
         unit.setStatus(unit.getStatus() | UnitStatusFlags.HALLUCINATION | UnitStatusFlags.COMPLETED);
         unit.setHitPoints(hitPoints);

@@ -935,6 +935,37 @@ public final class CreepField {
     }
 
     /**
+     * Adds creep to one tile as the creep of a finished building's footprint is added ({@link #spreadUnderBuilding}): the tile keeps its terrain
+     * below the creep and takes a random creep variant, its creep terrain properties and, when it is not hidden, its graphics. A tile that has
+     * creep, cannot have creep (unbuildable or partially walkable, or above an unbuildable tile) or is occupied by a building stays as it is.
+     *
+     * @param game       the game supplying the random generator and the local vision
+     * @param horizontal the tile column
+     * @param vertical   the tile row
+     * @return {@code true} if the tile took creep, {@code false} otherwise
+     * @throws IllegalArgumentException  if the game has another map
+     * @throws IndexOutOfBoundsException if the tile is outside the map
+     */
+    public boolean fillTile(@NotNull Game game, int horizontal, int vertical) {
+        if (game.getMap() != this.map) {
+            throw Exceptions.newIllegalArgumentException("Creep fill requires its retained map.");
+        }
+
+        if (horizontal < 0 || horizontal >= this.map.getWidth() || vertical < 0 || vertical >= this.map.getHeight()) {
+            throw Exceptions.newIndexOutOfBoundsException("The tile {0}, {1} is outside the map.", horizontal, vertical);
+        }
+
+        if (TerrainTileset.isCreepTile(this.map.getTileIdentifier(horizontal, vertical)) || this.isBlocked(horizontal, vertical) ||
+            (this.map.getTileFlags(horizontal, vertical) & MapTileFlags.OCCUPIED) != 0) {
+            return false;
+        }
+
+        this.addTile(game, horizontal, vertical);
+
+        return true;
+    }
+
+    /**
      * Removes creep from one tile using its retained terrain.
      * <p>
      * The retained terrain replaces the creep identifier; a tile without retained terrain keeps its identifier. The

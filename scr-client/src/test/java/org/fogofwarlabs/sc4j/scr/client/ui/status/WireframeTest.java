@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.function.ToIntFunction;
 
 /**
  * Checks the wireframe frame selected for the status panel and the selection slots, and the palette entries of its cells.
@@ -102,6 +103,13 @@ final class WireframeTest {
                                    (column, index) -> 0);
     }
 
+    /**
+     * @return the whole maximum hit points of a unit from the {@code units.dat} hit points of its type
+     */
+    private static @NotNull ToIntFunction<Unit> readMaximumHitPoints(@NotNull ScrUnitTypeView units) {
+        return unit -> UnitQueries.getMaximumHitPoints(units.getHitPoints(unit.getUnitId()), unit);
+    }
+
     private static @NotNull Unit createUnit(int poolIndex, int type) {
         Unit unit = UnitTestUtils.createUnit(poolIndex);
 
@@ -130,7 +138,7 @@ final class WireframeTest {
 
             selection.set(PLAYER, createUnit(FIRST_POOL_INDEX, type));
 
-            Wireframe wireframe = Wireframe.createStatusWireframe(selection, units);
+            Wireframe wireframe = Wireframe.createStatusWireframe(selection, units, readMaximumHitPoints(units));
 
             Assertions.assertNotNull(wireframe, String.valueOf(type));
             Assertions.assertEquals(type, wireframe.getFrame(), String.valueOf(type));
@@ -142,11 +150,11 @@ final class WireframeTest {
         ScrUnitTypeView units = createUnitTypes();
         InterfaceSelection selection = new InterfaceSelection(units);
 
-        Assertions.assertNull(Wireframe.createStatusWireframe(selection, units));
+        Assertions.assertNull(Wireframe.createStatusWireframe(selection, units, readMaximumHitPoints(units)));
 
         selection.set(PLAYER, createUnit(FIRST_POOL_INDEX, ScrUnitIds.TERRAN_MARINE), createUnit(SECOND_POOL_INDEX, ScrUnitIds.TERRAN_MARINE));
 
-        Assertions.assertNull(Wireframe.createStatusWireframe(selection, units));
+        Assertions.assertNull(Wireframe.createStatusWireframe(selection, units, readMaximumHitPoints(units)));
     }
 
     @Test
@@ -159,11 +167,11 @@ final class WireframeTest {
         hatchery.setFirstBuildQueueType(ScrUnitIds.ZERG_LAIR);
         selection.set(PLAYER, hatchery);
 
-        Wireframe wireframe = Wireframe.createStatusWireframe(selection, units);
+        Wireframe wireframe = Wireframe.createStatusWireframe(selection, units, readMaximumHitPoints(units));
 
         Assertions.assertNotNull(wireframe);
         Assertions.assertEquals(LAIR_FRAME, wireframe.getFrame());
-        Assertions.assertEquals(HATCHERY_FRAME, Wireframe.createSlotWireframe(hatchery, units).getFrame());
+        Assertions.assertEquals(HATCHERY_FRAME, Wireframe.createSlotWireframe(hatchery, units, readMaximumHitPoints(units)).getFrame());
     }
 
     @Test
@@ -174,7 +182,8 @@ final class WireframeTest {
         marine.setHitPoints(EIGHTH_BAND_HIT_POINTS << HIT_POINT_FRACTION_BITS);
         marine.setWireframeRandomizer(EVEN_RANDOMIZER);
 
-        Assertions.assertArrayEquals(new int[]{0, 1, 1, 1, -1, -1}, getCellEntries(Wireframe.createSlotWireframe(marine, units)));
+        Assertions.assertArrayEquals(new int[]{0, 1, 1, 1, -1, -1},
+                                     getCellEntries(Wireframe.createSlotWireframe(marine, units, readMaximumHitPoints(units))));
     }
 
     @Test
@@ -186,7 +195,7 @@ final class WireframeTest {
         marine.setWireframeRandomizer(ODD_RANDOMIZER);
 
         Assertions.assertArrayEquals(new int[]{RED_ENTRY, RED_ENTRY, RED_ENTRY, RED_ENTRY, -1, -1},
-                                     getCellEntries(Wireframe.createSlotWireframe(marine, units)));
+                                     getCellEntries(Wireframe.createSlotWireframe(marine, units, readMaximumHitPoints(units))));
     }
 
     @Test
@@ -196,7 +205,8 @@ final class WireframeTest {
 
         larva.setHitPoints(NEGATIVE_HIT_POINTS << HIT_POINT_FRACTION_BITS);
 
-        Assertions.assertArrayEquals(new int[]{0x04, 0x05, 0x03, 0x04, -1, -1}, getCellEntries(Wireframe.createSlotWireframe(larva, units)));
+        Assertions.assertArrayEquals(new int[]{0x04, 0x05, 0x03, 0x04, -1, -1},
+                                     getCellEntries(Wireframe.createSlotWireframe(larva, units, readMaximumHitPoints(units))));
     }
 
     @Test
@@ -207,7 +217,7 @@ final class WireframeTest {
         zealot.setHitPoints(ZEALOT_HIT_POINTS << HIT_POINT_FRACTION_BITS);
         zealot.setShieldPoints(OVER_MAXIMUM_SHIELDS << HIT_POINT_FRACTION_BITS);
 
-        int[] entries = getCellEntries(Wireframe.createSlotWireframe(zealot, units));
+        int[] entries = getCellEntries(Wireframe.createSlotWireframe(zealot, units, readMaximumHitPoints(units)));
 
         Assertions.assertArrayEquals(new int[]{0x0e, 0x06}, new int[]{entries[DAMAGE_CELL_COUNT], entries[DAMAGE_CELL_COUNT + 1]});
     }
@@ -220,7 +230,8 @@ final class WireframeTest {
         marine.setHitPoints(FAR_OVER_MAXIMUM_HIT_POINTS << HIT_POINT_FRACTION_BITS);
         marine.setWireframeRandomizer(ODD_RANDOMIZER);
 
-        Assertions.assertArrayEquals(new int[]{0, 0, 0, 0, -1, -1}, getCellEntries(Wireframe.createSlotWireframe(marine, units)));
+        Assertions.assertArrayEquals(new int[]{0, 0, 0, 0, -1, -1},
+                                     getCellEntries(Wireframe.createSlotWireframe(marine, units, readMaximumHitPoints(units))));
     }
 
     @RequiresInstallation
@@ -248,14 +259,14 @@ final class WireframeTest {
 
                 if (unit != null && unit.getUnitId() < ScrUnitIds.NONE && !Wireframe.usesFixedTable(unit.getUnitId()) &&
                     UnitQueries.getHitPoints(unit) * RANDOM_DAMAGE_MAXIMUM_LEVEL /
-                    UnitQueries.getMaximumHitPoints(types, unit) <= HALF_DAMAGE_LEVEL) {
+                    UnitQueries.getMaximumHitPoints(types.getHitPoints(unit.getUnitId()), unit) <= HALF_DAMAGE_LEVEL) {
                     damaged = unit;
                 }
             }
 
             Assertions.assertNotNull(damaged, "The replay state has a damaged unit.");
 
-            Wireframe wireframe = Wireframe.createSlotWireframe(damaged, types);
+            Wireframe wireframe = Wireframe.createSlotWireframe(damaged, types, readMaximumHitPoints(types));
             boolean anyRed = false;
 
             for (int cell = 0; cell < DAMAGE_CELL_COUNT; cell++) {

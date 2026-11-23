@@ -3,7 +3,6 @@ package org.fogofwarlabs.sc4j.scr.game.sprite.script.instruction.unit;
 import org.fogofwarlabs.sc4j.engine.animation.AnimationContext;
 import org.fogofwarlabs.sc4j.engine.animation.AnimationStep;
 import org.fogofwarlabs.sc4j.scr.data.format.iscript.IscriptInstruction;
-import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.IscriptExecutor;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.IscriptModeOneInterpreter;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.instruction.ScrImageTarget;
@@ -47,9 +46,10 @@ public final class ScrMove extends ScrInstruction implements ScrModeOneStep {
 
         this.checkPreviewSupport(context, target);
 
-        ScrUnitTypeView units = target.getGame().requireGameData().getUnitTypes();
+        Unit unit = this.requireUnit(target);
+        int speed = target.getGame().getUnitSpeed().calculateModifiedSpeed(unit, this.speed << IscriptExecutor.MOVEMENT_FRACTION_BITS);
 
-        this.requireUnit(target).applyIscriptMovementSpeed(units, this.speed << IscriptExecutor.MOVEMENT_FRACTION_BITS);
+        unit.applyIscriptMovementSpeed(speed);
 
         return AnimationStep.CONTINUE;
     }
@@ -67,9 +67,7 @@ public final class ScrMove extends ScrInstruction implements ScrModeOneStep {
      */
     @Override
     public void stepModeOne(@NotNull IscriptModeOneInterpreter interpreter, @NotNull Game game, @NotNull Unit unit, int nextPosition) {
-        ScrUnitTypeView units = game.requireGameData().getUnitTypes();
-
-        interpreter.setSpeed(unit.calculateModifiedMovementSpeed(units, this.speed << IscriptExecutor.MOVEMENT_FRACTION_BITS));
+        interpreter.setSpeed(game.getUnitSpeed().calculateModifiedSpeed(unit, this.speed << IscriptExecutor.MOVEMENT_FRACTION_BITS));
         interpreter.setProgramPosition(nextPosition);
     }
 }

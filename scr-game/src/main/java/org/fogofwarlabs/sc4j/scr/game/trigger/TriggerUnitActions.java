@@ -137,8 +137,20 @@ public final class TriggerUnitActions {
         return TriggerLocations.matchesGroupType(units, unit.getUnitId(), unitType & WORD_MASK);
     }
 
+    /**
+     * @return {@code true} if the type is below {@code 228} and has the unit listing availability flag, {@code false} otherwise
+     */
+    private static boolean isListed(@NotNull ScrUnitTypeView units, int unitType) {
+        return unitType < ScrUnitIds.NONE && (units.getAvailabilityFlags(unitType) & UnitAvailabilityFlags.UNIT_LISTING) != 0;
+    }
+
 
     private final @NotNull Game game;
+
+    /**
+     * The center of the unit {@link #createUnit} creates, reused between calls.
+     */
+    private final int @NotNull [] createCenter;
 
     /**
      * Creates a {@link TriggerUnitActions} instance for one game.
@@ -147,6 +159,8 @@ public final class TriggerUnitActions {
      */
     public TriggerUnitActions(@NotNull Game game) {
         this.game = game;
+
+        this.createCenter = new int[UnitPositioning.POSITION_COORDINATES];
     }
 
     /**
@@ -519,9 +533,28 @@ public final class TriggerUnitActions {
      * @throws UnsupportedOperationException if the creation context, the accounting, the owner or the creep field is missing
      */
     public @Nullable Unit createUnit(int unitType, int positionX, int positionY, int owner, int instructionLimit) {
+        return this.createUnit(unitType, positionX, positionY, owner, true, instructionLimit);
+    }
+
+    /**
+     * Creates a {@link Unit} instance as {@link #createUnit(int, int, int, int, int)} does, with or without the messages of a failed creation:
+     * the warning {@code errCANTPLACE_sdd} to every player and the pending creation message to the owner. Without them the pending creation
+     * message is discarded ({@link UnitStorageConstructor#discardCreationFailure}).
+     *
+     * @param unitType         the {@code units.dat} type
+     * @param positionX        the center X
+     * @param positionY        the center Y
+     * @param owner            the owner
+     * @param notifyFailure    whether a failed creation shows its messages
+     * @param instructionLimit the iscript budget
+     * @return the created {@link Unit} instance, or {@code null} if the type is not listed, the building site fails, the creation fails or the unit cannot be placed
+     * @throws NullPointerException          if the world was built without game data
+     * @throws UnsupportedOperationException if the creation context, the accounting, the owner or the creep field is missing
+     */
+    public @Nullable Unit createUnit(int unitType, int positionX, int positionY, int owner, boolean notifyFailure, int instructionLimit) {
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
 
-        if (unitType >= ScrUnitIds.NONE || (units.getAvailabilityFlags(unitType) & UnitAvailabilityFlags.UNIT_LISTING) == 0) {
+        if (!isListed(units, unitType)) {
             return null;
         }
 
@@ -534,6 +567,104 @@ public final class TriggerUnitActions {
             throw Exceptions.newUnsupportedOperationException("Trigger unit creation requires the established creation context and creep field.");
         }
 
+        UnitStorageConstructor constructor = this.game.getUnitStorageConstructor();
+        boolean site = this.findCreateCenter(units, unitType, positionX, positionY, owner, this.createCenter);
+        int horizontal = this.createCenter[UnitPositioning.X_INDEX];
+        int vertical = this.createCenter[UnitPositioning.Y_INDEX];
+
+        if (!site) {
+            // The warning names the requested type at the snapped placement center.
+            if (notifyFailure) {
+                constructor.notifyUnplaceable(unitType, horizontal, vertical);
+            }
+
+            return null;
+        }
+
+        int ownerByte = owner & BYTE_MASK;
+        Unit unit = constructor.create(creation,
+                                       accounting,
+                                       unitType,
+                                       horizontal, vertical,
+                                       owner,
+                                       ownerByte | ownerByte << BYTE_BITS,
+                                       instructionLimit);
+
+        if (unit == null) {
+            // The owner sees the pending creation message.
+            if (notifyFailure) {
+                constructor.notifyCreationFailure(ownerByte);
+            } else {
+                constructor.discardCreationFailure();
+            }
+
+            return null;
+        }
+
+        // The creep comes before the placement test, so an unplaceable unit leaves it.
+        creep.addBuilding(this.game, unit);
+
+        boolean placed = constructor.tryComplete(creation, unit, player.getType(), notifyFailure, instructionLimit);
+
+        if (!placed) {
+            // After the owner's pending message, the warning names the requested type at the unit's position; the unit is
+            // then killed.
+            if (notifyFailure) {
+                constructor.notifyUnplaceable(unitType, unit);
+            }
+
+            this.game.getUnitLifecycle().kill(unit, instructionLimit);
+
+            return null;
+        }
+
+        this.finishCreatedUnit(units, creep, unit, instructionLimit);
+
+        return unit;
+    }
+
+    /**
+     * Finds the position at which {@link #createUnit(int, int, int, int, int)} places a unit of a type requested at a point, without creating
+     * it: the center clamped inside the map, a building's center snapped to the tile grid with its site tested for the owner, then the
+     * free-position search of a new unit of the type around the center ({@link UnitPositioning#findPlacement}). It finds none for a type that
+     * is not listed, a failed building site or a center outside the creation bounds. The search changes no game state. A creation can still
+     * fail where the search succeeds, when the unit pool is full or the unit's sprite cannot be created.
+     *
+     * @param unitType  the {@code units.dat} type
+     * @param positionX the center X
+     * @param positionY the center Y
+     * @param owner     the owner
+     * @param result    the two WORD output coordinates, written only on success
+     * @return {@code true} if a position was found, {@code false} otherwise
+     * @throws IllegalArgumentException      if the result has fewer than two coordinates
+     * @throws NullPointerException          if the world was built without game data
+     * @throws UnsupportedOperationException if required placement storage is unavailable
+     */
+    public boolean findCreatePosition(int unitType, int positionX, int positionY, int owner, int @NotNull [] result) {
+        ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
+
+        if (!isListed(units, unitType) || !this.findCreateCenter(units, unitType, positionX, positionY, owner, this.createCenter)) {
+            return false;
+        }
+
+        int horizontal = this.createCenter[UnitPositioning.X_INDEX];
+        int vertical = this.createCenter[UnitPositioning.Y_INDEX];
+
+        if (!UnitCreationBoundsUtils.isWithinCreationBounds(units, this.game.getMap(), unitType, horizontal, vertical)) {
+            return false;
+        }
+
+        return this.game.getUnitPositioning().findPlacement(unitType, horizontal, vertical, result);
+    }
+
+    /**
+     * Finds the center of a created unit: the requested center clamped inside the map; for a building, the placement box snapped to the tile
+     * grid inside the map, whose site is then tested without a builder.
+     *
+     * @param center receives the center, also for a failed site
+     * @return {@code false} if the building site fails, {@code true} otherwise
+     */
+    private boolean findCreateCenter(@NotNull ScrUnitTypeView units, int unitType, int positionX, int positionY, int owner, int @NotNull [] center) {
         int horizontal = UnitPositioning.clampCoordinate(positionX,
                                                          units.getDimensionLeft(unitType), units.getDimensionRight(unitType),
                                                          this.game.getMap().getWidth() * TerrainTileset.TILE_SIZE,
@@ -555,48 +686,12 @@ public final class TriggerUnitActions {
 
             horizontal = left / TerrainTileset.TILE_SIZE * TerrainTileset.TILE_SIZE + width / POSITION_CENTER_DIVISOR;
             vertical   = top / TerrainTileset.TILE_SIZE * TerrainTileset.TILE_SIZE + height / POSITION_CENTER_DIVISOR;
-
-            if (!this.game.getUnitPlacement().canPlaceTriggerBuilding(owner, unitType, horizontal, vertical)) {
-                // The warning names the requested type at the snapped placement center.
-                this.game.getUnitStorageConstructor().notifyUnplaceable(unitType, horizontal, vertical);
-
-                return null;
-            }
         }
 
-        int ownerByte = owner & BYTE_MASK;
-        Unit unit = this.game.getUnitStorageConstructor().create(creation,
-                                                                 accounting,
-                                                                 unitType,
-                                                                 horizontal, vertical,
-                                                                 owner,
-                                                                 ownerByte | ownerByte << BYTE_BITS,
-                                                                 instructionLimit);
+        center[UnitPositioning.X_INDEX] = horizontal;
+        center[UnitPositioning.Y_INDEX] = vertical;
 
-        if (unit == null) {
-            // The owner sees the pending creation message.
-            this.game.getUnitStorageConstructor().notifyCreationFailure(ownerByte);
-
-            return null;
-        }
-
-        // The creep comes before the placement test, so an unplaceable unit leaves it.
-        creep.addBuilding(this.game, unit);
-
-        boolean placed = this.game.getUnitStorageConstructor().tryComplete(creation, unit, player.getType(), instructionLimit);
-
-        if (!placed) {
-            // After the owner's pending message, the warning names the requested type at the unit's position; the unit is
-            // then killed.
-            this.game.getUnitStorageConstructor().notifyUnplaceable(unitType, unit);
-            this.game.getUnitLifecycle().kill(unit, instructionLimit);
-
-            return null;
-        }
-
-        this.finishCreatedUnit(units, creep, unit, instructionLimit);
-
-        return unit;
+        return !building || this.game.getUnitPlacement().canPlaceTriggerBuilding(owner, unitType, horizontal, vertical);
     }
 
     /**
@@ -744,7 +839,7 @@ public final class TriggerUnitActions {
      */
     public boolean modifyHitPoints(@NotNull Unit unit, int percent, int instructionLimit) {
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
-        int hitPoints = Integer.divideUnsigned(units.getHitPoints(unit.getUnitId()) * percent, PERCENT);
+        int hitPoints = Integer.divideUnsigned(this.game.getUnitHealth().getMaximumHitPoints(unit) * percent, PERCENT);
 
         this.game.getUnitHealth().setHitPoints(unit, hitPoints == 0 ? 1 : hitPoints, instructionLimit);
 
