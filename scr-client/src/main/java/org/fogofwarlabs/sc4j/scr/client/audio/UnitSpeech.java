@@ -437,8 +437,8 @@ public final class UnitSpeech {
     private int chooseBuildingResponseSoundIdentifier(@NotNull ScrGameView view, @NotNull ScrPresentation presentation, @NotNull Unit unit) {
         ScrUnitTypeView units = view.requireGameData().getUnitTypes();
         int unitTypeIdentifier = unit.getUnitId();
-        boolean heavilyDamaged = UnitQueries.isHeavilyDamaged(units, unit);
-        int percent = UnitQueries.getHitPointPercent(units, unit);
+        boolean heavilyDamaged = view.getUnitQueries().isHeavilyDamaged(unit);
+        int percent = view.getUnitQueries().getHitPointPercent(unit);
         int group = units.getGroupFlags(unitTypeIdentifier);
 
         if (heavilyDamaged && (group & UnitGroupFlags.TERRAN) != 0) {

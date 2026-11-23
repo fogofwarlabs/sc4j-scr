@@ -383,7 +383,7 @@ public final class ComputerResources {
 
             return terran && (units.getFlags(type) & UnitTypeFlags.MECHANICAL) != 0 &&
                    (candidate.getStatus() & UnitStatusFlags.COMPLETED) != 0 &&
-                   candidate.getHitPoints() < units.getHitPoints(type);
+                   candidate.getHitPoints() < this.game.getUnitHealth().getMaximumHitPoints(candidate);
         });
     }
 

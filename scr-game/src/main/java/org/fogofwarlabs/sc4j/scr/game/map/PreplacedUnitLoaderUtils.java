@@ -195,7 +195,7 @@ public final class PreplacedUnitLoaderUtils {
         int validElements = properties.getValidElementsFlags();
 
         if ((validElements & ChkUnit.ELEMENT_HIT_POINTS) != 0) {
-            int maximumHitPoints = unitTypes.getHitPoints(unitType);
+            int maximumHitPoints = game.getUnitHealth().getMaximumHitPoints(unit);
             int hitPoints = Integer.divideUnsigned(maximumHitPoints * (properties.getHitPointsPercent() & BYTE_MASK), PERCENT);
 
             if (hitPoints == 0) {

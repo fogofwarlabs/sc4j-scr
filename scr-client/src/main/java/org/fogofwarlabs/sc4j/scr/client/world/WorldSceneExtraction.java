@@ -596,7 +596,7 @@ public final class WorldSceneExtraction {
         ScrSpriteTypeView spriteTable = gameView.requireGameData().getSpriteTypes();
         int type = unit.getUnitId();
 
-        int hitPointsPercent = UnitQueries.getHitPointPercent(units, unit);
+        int hitPointsPercent = gameView.getUnitQueries().getHitPointPercent(unit);
 
         int shieldPercent = -1;
 

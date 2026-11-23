@@ -1587,7 +1587,7 @@ public final class ComputerMilitary {
         if (offset < 0 || offset > ANY_LIFE_DEFENSE_LAST_OFFSET || (ANY_LIFE_DEFENSE_TYPES >>> offset & 1) == 0) {
             ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
 
-            return UnitQueries.getLife(units, unit) >= UnitQueries.getMaximumLife(units, unit) / DEFENSE_LIFE_DIVISOR;
+            return UnitQueries.getLife(units, unit) >= this.game.getUnitQueries().getMaximumLife(unit) / DEFENSE_LIFE_DIVISOR;
         }
 
         return true;

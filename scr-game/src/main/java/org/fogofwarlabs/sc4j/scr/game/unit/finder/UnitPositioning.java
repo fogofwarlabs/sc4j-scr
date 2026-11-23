@@ -450,8 +450,8 @@ public final class UnitPositioning {
     /**
      * Searches a supplied placement rectangle for a free position, optionally displacing an initially terrain-blocked unit.
      * <p>
-     * The search walks growing rectangles around the requested position; a free requested position is taken as it is.
-     * A blocked search leaves the exit-blocked command error.
+     * The search walks growing rectangles around the requested position; a free requested position is taken as it is, another position of a
+     * ground unit shares the terrain component of the unit's sprite position. A blocked search leaves the exit-blocked command error.
      *
      * @param unit              the incoming unit
      * @param positionX         the requested horizontal coordinate
@@ -473,11 +473,15 @@ public final class UnitPositioning {
                         int maximumHorizontal, int maximumVertical,
                         boolean terrainDisplaces,
                         int @NotNull [] result) {
+        Sprite sprite = unit.getSpriteOrNull();
+
         return this.search(unit,
                            positionX, positionY,
                            minimumHorizontal, minimumVertical,
                            maximumHorizontal, maximumVertical,
-                           terrainDisplaces, true,
+                           terrainDisplaces,
+                           true, sprite != null ? sprite.getX() : 0, sprite != null ? sprite.getY() : 0,
+                           true,
                            result);
     }
 
@@ -500,19 +504,54 @@ public final class UnitPositioning {
                            positionX, positionY,
                            (short) (positionX - DEFAULT_SEARCH_HALF_SIZE), (short) (positionY - DEFAULT_SEARCH_HALF_SIZE),
                            (short) (positionX + (DEFAULT_SEARCH_HALF_SIZE - 1)), (short) (positionY + (DEFAULT_SEARCH_HALF_SIZE - 1)),
-                           true, false,
+                           true,
+                           false, 0, 0,
+                           true,
+                           result);
+    }
+
+    /**
+     * Finds the position the free-position search gives a new unit of a type placed at a point: the search of
+     * {@link #find(Unit, int, int, int[])} for a unit of the type with the state its initialization gives it
+     * ({@link UnitInitializer#prepareStandIn}), whose position has to share the terrain component of the point. The search leaves no command
+     * error.
+     *
+     * @param unitType  the unit type
+     * @param positionX the requested horizontal WORD coordinate
+     * @param positionY the requested vertical WORD coordinate
+     * @param result    the two WORD output coordinates, written only on success
+     * @return {@code true} if a free position was found, {@code false} otherwise
+     * @throws IllegalArgumentException      if the result has fewer than two coordinates
+     * @throws NullPointerException          if the world was built without game data
+     * @throws UnsupportedOperationException if required placement storage is unavailable or the search repeats its steps
+     */
+    public boolean findPlacement(int unitType, int positionX, int positionY, int @NotNull [] result) {
+        Unit standIn = this.game.getUnitSystem().requireUnitPool().getStandInUnit();
+
+        UnitInitializer.prepareStandIn(this.game.requireGameData().getUnitTypes(), standIn, unitType);
+
+        return this.search(standIn,
+                           positionX, positionY,
+                           (short) (positionX - DEFAULT_SEARCH_HALF_SIZE), (short) (positionY - DEFAULT_SEARCH_HALF_SIZE),
+                           (short) (positionX + (DEFAULT_SEARCH_HALF_SIZE - 1)), (short) (positionY + (DEFAULT_SEARCH_HALF_SIZE - 1)),
+                           false,
+                           true, positionX, positionY,
+                           false,
                            result);
     }
 
     /**
      * Searches a placement rectangle for a free position ({@link #find(Unit, int, int, int, int, int, int, boolean, int[])}), where a ground
-     * unit's position has to share the terrain component of the unit's position if asked.
+     * unit's position has to share the terrain component of an origin if asked, and a failed search leaves the exit-blocked command error if
+     * asked.
      */
     private boolean search(@NotNull Unit unit,
                            int positionX, int positionY,
                            int minimumHorizontal, int minimumVertical,
                            int maximumHorizontal, int maximumVertical,
-                           boolean terrainDisplaces, boolean sameComponent,
+                           boolean terrainDisplaces,
+                           boolean sameComponent, int originX, int originY,
+                           boolean recordFailure,
                            int @NotNull [] result) {
         if (result.length < POSITION_COORDINATES) {
             throw Exceptions.newIllegalArgumentException("Placement output requires two coordinates.");
@@ -554,7 +593,7 @@ public final class UnitPositioning {
             }
 
             if (!terrainDisplaces) {
-                this.game.getGameContext().setLastErrorBytes(EXIT_BLOCKED);
+                this.recordBlockedExit(recordFailure);
 
                 return false;
             }
@@ -580,7 +619,7 @@ public final class UnitPositioning {
         for (int attempt = 0; attempt < SEARCH_RING_LIMIT; attempt++) {
             if (horizontal - horizontalStep < minimumHorizontal && horizontal + horizontalStep > maximumHorizontal &&
                 vertical - verticalStep < minimumVertical && vertical + verticalStep > maximumVertical) {
-                this.game.getGameContext().setLastErrorBytes(EXIT_BLOCKED);
+                this.recordBlockedExit(recordFailure);
 
                 return false;
             }
@@ -590,7 +629,7 @@ public final class UnitPositioning {
                                      (short) (horizontalStep * SEARCH_SIZE_FACTOR), (short) (verticalStep * SEARCH_SIZE_FACTOR),
                                      minimumHorizontal, minimumVertical,
                                      maximumHorizontal, maximumVertical,
-                                     sameComponent,
+                                     sameComponent, originX, originY,
                                      result)) {
                 return true;
             }
@@ -600,6 +639,35 @@ public final class UnitPositioning {
         }
 
         throw Exceptions.newUnsupportedOperationException("Native placement search has repeated its WORD step cycle.");
+    }
+
+    /**
+     * Leaves the exit-blocked command error of a failed search, if asked.
+     */
+    private void recordBlockedExit(boolean recordFailure) {
+        if (recordFailure) {
+            this.game.getGameContext().setLastErrorBytes(EXIT_BLOCKED);
+        }
+    }
+
+    /**
+     * Tests whether a position shares the terrain component of an origin, for a unit with the ground-elevation path flag; a unit without the flag
+     * accepts every position.
+     *
+     * @throws UnsupportedOperationException if terrain regions are unavailable
+     */
+    private boolean sharesGroundComponent(@NotNull Unit unit, int originX, int originY, int positionX, int positionY) {
+        if ((unit.getPathCollisionFlags() & UnitInitializer.GROUND_ELEVATION_PATH_FLAG) == 0) {
+            return true;
+        }
+
+        TerrainContours terrain = this.game.getPathSystem().getTerrainContours();
+
+        if (terrain == null) {
+            throw Exceptions.newUnsupportedOperationException("Ground reachability requires terrain regions.");
+        }
+
+        return terrain.getRegions().sharesComponent((short) originX, (short) originY, (short) positionX, (short) positionY);
     }
 
     /**
@@ -670,7 +738,7 @@ public final class UnitPositioning {
 
     /**
      * Walks the perimeter of one search rectangle on the search grid, side by side, and takes the first position that
-     * no unit blocks, that shares the unit's terrain component (ground units, if asked) and whose terrain accepts the unit;
+     * no unit blocks, that shares the terrain component of the origin (ground units, if asked) and whose terrain accepts the unit;
      * a blocker makes the walk jump past it.
      *
      * @param unit              the incoming unit
@@ -682,7 +750,9 @@ public final class UnitPositioning {
      * @param minimumVertical   the search area's upper edge
      * @param maximumHorizontal the search area's right edge
      * @param maximumVertical   the search area's lower edge
-     * @param sameComponent     whether a ground unit's position has to share the terrain component of the unit's position
+     * @param sameComponent     whether a ground unit's position has to share the terrain component of the origin
+     * @param originX           the horizontal coordinate of the origin
+     * @param originY           the vertical coordinate of the origin
      * @param result            the two output coordinates, written only on success
      * @return {@code true} if a free position was found, {@code false} otherwise
      * @throws NullPointerException          if the world was built without game data
@@ -694,7 +764,7 @@ public final class UnitPositioning {
                                     int width, int height,
                                     int minimumHorizontal, int minimumVertical,
                                     int maximumHorizontal, int maximumVertical,
-                                    boolean sameComponent,
+                                    boolean sameComponent, int originX, int originY,
                                     int @NotNull [] result) {
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
         int unitType = unit.getUnitId();
@@ -745,7 +815,7 @@ public final class UnitPositioning {
                                                                                                             unit, units, positionX, positionY);
 
                     if (blocker == null) {
-                        if ((!sameComponent || this.isGroundReachable(unit, positionX, positionY)) &&
+                        if ((!sameComponent || this.sharesGroundComponent(unit, originX, originY, positionX, positionY)) &&
                             ((unit.getStatus() & UnitStatusFlags.FLYING) != 0 || this.isTerrainPlacementWalkable(unitType, positionX, positionY))) {
                             result[X_INDEX] = positionX & WORD_MASK;
                             result[Y_INDEX] = positionY & WORD_MASK;

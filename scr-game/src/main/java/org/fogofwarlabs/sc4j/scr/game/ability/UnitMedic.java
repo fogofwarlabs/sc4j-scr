@@ -121,7 +121,7 @@ public final class UnitMedic {
             return false;
         }
 
-        if (target.getHitPoints() >= units.getHitPoints(target.getUnitId())) {
+        if (target.getHitPoints() >= this.game.getUnitHealth().getMaximumHitPoints(target)) {
             return false;
         }
 

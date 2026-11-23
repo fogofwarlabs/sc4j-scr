@@ -129,6 +129,10 @@ public final class UnitPool {
     private final @NotNull EntityPool<Unit> slots;
     private final @NotNull SlotList freeSlots;
     private final int @NotNull [] creationTags;
+    /**
+     * The unit outside the slots that stands in for a unit of a type that does not exist yet ({@link #getStandInUnit()}).
+     */
+    private final @NotNull Unit standInUnit;
 
     private final @NotNull IntColumn larvaSpawnCountdowns;
     private final @NotNull IntColumn secondLarvaSideCounts;
@@ -198,6 +202,7 @@ public final class UnitPool {
         this.slots        = new EntityPool<>(capacity, index -> new Unit(this, index), UnitSlotPolicy.INSTANCE, UNION_COLUMNS);
         this.freeSlots    = this.slots.getFreeSlots();
         this.creationTags = new int[capacity + 1];
+        this.standInUnit  = new Unit(this, capacity + 1);
 
         this.larvaSpawnCountdowns  = this.slots.getColumn(LarvaSpawner.SPAWN_COUNTDOWN_COLUMN);
         this.secondLarvaSideCounts = this.slots.getColumn(LarvaSpawner.SECOND_SIDE_COUNT_COLUMN);
@@ -293,6 +298,16 @@ public final class UnitPool {
      */
     public int getFirstFreeIndex() {
         return this.freeSlots.getFirst();
+    }
+
+    /**
+     * Returns the unit of this pool outside its slots, with the index after the last slot: the pool never allocates, lists or indexes it, and it
+     * has no sprite. A query that needs a unit of a type that does not exist yet gives it that type ({@link UnitInitializer#prepareStandIn}).
+     *
+     * @return the stand-in unit, the same instance for the pool's lifetime
+     */
+    public @NotNull Unit getStandInUnit() {
+        return this.standInUnit;
     }
 
     /**

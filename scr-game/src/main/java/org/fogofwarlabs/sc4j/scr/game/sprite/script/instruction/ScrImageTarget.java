@@ -283,7 +283,7 @@ public final class ScrImageTarget implements AnimationTarget, AnimationEffects {
         Unit unit = this.getUnit();
 
         if (unit != null) {
-            unit.applyIscriptMovementSpeed(this.game.requireGameData().getUnitTypes(), distance << IscriptExecutor.MOVEMENT_FRACTION_BITS);
+            unit.applyIscriptMovementSpeed(this.game.getUnitSpeed().calculateModifiedSpeed(unit, distance << IscriptExecutor.MOVEMENT_FRACTION_BITS));
         }
     }
 }

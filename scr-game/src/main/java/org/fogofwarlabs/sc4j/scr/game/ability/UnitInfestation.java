@@ -94,7 +94,7 @@ public final class UnitInfestation {
      */
     public boolean canBeInfested(@NotNull Unit unit) {
         return unit.getUnitId() == ScrUnitIds.TERRAN_COMMAND_CENTER && (unit.getStatus() & UnitStatusFlags.COMPLETED) != 0 &&
-               UnitQueries.getHitPointPercent(this.game.requireGameData().getUnitTypes(), unit) < INFESTABLE_HIT_POINT_PERCENT;
+               this.game.getUnitQueries().getHitPointPercent(unit) < INFESTABLE_HIT_POINT_PERCENT;
     }
 
 
@@ -270,7 +270,7 @@ public final class UnitInfestation {
             this.game.getIscriptExecutor().createImage(sprite, sprite.getMainImage(), overlay, 0, 0, 0, center, instructionLimit);
         }
 
-        this.game.getUnitHealth().setHitPoints(center, units.getHitPoints(infestedType), instructionLimit);
+        this.game.getUnitHealth().setHitPoints(center, this.game.getUnitHealth().getMaximumHitPoints(center), instructionLimit);
         UnitMorphing.writeButtonSet(units, center, infestedType);
         this.game.getOrders().completeOrder(center, instructionLimit);
     }

@@ -906,16 +906,16 @@ public final class StatusPanel {
         ScrUnitTypeView units = this.requireView().requireGameData().getUnitTypes();
         int displayType = UnitQueries.getDisplayedType(units, unit);
         int hitPoints = UnitQueries.getHitPoints(unit);
-        int maximumHitPoints = UnitQueries.getMaximumHitPoints(units, unit);
+        int maximumHitPoints = this.requireView().getUnitQueries().getMaximumHitPoints(unit);
         int maximumShields = units.getShieldAmount(unit.getUnitId());
         Control line = this.getOrCreateControl(HEALTH_CONTROL);
 
         if (maximumHitPoints > MAXIMUM_HEALTH_TEXT || maximumShields > MAXIMUM_HEALTH_TEXT || (unit.getStatus() & UnitStatusFlags.INVINCIBLE) != 0) {
             line.text = "";
         } else {
-            int percent = UnitQueries.getHitPointPercent(units, unit);
+            int percent = this.requireView().getUnitQueries().getHitPointPercent(unit);
             boolean mediumHealth = percent >= MEDIUM_HEALTH_MINIMUM_PERCENT && percent <= MEDIUM_HEALTH_MAXIMUM_PERCENT;
-            char color = UnitQueries.isHeavilyDamaged(units, unit) ? COLOR_RED : mediumHealth ? COLOR_YELLOW : COLOR_GREEN;
+            char color = this.requireView().getUnitQueries().isHeavilyDamaged(unit) ? COLOR_RED : mediumHealth ? COLOR_YELLOW : COLOR_GREEN;
 
             if (units.getShieldEnabled(unit.getUnitId()) != 0) {
                 line.text = String.format(Locale.ROOT,

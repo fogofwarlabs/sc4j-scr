@@ -9,6 +9,7 @@ import org.fogofwarlabs.sc4j.scr.game.extension.simulation.SimulationDecision;
 import org.fogofwarlabs.sc4j.scr.game.extension.simulation.SimulationEvent;
 import org.fogofwarlabs.sc4j.scr.game.player.Player;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
+import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.function.Executable;
@@ -22,8 +23,9 @@ import java.util.function.ToIntFunction;
 /**
  * A simulation extension of the tests, named by the service file of the tests, that creates a plugin only while a thread records with it
  * ({@link #record}): the plugin keeps the scenarios, map archives and replay sections its games were created with and the events, mod commands
- * and frame starts of the games the thread creates in a {@link Recording}, lets the recording's decider decide, sets the recording's replay
- * section in its game and allows a save as the recording says. Without recording it creates no plugin, so the other tests run without one.
+ * and frame starts of the games the thread creates in a {@link Recording}, lets the recording's decider decide and its adjuster adjust, sets the
+ * recording's replay section in its game and allows a save as the recording says. Without recording it creates no plugin, so the other tests
+ * run without one.
  */
 public final class RecordingSimulationPluginSource implements ScrSimulationExtension {
     /**
@@ -45,12 +47,14 @@ public final class RecordingSimulationPluginSource implements ScrSimulationExten
 
         private @Nullable ToIntFunction<Game> frameProbe;
         private @Nullable Consumer<SimulationDecision> decider;
+        private @Nullable ScrSimulationPlugin adjuster;
         private @Nullable String replaySectionTag;
         private byte @Nullable [] writtenReplaySection;
         private boolean saveAllowed;
 
         /**
-         * Creates a {@link Recording} instance without a frame probe, a decider or a replay section tag, whose plugins allow a save.
+         * Creates a {@link Recording} instance without a frame probe, a decider, an adjuster or a replay section tag, whose plugins allow a
+         * save.
          */
         public Recording() {
             this.scenarios         = new ArrayList<>();
@@ -63,6 +67,7 @@ public final class RecordingSimulationPluginSource implements ScrSimulationExten
 
             this.frameProbe           = null;
             this.decider              = null;
+            this.adjuster             = null;
             this.replaySectionTag     = null;
             this.writtenReplaySection = null;
             this.saveAllowed          = true;
@@ -155,6 +160,15 @@ public final class RecordingSimulationPluginSource implements ScrSimulationExten
          */
         public void setDecider(@Nullable Consumer<SimulationDecision> decider) {
             this.decider = decider;
+        }
+
+        /**
+         * Sets the plugin whose adjustments the recording's plugins return.
+         *
+         * @param adjuster the adjuster, or {@code null} to leave every value unchanged
+         */
+        public void setAdjuster(@Nullable ScrSimulationPlugin adjuster) {
+            this.adjuster = adjuster;
         }
 
         /**
@@ -251,6 +265,34 @@ public final class RecordingSimulationPluginSource implements ScrSimulationExten
                 if (decider != null) {
                     decider.accept(decision);
                 }
+            }
+
+            @Override
+            public int adjustWeaponRange(@NotNull Unit unit, int weapon, int range) {
+                ScrSimulationPlugin adjuster = recording.adjuster;
+
+                return adjuster != null ? adjuster.adjustWeaponRange(unit, weapon, range) : range;
+            }
+
+            @Override
+            public int adjustMovementSpeed(@NotNull Unit unit, int speed) {
+                ScrSimulationPlugin adjuster = recording.adjuster;
+
+                return adjuster != null ? adjuster.adjustMovementSpeed(unit, speed) : speed;
+            }
+
+            @Override
+            public int adjustAcceleration(@NotNull Unit unit, int acceleration) {
+                ScrSimulationPlugin adjuster = recording.adjuster;
+
+                return adjuster != null ? adjuster.adjustAcceleration(unit, acceleration) : acceleration;
+            }
+
+            @Override
+            public int adjustMaximumHitPoints(@NotNull Unit unit, int maximumHitPoints) {
+                ScrSimulationPlugin adjuster = recording.adjuster;
+
+                return adjuster != null ? adjuster.adjustMaximumHitPoints(unit, maximumHitPoints) : maximumHitPoints;
             }
 
             @Override

@@ -254,6 +254,13 @@ public final class UnitStorageConstructor {
     }
 
     /**
+     * Empties the pending creation message without showing it.
+     */
+    public void discardCreationFailure() {
+        this.game.getGameContext().setLastErrorBytes(NO_MESSAGE);
+    }
+
+    /**
      * Initializes completion state, places a hidden unit and reports placement failure to its owner. Final completion runs only after placement
      * succeeds.
      *
@@ -266,6 +273,26 @@ public final class UnitStorageConstructor {
      * @throws NullPointerException          if the world was built without game data
      */
     public boolean tryComplete(@NotNull UnitCreationContext creation, @NotNull Unit unit, int ownerPlayerType, int instructionLimit) {
+        return this.tryComplete(creation, unit, ownerPlayerType, true, instructionLimit);
+    }
+
+    /**
+     * Initializes completion state, places a hidden unit and, if asked, reports placement failure to its owner; otherwise the pending creation
+     * message of a failed placement is discarded ({@link #discardCreationFailure}). Final completion runs only after placement succeeds.
+     *
+     * @param creation         the unit creation inputs
+     * @param unit             the successfully constructed unit
+     * @param ownerPlayerType  the owner player type BYTE
+     * @param notifyFailure    whether a failed placement shows the pending creation message to the owner
+     * @param instructionLimit the checked script instruction limit
+     * @return {@code true} if the unit was placed and completed, {@code false} otherwise
+     * @throws UnsupportedOperationException if the unit sprite or the unit accounting is unavailable
+     * @throws NullPointerException          if the world was built without game data
+     */
+    public boolean tryComplete(@NotNull UnitCreationContext creation, @NotNull Unit unit,
+                               int ownerPlayerType,
+                               boolean notifyFailure,
+                               int instructionLimit) {
         this.game.getUnitCompletion().initializeBeforePlacement(creation, unit, instructionLimit);
 
         Sprite sprite = unit.getSpriteOrNull();
@@ -279,7 +306,11 @@ public final class UnitStorageConstructor {
 
             if (!this.game.getUnitPositioning().find(unit, sprite.getX(), sprite.getY(), position)) {
                 // The owner sees the pending message the search left (strEXITBLOCKED).
-                this.notifyCreationFailure(unit.getOwnerIndex());
+                if (notifyFailure) {
+                    this.notifyCreationFailure(unit.getOwnerIndex());
+                } else {
+                    this.discardCreationFailure();
+                }
 
                 return false;
             }
@@ -298,7 +329,7 @@ public final class UnitStorageConstructor {
 
                 accounting.updateCompleted(subunit, units, 1, false, this.game.getPlayerTable().getProductionStatistics());
                 subunit.setStatus(subunit.getStatus() | UnitStatusFlags.COMPLETED);
-                subunit.setHitPoints(units.getHitPoints(subunit.getUnitId()));
+                subunit.setHitPoints(this.game.getUnitHealth().getMaximumHitPoints(subunit));
                 this.game.getUnitPositioning().move(subunit, position[UnitPositioning.X_INDEX], position[UnitPositioning.Y_INDEX]);
             }
         }

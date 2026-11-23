@@ -217,7 +217,7 @@ public final class UnitTerranConstruction {
 
         if (((units.getFlags(targetType) & UnitTypeFlags.BUILDING) != 0 || !canEnter) && terran &&
             (units.getFlags(targetType) & UnitTypeFlags.MECHANICAL) != 0 && (targetStatus & UnitStatusFlags.COMPLETED) != 0 &&
-            target.getHitPoints() < units.getHitPoints(targetType)) {
+            target.getHitPoints() < this.game.getUnitHealth().getMaximumHitPoints(target)) {
             return ScrOrderIds.REPAIR;
         }
 
@@ -559,7 +559,7 @@ public final class UnitTerranConstruction {
      * @throws NullPointerException  if the world was built without game data
      */
     public void updateIncompleteBuilding(@NotNull Unit building, int instructionLimit) {
-        int maximumHitPoints = this.game.requireGameData().getUnitTypes().getHitPoints(building.getUnitId());
+        int maximumHitPoints = this.game.getUnitHealth().getMaximumHitPoints(building);
         int hitPoints = building.getHitPoints();
         Sprite sprite = building.requireSprite();
         int phase = building.getPrimaryOrderState();
@@ -670,7 +670,7 @@ public final class UnitTerranConstruction {
         Unit target = worker.getOrderTargetUnit();
         Sprite sprite = worker.requireSprite();
 
-        if (target == null || target.getHitPoints() >= units.getHitPoints(target.getUnitId()) || target.getStasisTimer() != 0 ||
+        if (target == null || target.getHitPoints() >= this.game.getUnitHealth().getMaximumHitPoints(target) || target.getStasisTimer() != 0 ||
             (target.getStatus() & UnitStatusFlags.LOADED) != 0 ||
             (units.getFlags(target.getUnitId()) & UnitTypeFlags.MECHANICAL) == 0 ||
             (target.getStatus() & UnitStatusFlags.COMPLETED) == 0 ||
@@ -788,7 +788,7 @@ public final class UnitTerranConstruction {
 
         this.game.getUnitHealth().setHitPoints(target, target.getHitPoints() + rate, instructionLimit);
 
-        if (target.getHitPoints() >= units.getHitPoints(targetType)) {
+        if (target.getHitPoints() >= this.game.getUnitHealth().getMaximumHitPoints(target)) {
             this.game.getIscriptExecutor().runSpriteAnimation(worker.requireSprite(),
                                                               worker,
                                                               IscriptExecutor.ANIMATION_WALKING_TO_IDLE,
@@ -820,7 +820,7 @@ public final class UnitTerranConstruction {
         } else {
             int rate = this.game.getUnitBuildTime().getHitPointIncrement(target);
             int denominator = rate * lowestCost;
-            int maximumHitPoints = units.getHitPoints(target.getUnitId());
+            int maximumHitPoints = this.game.getUnitHealth().getMaximumHitPoints(target);
 
             repairTime = maximumHitPoints * REPAIR_HIT_POINT_FACTOR / denominator;
 

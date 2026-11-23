@@ -937,7 +937,7 @@ public final class ComputerOrders {
 
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
 
-        if (UnitQueries.getLife(units, unit) == UnitQueries.getMaximumLife(units, unit)) {
+        if (UnitQueries.getLife(units, unit) == this.game.getUnitQueries().getMaximumLife(unit)) {
             return false;
         }
 
@@ -1149,7 +1149,7 @@ public final class ComputerOrders {
                 ComputerPlayerPhase phase = this.game.requireComputerPlayerPhase();
                 ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
 
-                if (type == ScrUnitIds.TERRAN_DROPSHIP && UnitQueries.getLife(units, unit) != UnitQueries.getMaximumLife(units, unit)) {
+                if (type == ScrUnitIds.TERRAN_DROPSHIP && UnitQueries.getLife(units, unit) != this.game.getUnitQueries().getMaximumLife(unit)) {
                     // A damaged Dropship follows the reserved SCV unless it carries units.
                     Unit repairer = this.game.getComputerResources().findRepairer(unit);
 
@@ -1475,7 +1475,7 @@ public final class ComputerOrders {
             }
 
             // The missing hit points leave the shields out: a building whose shields alone are down is not repaired.
-            int missing = UnitQueries.getMaximumHitPoints(this.game.requireGameData().getUnitTypes(), building) - UnitQueries.getHitPoints(building);
+            int missing = this.game.getUnitQueries().getMaximumHitPoints(building) - UnitQueries.getHitPoints(building);
 
             if (Integer.compareUnsigned(bestMissing, missing) < 0) {
                 best        = building;

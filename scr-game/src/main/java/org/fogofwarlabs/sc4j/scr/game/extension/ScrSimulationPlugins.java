@@ -246,6 +246,68 @@ public final class ScrSimulationPlugins {
 
 
     /**
+     * Adjusts the maximum range of a unit's weapon through every plugin ({@link ScrSimulationPlugin#adjustWeaponRange}).
+     *
+     * @param unit   the attacking unit or turret
+     * @param weapon the weapons.dat entry
+     * @param range  the range in pixels after the native bonuses
+     * @return the adjusted range in pixels
+     */
+    public int adjustWeaponRange(@NotNull Unit unit, int weapon, int range) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            range = plugin.adjustWeaponRange(unit, weapon, range);
+        }
+
+        return range;
+    }
+
+    /**
+     * Adjusts a movement speed of a unit through every plugin ({@link ScrSimulationPlugin#adjustMovementSpeed}).
+     *
+     * @param unit  the unit
+     * @param speed the speed after the speed modifiers in {@code 1/256} pixels per frame
+     * @return the adjusted speed
+     */
+    public int adjustMovementSpeed(@NotNull Unit unit, int speed) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            speed = plugin.adjustMovementSpeed(unit, speed);
+        }
+
+        return speed;
+    }
+
+    /**
+     * Adjusts the acceleration of a unit through every plugin ({@link ScrSimulationPlugin#adjustAcceleration}).
+     *
+     * @param unit         the unit
+     * @param acceleration the acceleration after the speed modifiers
+     * @return the adjusted acceleration
+     */
+    public int adjustAcceleration(@NotNull Unit unit, int acceleration) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            acceleration = plugin.adjustAcceleration(unit, acceleration);
+        }
+
+        return acceleration;
+    }
+
+    /**
+     * Adjusts the maximum hit points of a unit through every plugin ({@link ScrSimulationPlugin#adjustMaximumHitPoints}).
+     *
+     * @param unit             the unit
+     * @param maximumHitPoints the {@code units.dat} hit points of the unit's type in {@code 1/256} points
+     * @return the adjusted maximum hit points
+     */
+    public int adjustMaximumHitPoints(@NotNull Unit unit, int maximumHitPoints) {
+        for (ScrSimulationPlugin plugin : this.plugins) {
+            maximumHitPoints = plugin.adjustMaximumHitPoints(unit, maximumHitPoints);
+        }
+
+        return maximumHitPoints;
+    }
+
+
+    /**
      * Reports a created unit ({@link UnitCreatedEvent}).
      *
      * @param unit the created unit

@@ -66,7 +66,7 @@ public final class UnitFollowMovement {
         boolean stopFollowing = target == null;
 
         if (!stopFollowing && unit.getComputerRecord() != null) {
-            stopFollowing = UnitQueries.getHitPoints(unit) == UnitQueries.getMaximumHitPoints(this.game.requireGameData().getUnitTypes(), unit);
+            stopFollowing = UnitQueries.getHitPoints(unit) == this.game.getUnitQueries().getMaximumHitPoints(unit);
         }
 
         if (stopFollowing) {

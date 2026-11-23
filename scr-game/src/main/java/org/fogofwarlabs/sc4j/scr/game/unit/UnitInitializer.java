@@ -102,6 +102,45 @@ public final class UnitInitializer implements UnitEnergyLimits {
     }
 
     /**
+     * Gives a unit outside the pool slots ({@link UnitPool#getStandInUnit()}) the type and the state a new unit of the type has when it is placed,
+     * as far as the placement rules read it: the unit type, the status flags the initialization sets from the type ({@link #initialize}) and the
+     * ground elevation path flag of the type's elevation. The other fields keep their values.
+     *
+     * @param units    the unit type table
+     * @param unit     the stand-in unit
+     * @param unitType the unit type
+     */
+    public static void prepareStandIn(@NotNull ScrUnitTypeView units, @NotNull Unit unit, int unitType) {
+        unit.setUnitId(unitType);
+        unit.setStatus(applyTypeStatus(units, unitType, unitType, 0));
+        unit.setPathCollisionFlags(0);
+        updateGroundElevationPathFlag(unit, units.getElevationLevel(unitType));
+    }
+
+    /**
+     * Sets the status flags that a unit's type gives it: grounded building, flying and turning from the {@code units.dat} flags of the requested
+     * type, moving from those of the current type, the ground-unit status of a unit that does not fly, and the no-collide status of a
+     * collision-free current type.
+     *
+     * @param units       the unit type table
+     * @param unitType    the requested unit type
+     * @param currentType the unit's current type
+     * @param status      the status before
+     * @return the status after
+     */
+    private static int applyTypeStatus(@NotNull ScrUnitTypeView units, int unitType, int currentType, int status) {
+        int abilities = units.getFlags(unitType);
+
+        status = status & ~UnitStatusFlags.GROUNDED_BUILDING | abilities << GROUNDED_BUILDING_SHIFT & UnitStatusFlags.GROUNDED_BUILDING;
+        status = status & ~UnitStatusFlags.FLYING | abilities & UnitStatusFlags.FLYING;
+        status = status & ~UnitStatusFlags.CAN_TURN | abilities >>> CAN_TURN_SHIFT & UnitStatusFlags.CAN_TURN;
+        status = status & ~UnitStatusFlags.CAN_MOVE | units.getFlags(currentType) >>> CAN_MOVE_SHIFT & UnitStatusFlags.CAN_MOVE;
+        status = status & ~UnitStatusFlags.GROUND_UNIT | ((status & UnitStatusFlags.FLYING) == 0 ? UnitStatusFlags.GROUND_UNIT : 0);
+
+        return units.isCollisionFree(currentType) ? status | UnitStatusFlags.NO_COLLIDE : status;
+    }
+
+    /**
      * Initializes the flingy motion fields of a unit at a position: the flingy type and its speeds, the position, the movement destination and
      * waypoint (and a cleared movement target) when they differ, the direction target and the heading.
      *
@@ -295,21 +334,8 @@ public final class UnitInitializer implements UnitEnergyLimits {
 
         sprite.setElevationLevel(elevation);
 
-        int abilities = units.getFlags(unitType);
-        int status = unit.getStatus();
-
-        status = status & ~UnitStatusFlags.GROUNDED_BUILDING | abilities << GROUNDED_BUILDING_SHIFT & UnitStatusFlags.GROUNDED_BUILDING;
-        status = status & ~UnitStatusFlags.FLYING | abilities & UnitStatusFlags.FLYING;
-        status = status & ~UnitStatusFlags.CAN_TURN | abilities >>> CAN_TURN_SHIFT & UnitStatusFlags.CAN_TURN;
-        status = status & ~UnitStatusFlags.CAN_MOVE | units.getFlags(currentType) >>> CAN_MOVE_SHIFT & UnitStatusFlags.CAN_MOVE;
-        status = status & ~UnitStatusFlags.GROUND_UNIT | ((status & UnitStatusFlags.FLYING) == 0 ? UnitStatusFlags.GROUND_UNIT : 0);
-
-        unit.setStatus(status);
+        unit.setStatus(applyTypeStatus(units, unitType, currentType, unit.getStatus()));
         updateGroundElevationPathFlag(unit, elevation);
-
-        if (this.game.requireGameData().getUnitTypes().isCollisionFree(currentType)) {
-            unit.setStatus(unit.getStatus() | UnitStatusFlags.NO_COLLIDE);
-        }
 
         if ((units.getFlags(currentType) & UnitTypeFlags.BUILDING) != 0) {
             unit.setResearchType(ScrTechIds.NONE);
@@ -320,7 +346,7 @@ public final class UnitInitializer implements UnitEnergyLimits {
         unit.setMovementState(MovementStates.INIT);
         unit.setMovementDestinationCountdown(0);
 
-        if ((abilities & UnitTypeFlags.INVINCIBLE) != 0) {
+        if ((units.getFlags(unitType) & UnitTypeFlags.INVINCIBLE) != 0) {
             unit.setStatus(unit.getStatus() | UnitStatusFlags.INVINCIBLE);
         } else if ((units.getFlags(currentType) & UnitTypeFlags.INVINCIBLE) == 0) {
             unit.setStatus(unit.getStatus() & ~UnitStatusFlags.INVINCIBLE);

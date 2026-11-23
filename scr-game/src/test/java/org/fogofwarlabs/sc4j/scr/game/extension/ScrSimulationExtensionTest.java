@@ -46,7 +46,8 @@ import java.util.Random;
  * Checks the simulation plugins of a running game: plugin creation sees the scenario of live, replayed and saved games and the map archive of a
  * live game started from a map file, the frame start runs before the triggers, a death by weapon damage names its killer and
  * weapon, a weapon damage decision and an order decision change what the routines do, an order decision keeps the position a command asked for
- * and offers the orders a routine inserts into a queue, a mod command reaches the plugins and is kept in the
+ * and offers the orders a routine inserts into a queue, the adjustments change a unit's weapon range, speed and maximum hit points, a mod
+ * command reaches the plugins and is kept in the
  * written replay, the mod command submitter a live session supplies queues the local player's commands, a replay section a live game sets is
  * offered when its replay plays back, and a plugin that does not allow a save stops it.
  */
@@ -69,6 +70,19 @@ final class ScrSimulationExtensionTest {
      * The base damage a decision gives a hit, with eight fractional bits: more than any Zergling has hit points.
      */
     private static final int LETHAL_DAMAGE = 1000 << 8;
+    /**
+     * The range an adjustment adds to a weapon, in pixels.
+     */
+    private static final int RANGE_BONUS = 64;
+    /**
+     * The speed an adjusted unit is asked for, and the factor of its adjustment.
+     */
+    private static final int ADJUSTED_SPEED = 0x100;
+    private static final int SPEED_FACTOR = 2;
+    /**
+     * The adjusted maximum hit points, with eight fractional bits: more than a Marine has.
+     */
+    private static final int MAXIMUM_HIT_POINTS = 100 << 8;
     private static final byte @NotNull [] MOD_COMMAND_DATA = {0x53, 0x43, 0x34, 0x4A};
     private static final @NotNull String REPLAY_SECTION_TAG = "TEST";
     /**
@@ -278,6 +292,45 @@ final class ScrSimulationExtensionTest {
 
             Assertions.assertEquals(0, zergling.getHitPoints(), "a raised hit kills the target");
             Assertions.assertEquals(ScrWeaponIds.GAUSS_RIFLE, findDeath(recording, zergling).getWeapon());
+        });
+    }
+
+    @Test
+    void adjustments_change_the_weapon_range_the_speed_and_the_maximum_hit_points(@NotNull InstallationTestResources resources) throws Throwable {
+        RecordingSimulationPluginSource.Recording recording = new RecordingSimulationPluginSource.Recording();
+
+        RecordingSimulationPluginSource.record(recording, () -> {
+            ReplayRuntime runtime = RunningGameScenario.start(resources.getGameData());
+            Game game = runtime.getGame();
+            Unit marine = createUnit(runtime, ScrUnitIds.TERRAN_MARINE, 0, RunningGameScenario.HUMAN);
+            int range = game.getUnitTargeting().getWeaponMaximumRange(marine, ScrWeaponIds.GAUSS_RIFLE);
+            int speed = game.getUnitSpeed().calculateModifiedSpeed(marine, ADJUSTED_SPEED);
+
+            recording.setAdjuster(new ScrSimulationPlugin() {
+                @Override
+                public int adjustWeaponRange(@NotNull Unit unit, int weapon, int range) {
+                    return unit == marine ? range + RANGE_BONUS : range;
+                }
+
+                @Override
+                public int adjustMovementSpeed(@NotNull Unit unit, int speed) {
+                    return unit == marine ? speed * SPEED_FACTOR : speed;
+                }
+
+                @Override
+                public int adjustMaximumHitPoints(@NotNull Unit unit, int maximumHitPoints) {
+                    return unit == marine ? MAXIMUM_HIT_POINTS : maximumHitPoints;
+                }
+            });
+
+            Assertions.assertEquals(range + RANGE_BONUS, game.getUnitTargeting().getWeaponMaximumRange(marine, ScrWeaponIds.GAUSS_RIFLE));
+            Assertions.assertEquals(speed * SPEED_FACTOR, game.getUnitSpeed().calculateModifiedSpeed(marine, ADJUSTED_SPEED));
+            Assertions.assertEquals(MAXIMUM_HIT_POINTS >> Byte.SIZE, game.getUnitQueries().getMaximumHitPoints(marine));
+
+            RunningGameScenario.runInCommandDispatch(runtime, () -> game.getUnitHealth().setHitPoints(marine, MAXIMUM_HIT_POINTS + 1,
+                                                                                                    RunningGameScenario.INSTRUCTION_LIMIT));
+
+            Assertions.assertEquals(MAXIMUM_HIT_POINTS, marine.getHitPoints(), "the hit points stop at the adjusted maximum");
         });
     }
 

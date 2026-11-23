@@ -208,7 +208,7 @@ public final class ComputerDefense {
 
             if (direct && source != null && !this.game.getComputerUnits().isWorker(source) && !ComputerUnits.isDeadOrHidden(unit) &&
                 (unit.getStatus() & UnitStatusFlags.COMPLETED) == 0 &&
-                UnitQueries.getLife(units, unit) < UnitQueries.getMaximumLife(units, unit) / CANCEL_LIFE_DIVISOR) {
+                UnitQueries.getLife(units, unit) < this.game.getUnitQueries().getMaximumLife(unit) / CANCEL_LIFE_DIVISOR) {
                 this.game.getUnitConstruction().cancelBuildingUnit(unit, limit);
 
                 return;
@@ -404,7 +404,7 @@ public final class ComputerDefense {
             if ((attacker.getStatus() & UnitStatusFlags.CAN_MOVE) == 0 && !computer.isCampaign()) {
                 ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
                 int life = UnitQueries.getLife(units, unit);
-                int maximum = UnitQueries.getMaximumLife(units, unit);
+                int maximum = this.game.getUnitQueries().getMaximumLife(unit);
 
                 if (life <= maximum * LIGHT_RETURN_LIFE_NUMERATOR / LIGHT_RETURN_LIFE_DENOMINATOR &&
                     (type == ScrUnitIds.TERRAN_WRAITH || type == ScrUnitIds.ZERG_MUTALISK || type == ScrUnitIds.PROTOSS_ARBITER) &&
