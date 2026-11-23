@@ -4,7 +4,6 @@ import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.engine.content.modifier.Stat;
 import org.fogofwarlabs.sc4j.engine.content.type.ContentType;
 import org.fogofwarlabs.sc4j.scr.data.type.ScrFlingyTypeView;
-import org.fogofwarlabs.sc4j.scr.data.type.ScrUnitTypeView;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrSimulationPlugins;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameExecutionScope;
 import org.fogofwarlabs.sc4j.scr.game.modifier.ScrSpeedModifier;

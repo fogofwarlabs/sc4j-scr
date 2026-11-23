@@ -118,7 +118,7 @@ public final class Wireframe {
      * @return the created {@link Wireframe} instance, or {@code null} if the selection does not hold exactly one unit
      */
     public static @Nullable Wireframe createStatusWireframe(@NotNull InterfaceSelection selection, @NotNull ScrUnitTypeView units,
-                                                           @NotNull ToIntFunction<Unit> maximumHitPoints) {
+                                                            @NotNull ToIntFunction<Unit> maximumHitPoints) {
         Unit active = selection.getActiveUnit();
 
         if (active == null || selection.getCount() != 1) {

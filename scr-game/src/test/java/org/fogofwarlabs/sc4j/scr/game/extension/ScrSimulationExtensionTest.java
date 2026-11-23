@@ -10,8 +10,8 @@ import org.fogofwarlabs.sc4j.scr.data.format.mpq.MpqArchive;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommand;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayCommandIds;
 import org.fogofwarlabs.sc4j.scr.data.format.replay.ReplayFile;
-import org.fogofwarlabs.sc4j.scr.game.NetworkReplayScenario;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
+import org.fogofwarlabs.sc4j.scr.game.NetworkReplayScenario;
 import org.fogofwarlabs.sc4j.scr.game.extension.simulation.*;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.movement.UnitGroupMovement;
@@ -361,7 +361,7 @@ final class ScrSimulationExtensionTest {
             Assertions.assertEquals(MAXIMUM_HIT_POINTS >> Byte.SIZE, game.getUnitQueries().getMaximumHitPoints(marine));
 
             RunningGameScenario.runInCommandDispatch(runtime, () -> game.getUnitHealth().setHitPoints(marine, MAXIMUM_HIT_POINTS + 1,
-                                                                                                    RunningGameScenario.INSTRUCTION_LIMIT));
+                                                                                                      RunningGameScenario.INSTRUCTION_LIMIT));
 
             Assertions.assertEquals(MAXIMUM_HIT_POINTS, marine.getHitPoints(), "the hit points stop at the adjusted maximum");
         });
@@ -450,7 +450,7 @@ final class ScrSimulationExtensionTest {
             Assertions.assertEquals(blockedX, decision.getRequestedPositionX());
             Assertions.assertEquals(blockedY, decision.getRequestedPositionY());
             Assertions.assertTrue(game.getUnitPositioning().isTerrainPlacementWalkable(ScrUnitIds.TERRAN_MARINE,
-                                                                                         decision.getPositionX(), decision.getPositionY()),
+                                                                                       decision.getPositionX(), decision.getPositionY()),
                                   "the command moves its target off the blocked ground");
 
             int destination = UnitGroupMovement.calculateUnitPosition(game, ScrUnitIds.TERRAN_MARINE, positions[2], positions[3], blockedX, blockedY);
