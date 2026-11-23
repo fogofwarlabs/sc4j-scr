@@ -78,12 +78,13 @@ public final class ClientOptions {
 
         /**
          * Creates a {@link Melee} instance.
+         * <p>
+         * With a campaign mission the map is the {@code --campaign} argument, used only as the session and replay file name. With the map's own
+         * settings the slot is the index among the map's human slots.
          *
          * @param map              the {@code .scm}/{@code .scx} map or raw {@code .chk}
-         * @param campaign         the built-in campaign mission ({@code --campaign}: index, launch name such as {@code bw-terran-1}, or
-         *                         {@code list}); the map is then that argument, used only as the session and replay file name
-         * @param usingMapSettings whether the map's own settings fix players, races and forces ({@code --ums};
-         *                         the slot is the index among the map's human slots)
+         * @param campaign         the built-in campaign mission ({@code --campaign}: index, launch name such as {@code bw-terran-1}, or {@code list})
+         * @param usingMapSettings whether the map's own settings fix players, races and forces ({@code --ums})
          * @param name             the human player's name ({@code --name})
          * @param race             the human race: {@code terran}, {@code zerg}, {@code protoss} or {@code random} ({@code --race})
          * @param slot             the human player's slot ({@code --slot})
@@ -1101,8 +1102,10 @@ public final class ClientOptions {
     }
 
     /**
-     * @return the display scale of the hidden window's monitor ({@code --content-scale}, default {@code 1}): the hidden window is its size times
-     * this scale in pixels, as a visible window is on a monitor of that scale
+     * Returns the display scale of the hidden window's monitor. The hidden window is its size times this scale in pixels, as a visible window is
+     * on a monitor of that scale.
+     *
+     * @return the display scale of the hidden window's monitor ({@code --content-scale}, default {@code 1})
      */
     public float getContentScale() {
         return this.contentScale;
@@ -1218,8 +1221,7 @@ public final class ClientOptions {
     }
 
     /**
-     * @return the fixed pointer column in framebuffer pixels that stands in for the mouse (screenshots of the game cursor), or {@link Float#NaN} to
-     * follow the mouse
+     * @return the fixed pointer column in framebuffer pixels that stands in for the mouse (screenshots of the game cursor), or {@link Float#NaN} to follow the mouse
      */
     public float getPointerX() {
         return this.pointerX;
@@ -1233,8 +1235,7 @@ public final class ClientOptions {
     }
 
     /**
-     * @return the debug layers to show from startup as a comma-separated list of {@code /debug} arguments (for example {@code info} or
-     * {@code path,collision,regions}), or {@code null} to start without the debug view
+     * @return the debug layers to show from startup as a comma-separated list of {@code /debug} arguments (for example {@code info} or {@code path,collision,regions}), or {@code null} to start without the debug view
      */
     public @Nullable String getDebugLayers() {
         return this.debugLayers;
@@ -1262,8 +1263,7 @@ public final class ClientOptions {
     }
 
     /**
-     * @return the prompt commands ({@code --command}, repeatable) run after each command-line seek, for example
-     * {@code /shot file.png} for a screenshot
+     * @return the prompt commands ({@code --command}, repeatable) run after each command-line seek, for example {@code /shot file.png} for a screenshot
      */
     public @NotNull List<String> getCommands() {
         return this.commands;
@@ -1302,8 +1302,7 @@ public final class ClientOptions {
     }
 
     /**
-     * @return {@code true} if maps load with the relaxed {@code 1.16}-era rules ({@code --map-compat}, settings {@code maps.compatibility}),
-     * {@code false} otherwise (the native rules)
+     * @return {@code true} if maps load with the relaxed {@code 1.16}-era rules ({@code --map-compat}, settings {@code maps.compatibility}), {@code false} otherwise (the native rules)
      */
     public boolean isMapCompatibility() {
         return this.mapCompatibility;
@@ -1370,8 +1369,7 @@ public final class ClientOptions {
     }
 
     /**
-     * @return the settings file the client writes the menus' choices to ({@link SettingsStore#write}), or {@code null} when writing is off
-     * ({@code --settings none}, hidden runs)
+     * @return the settings file the client writes the menus' choices to ({@link SettingsStore#write}), or {@code null} when writing is off ({@code --settings none}, hidden runs)
      */
     public @Nullable Path getSettingsFile() {
         return this.settingsFile;
@@ -1385,8 +1383,10 @@ public final class ClientOptions {
     }
 
     /**
-     * @return {@code true} if the rolling log file under {@code logs/} is written, {@code false} otherwise; the settings file's {@code logging.file}
-     * selects it, defaulting to {@code true} for visible windows and {@code false} for {@code --hidden} runs
+     * Returns whether the rolling log file is written. The settings file's {@code logging.file} selects it, defaulting to {@code true} for visible
+     * windows and {@code false} for {@code --hidden} runs.
+     *
+     * @return {@code true} if the rolling log file under {@code logs/} is written, {@code false} otherwise
      */
     public boolean isLogFileEnabled() {
         return this.logFile;

@@ -130,8 +130,7 @@ public final class OverlayAssets {
     }
 
     /**
-     * @param relation   the circle group: {@link SceneRenderer#RELATION_OWN}, {@link SceneRenderer#RELATION_NEUTRAL} or
-     *                   {@link SceneRenderer#RELATION_ENEMY}
+     * @param relation   the circle group: {@link SceneRenderer#RELATION_OWN}, {@link SceneRenderer#RELATION_NEUTRAL} or {@link SceneRenderer#RELATION_ENEMY}
      * @param entryIndex the circle GRP palette index from {@code 0} through {@code 7}
      * @return the packed {@code 0xRRGGBB} replacement color
      */

@@ -82,8 +82,7 @@ final class ComputerRegionStates {
 
     /**
      * @param state the state BYTE of a region record
-     * @return {@code true} if the state is one of the attack states ({@link #ATTACK}, {@link #ATTACK_ENGAGED},
-     * {@link #ATTACK_GATHERING} or {@link #ATTACK_LAUNCHED}), {@code false} otherwise
+     * @return {@code true} if the state is one of the attack states ({@link #ATTACK}, {@link #ATTACK_ENGAGED}, {@link #ATTACK_GATHERING} or {@link #ATTACK_LAUNCHED}), {@code false} otherwise
      */
     static boolean isAttackState(int state) {
         return state == ATTACK || state == ATTACK_ENGAGED || state == ATTACK_GATHERING || state == ATTACK_LAUNCHED;

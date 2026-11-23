@@ -205,15 +205,11 @@ public final class UnitNydus {
         }
 
         if (this.game.getUnitPositioning().find(unit, exitSprite.getX(), exitSprite.getY(), position)) {
-            Sprite targetSprite = target.requireSprite();
-
-            this.game.getInterfaceLink().getSoundEvents().add(SoundIds.NYDUS_CANAL_TRANSIT,
-                                                              targetSprite.getX(), targetSprite.getY(),
-                                                              target.getUnitId());
+            this.game.getUnitSounds().play(SoundIds.NYDUS_CANAL_TRANSIT, target);
             this.game.getUnitPositioning().move(unit, position[UnitPositioning.X_INDEX], position[UnitPositioning.Y_INDEX]);
             this.game.getUnitVisibility().show(unit, context.isFoliageEnabled());
             this.game.getOrders().finishOrder(unit, instructionLimit);
-            this.game.getInterfaceLink().getSoundEvents().add(SoundIds.NYDUS_CANAL_TRANSIT, exitSprite.getX(), exitSprite.getY(), exit.getUnitId());
+            this.game.getUnitSounds().play(SoundIds.NYDUS_CANAL_TRANSIT, exit);
         } else {
             this.game.getUnitPositioning().move(unit, previousX, previousY);
             this.game.getUnitVisibility().show(unit, context.isFoliageEnabled());

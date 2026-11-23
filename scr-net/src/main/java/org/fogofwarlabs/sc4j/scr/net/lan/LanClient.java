@@ -470,8 +470,7 @@ public final class LanClient implements AutoCloseable {
     }
 
     /**
-     * @return why the join failed ({@link ProviderSession.JoinState#REJECTED} or {@link ProviderSession.JoinState#TIMED_OUT}),
-     * or {@code null} without a failed join
+     * @return why the join failed ({@link ProviderSession.JoinState#REJECTED} or {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} without a failed join
      */
     public ProviderSession.@Nullable JoinState getJoinFailure() {
         return this.joinFailure;
@@ -574,8 +573,7 @@ public final class LanClient implements AutoCloseable {
     }
 
     /**
-     * @return {@code true} if the joined or hosted game uses the Use Map Settings template, whose game start opens the
-     * ready room, {@code false} otherwise
+     * @return {@code true} if the joined or hosted game uses the Use Map Settings template, whose game start opens the ready room, {@code false} otherwise
      */
     public synchronized boolean isUseMapSettings() {
         ProviderSession current = this.session;
@@ -599,9 +597,10 @@ public final class LanClient implements AutoCloseable {
     }
 
     /**
-     * @return the game's map file: the host's chosen file, the map of a saved game's own file (no map transfer), or the
-     * joiner's copy once the lobby's map transfer holds it ({@link LanLobby#getMapFile()}: found in the map
-     * folders or downloaded), {@code null} before
+     * Returns the game's map file: the host's chosen file, the map of a saved game's own file (no map transfer), or the joiner's copy once
+     * the lobby's map transfer holds it ({@link LanLobby#getMapFile()}: found in the map folders or downloaded).
+     *
+     * @return the map file, or {@code null} before the lobby's map transfer holds it
      */
     public @Nullable Path getMapPath() {
         if (this.mapPath != null) {

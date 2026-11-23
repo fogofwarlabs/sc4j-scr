@@ -860,8 +860,7 @@ public final class Game implements GameSystem, StateHashContributor {
     }
 
     /**
-     * @return the C runtime generator that the creep tile variants, the player-list orders, the cheat input and the unit
-     * responses share
+     * @return the C runtime generator that the creep tile variants, the player-list orders, the cheat input and the unit responses share
      */
     public @NotNull RuntimeRandom getRuntimeRandom() {
         return this.runtimeRandom;
@@ -946,8 +945,7 @@ public final class Game implements GameSystem, StateHashContributor {
     }
 
     /**
-     * @return the player slots of the live session that resolve the issuers of its commands, {@code null} while the world
-     * plays a replay or runs without a live session
+     * @return the player slots of the live session that resolve the issuers of its commands, {@code null} while the world plays a replay or runs without a live session
      */
     public @Nullable PlayerSlots getPlayerSlots() {
         return this.playerSlots;
@@ -1026,8 +1024,10 @@ public final class Game implements GameSystem, StateHashContributor {
     }
 
     /**
-     * @return the DWORD count of the turn steps since the game started, whose low WORD stamps the selection history; unlike
-     * the frame counter, a paused frame's step counts too and EUD writes do not change it
+     * Returns the DWORD count of the turn steps since the game started; its low WORD stamps the selection history. Unlike the frame counter, a
+     * paused frame's step counts too and EUD writes do not change it.
+     *
+     * @return the turn count
      */
     public int getTurnCount() {
         return this.turnCount;
@@ -1142,8 +1142,7 @@ public final class Game implements GameSystem, StateHashContributor {
     }
 
     /**
-     * @return {@code true} if startup has published command readiness (independently of pool allocation and the
-     * completion of the earlier construction scope), {@code false} otherwise
+     * @return {@code true} if startup has published command readiness (independently of pool allocation and the completion of the earlier construction scope), {@code false} otherwise
      */
     public boolean hasInitializedWorldState() {
         return this.worldInitialized;
@@ -1704,16 +1703,14 @@ public final class Game implements GameSystem, StateHashContributor {
     }
 
     /**
-     * @return the plugins of the running mod's game extensions, created when the game system attached ({@link ScrGameExtensionUtils}); empty
-     * without extensions
+     * @return the plugins of the running mod's game extensions, created when the game system attached ({@link ScrGameExtensionUtils}); empty without extensions
      */
     public @NotNull ScrGamePlugin @NotNull [] getPlugins() {
         return this.plugins;
     }
 
     /**
-     * @return the memory sources of the running mod's game extensions, created when the game system attached
-     * ({@link ScrGameExtensionUtils#createMemorySources}); empty without extensions that provide memory
+     * @return the memory sources of the running mod's game extensions ({@link ScrGameExtensionUtils#createMemorySources}), empty without any
      */
     public @NotNull ClassicMemorySource @NotNull [] getMemorySources() {
         return this.memorySources;
@@ -2469,8 +2466,7 @@ public final class Game implements GameSystem, StateHashContributor {
      * ({@link StatTextOverrides}) has its default name, the overridden text.
      *
      * @param unitType the unit type
-     * @return the map's name, the registered name of an added type, empty for any other type id from {@link ScrUnitIds#NONE} on or a missing
-     * string, or {@code null} for the default name
+     * @return the map's name, the registered name of an added type, empty for any other type id from {@link ScrUnitIds#NONE} on or a missing string, or {@code null} for the default name
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the map names the type but the string table is unreadable
      */
@@ -2546,8 +2542,7 @@ public final class Game implements GameSystem, StateHashContributor {
      * Marks the world initialization complete after every creation and startup effect: finishes the initialization of the
      * execution scope, the unit registry, the foliage and the creep.
      *
-     * @throws IllegalStateException if the unit, sprite or image pool or the selection context is absent, or registry
-     *                               subscriber effects remain pending
+     * @throws IllegalStateException if the unit, sprite or image pool or the selection context is absent, or registry subscriber effects remain pending
      */
     public void markWorldInitialized() {
         if (this.unitSystem.getUnitPool() == null || this.spriteSystem.getSpritePool() == null || this.spriteSystem.getImagePool() == null ||

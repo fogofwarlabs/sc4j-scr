@@ -627,10 +627,8 @@ public final class UnitMovement {
      * @param transitionLimit  the maximum dispatcher iterations
      * @param instructionLimit the nested animation instruction budget, or {@code 0} when animation is unavailable
      * @throws IllegalArgumentException      if the transition limit is not positive
-     * @throws IllegalStateException         if the transition limit is reached or a NewMoveTarget state has no retained path, or the unit has no
-     *                                       sprite
-     * @throws UnsupportedOperationException if a state lacks its retained sprite, path or collision storage, or the state is not established, or the
-     *                                       path pool, the unit path workspace or the unit pool is not initialized
+     * @throws IllegalStateException         if the transition limit is reached or a NewMoveTarget state has no retained path, or the unit has no sprite
+     * @throws UnsupportedOperationException if the state is not established or lacks its retained storage, or a pool is not initialized
      * @throws NullPointerException          if the world was built without game data
      */
     public void update(@NotNull Context context, @NotNull Unit unit, int transitionLimit, int instructionLimit) {
@@ -1368,8 +1366,7 @@ public final class UnitMovement {
      * @param context          the movement context with the prospective motion
      * @param unit             the moving unit
      * @param instructionLimit the instruction budget of the walking transition animation
-     * @throws UnsupportedOperationException if the motion starts or stops the walking animation without a positive budget, or the sprite pool or the
-     *                                       unit spatial index is not initialized
+     * @throws UnsupportedOperationException if the motion starts or stops the walking animation without a positive budget, or the sprite pool or the unit spatial index is not initialized
      * @throws IllegalStateException         if the unit has no sprite
      */
     void commitMotion(@NotNull Context context, @NotNull Unit unit, int instructionLimit) {

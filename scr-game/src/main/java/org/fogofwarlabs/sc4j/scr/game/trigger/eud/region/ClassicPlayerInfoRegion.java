@@ -34,8 +34,7 @@ public final class ClassicPlayerInfoRegion implements ClassicRegion {
      * Creates a {@link ClassicPlayerInfoRegion} instance.
      *
      * @param players the twelve players
-     * @param header  the game header section ({@link ReplayHeaderBuilder#HEADER_SIZE} bytes) whose records hold the names,
-     *                or {@code null}
+     * @param header  the game header section ({@link ReplayHeaderBuilder#HEADER_SIZE} bytes) whose records hold the names, or {@code null}
      */
     public ClassicPlayerInfoRegion(@NotNull Player @NotNull [] players, byte @Nullable [] header) {
         this.players = players;

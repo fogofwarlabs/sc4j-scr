@@ -1180,8 +1180,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
      *
      * @param dialog    the dialog
      * @param rectangle receives the left, top, width and height
-     * @return {@code true} if the console was drawn with the dialog shown, {@code false} if the dialog is hidden or not drawn yet, the rectangle
-     * then unchanged
+     * @return {@code true} if the console was drawn with the dialog shown, {@code false} if the dialog is hidden or not drawn yet, the rectangle then unchanged
      */
     @Override
     public boolean findDialogRectangle(ScrConsolePlacement.@NotNull Dialog dialog, float @NotNull [] rectangle) {
@@ -1968,8 +1967,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
     /**
      * @param players the player table
      * @param player  the player slot
-     * @return the color the player is shown in ({@link PlayerColorUtils#getPlayerColor}) {@code 0xRRGGBBAA}, or {@code 0} before the assets are
-     * loaded
+     * @return the color the player is shown in ({@link PlayerColorUtils#getPlayerColor}) {@code 0xRRGGBBAA}, or {@code 0} before the assets are loaded
      */
     public int getPlayerColor(@NotNull PlayerTable players, int player) {
         return this.assets == null ? 0 : PlayerColorUtils.getPlayerColor(players, this.assets, player);
@@ -2856,8 +2854,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
             }
 
             int color = entry < 0 ? Wireframe.NO_SHIELD_COLOR : loaded.getWireframeColor(entry);
-            // The cell UV is inset by half a texel: linear filtering at the exact cell edge samples the neighboring cell
-            // (a stray dot of the next cell's outline showed at the left of the Vulture and Siege Tank wireframes).
+            // The cell UV is inset by half a texel: linear filtering at the exact cell edge samples the neighboring cell.
             float left = (cell * cellPixels + HALF_TEXEL) / strip.getImage().getWidth();
             float right = ((cell + 1) * cellPixels - HALF_TEXEL) / strip.getImage().getWidth();
 
@@ -4662,8 +4659,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
     }
 
     /**
-     * @return the interface pixels per minimap bitmap pixel: the minimap size of the console placement over the installed {@code 128}, else
-     * {@code 1}
+     * @return the interface pixels per minimap bitmap pixel: the minimap size of the console placement over the installed {@code 128}, else {@code 1}
      */
     private float getMinimapScale() {
         ScrConsolePlacement shownPlacement = this.placement;
@@ -5143,8 +5139,10 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
     }
 
     /**
-     * @return {@code {left, top, page scale}} of the shown replay side bar in screen pixels: the page's bottom right corner
-     * ({@code .replayView .navigationPanel}: {@code right: 0}, {@code bottom: 0}), or {@code null} without it
+     * Returns the shown replay side bar at the page's bottom right corner ({@code .replayView .navigationPanel}: {@code right: 0},
+     * {@code bottom: 0}).
+     *
+     * @return {@code {left, top, page scale}} of the shown replay side bar in screen pixels, or {@code null} without it
      */
     private float @Nullable [] getSideBarRectangle() {
         ConsoleLayout console = this.layout;

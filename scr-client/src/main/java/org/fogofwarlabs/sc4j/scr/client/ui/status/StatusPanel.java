@@ -353,9 +353,11 @@ public final class StatusPanel {
     }
 
     /**
-     * @return the view mode byte: {@code 0} none, {@code 1} multi-selection, {@code 2} unit, {@code 3} building with stat icons, {@code 4} plain
+     * Returns the view mode byte: {@code 0} none, {@code 1} multi-selection, {@code 2} unit, {@code 3} building with stat icons, {@code 4} plain
      * building, {@code 5} production, {@code 6} construction, {@code 7} research, {@code 8} upgrade, {@code 9} add-on, {@code 10} egg,
-     * {@code 11} cargo, {@code 12} supply, {@code 13} nuke, {@code 14} item, {@code 15} resource
+     * {@code 11} cargo, {@code 12} supply, {@code 13} nuke, {@code 14} item, {@code 15} resource.
+     *
+     * @return the view mode byte
      */
     public int getMode() {
         return this.mode;
@@ -870,7 +872,7 @@ public final class StatusPanel {
     }
 
     /**
-     * Populates occupied selection slots in their existing order.
+     * Populates occupied selection slots in slot order.
      *
      * @param selection the interface selection
      */
@@ -1002,7 +1004,7 @@ public final class StatusPanel {
     }
 
     /**
-     * Shows kills for eligible attack-capable units or a nonzero kill count, excluding the current special cases.
+     * Shows kills for attack-capable units or a nonzero kill count, except for Scourges, Infested Terrans and own or replay-shown hallucinations.
      *
      * @param unit the displayed unit
      * @throws IllegalStateException if no game has been assigned

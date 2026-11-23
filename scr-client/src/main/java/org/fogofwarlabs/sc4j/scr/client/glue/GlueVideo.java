@@ -71,8 +71,7 @@ public final class GlueVideo implements AutoCloseable {
      * Creates a {@link GlueVideo} instance.
      *
      * @param element   the {@code FLC} element of the button
-     * @param placement the {@code rez/flc.json} rectangle of a high definition element, or {@code null} to draw the clip
-     *                  at the element's offset at its own size
+     * @param placement the {@code rez/flc.json} rectangle of a high definition element, or {@code null} to draw the clip at the element's offset at its own size
      */
     public GlueVideo(@NotNull DialogControl element, @Nullable GlueFlicLayout.Placement placement) {
         this.textureKey = TEXTURE_KEY_PREFIX + System.identityHashCode(this);

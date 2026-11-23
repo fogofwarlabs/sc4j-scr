@@ -13,7 +13,7 @@ import java.util.List;
  */
 final class DeveloperTextLayer {
     /**
-     * The pixel height of a developer text line per former vector-font scale unit (cap height {@code 7} of {@code 12} units).
+     * The pixel height of a developer text line per text scale unit (cap height {@code 7} of {@code 12} units).
      */
     private static final float TEXT_UNITS = 9f;
 

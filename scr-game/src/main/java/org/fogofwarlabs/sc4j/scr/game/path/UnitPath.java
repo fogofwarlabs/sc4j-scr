@@ -526,7 +526,7 @@ public final class UnitPath {
             unit.setMovementWaypointY(waypoint >>> WORD_BITS);
         }
 
-        // The keep-waypoint test only reads state; its result is deliberately unused here.
+        // The keep-waypoint test only reads state; its result is unused.
         this.isKeepingCurrentWaypoint(game, unit, pool);
     }
 }

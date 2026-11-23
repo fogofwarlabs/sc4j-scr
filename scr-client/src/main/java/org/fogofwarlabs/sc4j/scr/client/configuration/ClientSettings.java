@@ -282,8 +282,7 @@ public final class ClientSettings {
     }
 
     /**
-     * @return the skin folder of {@code graphics.hdSkin} ({@code PreSale} or {@code Carbot}), or {@code null} for the default
-     * animations or when absent
+     * @return the skin folder of {@code graphics.hdSkin} ({@code PreSale} or {@code Carbot}), or {@code null} for the default animations or when absent
      */
     @Nullable String getHdSkin() {
         return this.hdSkin;
@@ -360,16 +359,17 @@ public final class ClientSettings {
     }
 
     /**
-     * @return the create screen values of the {@code createGame} group by key ({@code type}, {@code subtype}, {@code customType}, {@code speed},
-     * {@code turnRate} as {@link Integer}, {@code name} as {@link String})
+     * Returns the create screen values: {@code type}, {@code subtype}, {@code customType}, {@code speed} and {@code turnRate} as {@link Integer},
+     * {@code name} as {@link String}.
+     *
+     * @return the create screen values of the {@code createGame} group by key
      */
     @NotNull Map<String, Object> getCreateGame() {
         return Collections.unmodifiableMap(this.createGame);
     }
 
     /**
-     * @return {@code paths.data} as written in the file (resolve it with {@link InstallLayout#resolveDataDirectory(String)}), or
-     * {@code null} when absent
+     * @return {@code paths.data} as written in the file (resolve it with {@link InstallLayout#resolveDataDirectory(String)}), or {@code null} when absent
      */
     @Nullable String getDataDirectory() {
         return this.dataDirectory;

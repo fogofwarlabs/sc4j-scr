@@ -206,8 +206,7 @@ public final class UnitBuildingFlight {
      *
      * @param building         the building executing {@link ScrOrderIds#BUILDING_LIFTOFF}
      * @param instructionLimit the ownership, order and animation budget
-     * @throws UnsupportedOperationException if an Infested Command Center lifts off without the creep field or the unit spatial index is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if an Infested Command Center lifts off without the creep field or the unit spatial index is not initialized
      * @throws IllegalStateException         if the building has no sprite
      * @throws NullPointerException          if the world was built without game data
      */

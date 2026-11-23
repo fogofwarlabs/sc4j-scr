@@ -30,7 +30,7 @@ import java.util.Map;
 
 /**
  * Builds minimap and map-preview pixels with renderer layers.
- * Renderer terrain samples may be transferred from the previous image; fog and dots are refreshed in their existing order.
+ * Renderer terrain samples may be transferred from the previous image; fog and dots are filled again for every image.
  * Terrain indices optionally use the tileset color remap, and remembered buildings are drawn after live units.
  * The on-demand RGBA composition bilinearly samples fog; it does not implement a separate blur pass.
  */
@@ -220,8 +220,7 @@ public final class MinimapImage {
      * @param showTerrain whether terrain is drawn
      * @param ghosts      the remembered buildings that are not currently seen
      * @param colorMode   the Shift+Tab color mode: {@code 0} player colors, {@code 1} ally colors (allies yellow, enemies red), {@code 2} team colors
-     * @param blinks      the blinking units by pool index: a count and a palette index; each dot pass decrements the count and
-     *                    removes finished entries
+     * @param blinks      the blinking units by pool index: a count and a palette index; each dot pass decrements the count and removes finished entries
      * @param blinkPhase  the {@code 200} ms blink phase
      * @param previous    the previous image of the same view, whose terrain samples are kept for unchanged tiles, or {@code null}
      * @return the created {@link MinimapImage} instance
@@ -307,9 +306,10 @@ public final class MinimapImage {
     }
 
     /**
-     * Creates a {@link MinimapImage} instance of an opaque map preview for the supported map sizes, using terrain sampler {@code 0}
-     * without color remapping.
-     * Invalid tile groups use the fallback tile; resource dots and owner dots use their existing palette selection.
+     * Creates a {@link MinimapImage} instance of an opaque map preview, {@link #getTextureWidth} by {@link #getTextureHeight}, using terrain
+     * sampler {@code 0} without color remapping. Invalid tile groups use the fallback tile.
+     * <p>
+     * A preview needs a longer map side of {@code 64}, {@code 96}, {@code 128}, {@code 192} or {@code 256} tiles.
      *
      * @param mapWidth        the map width in tiles
      * @param mapHeight       the map height in tiles
@@ -317,8 +317,7 @@ public final class MinimapImage {
      * @param units           the preview units of the map-list reader
      * @param unitTypes       {@code units.dat}, for the placement boxes
      * @param assets          the interface assets of the map's tileset
-     * @return the created {@link MinimapImage} instance ({@link #getTextureWidth} by {@link #getTextureHeight}, opaque), or {@code null} when the
-     * longer side is not {@code 64}, {@code 96}, {@code 128}, {@code 192} or {@code 256} tiles (no image)
+     * @return the created {@link MinimapImage} instance, or {@code null} for an unsupported map size
      */
     public static @Nullable MinimapImage buildPreview(int mapWidth, int mapHeight,
                                                       short @NotNull [] tileIdentifiers,
@@ -657,8 +656,7 @@ public final class MinimapImage {
     }
 
     /**
-     * @return the terrain layer of the renderer path (with creep): the canvas texels as {@code 0xRRGGBBAA}, or {@code null} while the terrain is
-     * hidden or without a terrain layer
+     * @return the terrain layer of the renderer path (with creep): the canvas texels as {@code 0xRRGGBBAA}, or {@code null} while the terrain is hidden or without a terrain layer
      */
     public int @Nullable [] getTerrainLayer() {
         return this.terrainShown ? this.terrainLayer : null;
@@ -672,24 +670,24 @@ public final class MinimapImage {
     }
 
     /**
-     * @return the fog layer of the renderer path: {@link #getMapWidth} by {@link #getMapHeight} texels of black with the fog alpha, as
-     * {@code 0xRRGGBBAA}, filtered linearly when drawn; {@code null} while the terrain is hidden
+     * Returns the fog layer of the renderer path: {@link #getMapWidth} by {@link #getMapHeight} texels of black with the fog alpha, as
+     * {@code 0xRRGGBBAA}, filtered linearly when drawn.
+     *
+     * @return the fog layer, or {@code null} while the terrain is hidden
      */
     public int @Nullable [] getFogLayer() {
         return this.terrainShown ? this.fogLayer : null;
     }
 
     /**
-     * @return the dot layer of the renderer path: the canvas texels as {@code 0xRRGGBBAA}, {@code 0} where no dot is, or {@code null} once a
-     * later image took the layer over
+     * @return the dot layer of the renderer path: the canvas texels as {@code 0xRRGGBBAA}, {@code 0} where no dot is, or {@code null} once a later image took the layer over
      */
     public int @Nullable [] getDotLayer() {
         return this.dotLayer;
     }
 
     /**
-     * @return the first canvas row of the dot layer that changed since the previous image (rows drawn now or cleared from it), or {@code -1}
-     * when none changed
+     * @return the first canvas row of the dot layer that changed since the previous image (rows drawn now or cleared from it), or {@code -1} when none changed
      */
     public int getChangedDotTop() {
         int top = Math.min(this.dotTop, this.clearedTop);

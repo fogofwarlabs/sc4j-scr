@@ -192,8 +192,7 @@ public final class MapUnitLoader {
      * @param expansionEnabled       the expansion mode
      * @param instructionLimit       the iscript execution bound
      * @return the constructor outcomes in record order
-     * @throws IllegalArgumentException      if the section is not a complete {@code UNIT} section, the records are not the complete records of the
-     *                                       section or the coordinate arrays have another size
+     * @throws IllegalArgumentException      if the section is not a complete {@code UNIT} section, the records are not the complete records of the section or the coordinate arrays have another size
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if a unit owner has no player record
      * @throws IllegalStateException         if the unit pool is missing

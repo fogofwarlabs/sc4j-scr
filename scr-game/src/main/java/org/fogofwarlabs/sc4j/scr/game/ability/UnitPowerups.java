@@ -239,8 +239,7 @@ public final class UnitPowerups {
      *
      * @param powerup the powerup
      * @return the picking worker, or {@code null} if none is in reach
-     * @throws UnsupportedOperationException if the computer player phase (the unit rectangle query) is unavailable or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the computer player phase (the unit rectangle query) is unavailable or the unit pool is not initialized
      * @throws IllegalStateException         if the powerup has no sprite
      * @throws NullPointerException          if the world was built without game data
      */

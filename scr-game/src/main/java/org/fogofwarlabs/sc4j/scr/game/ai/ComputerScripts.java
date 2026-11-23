@@ -488,8 +488,7 @@ final class ComputerScripts {
         this.addresses[index] = (int) resolved;
         this.waits[index]     = 0;
         this.owners[index]    = owner;
-        // Reusing a record keeps its killable and release bits and replaces the expansion bit with the directory selector;
-        // reproduced on purpose.
+        // As native, a reused record keeps its killable and release bits and replaces the expansion bit with the directory selector.
         this.flags[index]   = this.flags[index] & FLAGS_KEPT_ON_START | (int) (resolved >>> Integer.SIZE);
         this.left[index]    = left;
         this.top[index]     = top;
@@ -2576,8 +2575,7 @@ final class ComputerScripts {
      * Applies {@code create_nuke}: the first Nuclear Silo of the owner without a ready missile receives a Nuclear
      * Missile created at it with its creation tag, completed, hidden, attached and registered with the Silo's town.
      *
-     * @throws UnsupportedOperationException if the unit accounting is missing or the game has no unit creation context, or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the unit accounting is missing or the game has no unit creation context, or the unit pool is not initialized
      * @throws IllegalStateException         if the chosen Nuclear Silo has no sprite
      */
     private void createNuke(@NotNull ComputerPlayerPhase phase, int owner, int instructionLimit) {

@@ -658,8 +658,7 @@ public final class GameData implements AutoCloseable {
     }
 
     /**
-     * @return the flingy type values of the units for the engine motion algorithm: over {@link #getFlingyTypes()} and, in a game copy, the
-     * accelerating turn column of its content
+     * @return the flingy type values of the units for the engine motion algorithm: over {@link #getFlingyTypes()} and, in a game copy, the accelerating turn column of its content
      */
     public @NotNull ScrFlingyProperties getFlingyProperties() {
         return this.flingyProperties;
@@ -722,8 +721,10 @@ public final class GameData implements AutoCloseable {
     }
 
     /**
-     * @return the iscript as an animation library: one program with a position for every iscript offset
-     * ({@link #getIscriptOffsets()}), the 28 animation kinds and one animation set per script identifier
+     * Returns the iscript as an animation library: one program with a position for every iscript offset ({@link #getIscriptOffsets()}), the 28
+     * animation kinds and one animation set per script identifier.
+     *
+     * @return the iscript animation library
      */
     public @NotNull AnimationLibrary getIscriptLibrary() {
         return this.iscriptLibrary;

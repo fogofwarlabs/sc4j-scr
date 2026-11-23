@@ -1512,8 +1512,7 @@ public final class ScrUnitTypeView {
 
     /**
      * @param unitTypeIdentifier the units.dat entry
-     * @return {@code true} if the sprite visibility of the type follows the building rules ({@link UnitTraitFlags#BUILDING_VISIBILITY}),
-     * {@code false} otherwise
+     * @return {@code true} if the sprite visibility of the type follows the building rules ({@link UnitTraitFlags#BUILDING_VISIBILITY}), {@code false} otherwise
      */
     public boolean hasBuildingVisibility(int unitTypeIdentifier) {
         return (this.getTraits(unitTypeIdentifier) & UnitTraitFlags.BUILDING_VISIBILITY) != 0;
@@ -1537,8 +1536,7 @@ public final class ScrUnitTypeView {
 
     /**
      * @param unitTypeIdentifier the units.dat entry
-     * @return {@code true} if the order timer of the type restarts whenever its ground weapon cooldown is over
-     * ({@link UnitTraitFlags#COOLDOWN_ORDER_TIMER}), {@code false} otherwise
+     * @return {@code true} if the order timer of the type restarts whenever its ground weapon cooldown is over ({@link UnitTraitFlags#COOLDOWN_ORDER_TIMER}), {@code false} otherwise
      */
     public boolean hasCooldownOrderTimer(int unitTypeIdentifier) {
         return (this.getTraits(unitTypeIdentifier) & UnitTraitFlags.COOLDOWN_ORDER_TIMER) != 0;
@@ -1564,8 +1562,7 @@ public final class ScrUnitTypeView {
      * Reads the energy a unit type starts with when it is initialized.
      *
      * @param unitTypeIdentifier the units.dat entry
-     * @return the initial energy with eight fraction bits, or {@link #DEFAULT_INITIAL_ENERGY} for a type that starts with its default share of
-     * its maximum energy, also outside the column
+     * @return the initial energy with eight fraction bits, or {@link #DEFAULT_INITIAL_ENERGY} for a type that starts with its default share of its maximum energy, also outside the column
      */
     public int getInitialEnergy(int unitTypeIdentifier) {
         DatColumn values = this.initialEnergy;

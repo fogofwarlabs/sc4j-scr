@@ -203,8 +203,7 @@ public final class Tooltip {
 
         if (this.rounded) {
             // HD: the rounded fill covers the rectangle grown by 2 and the border lies outside it, the scale rounded up of
-            // output pixels wide. This matches the SC:R menu button tooltip at 1080p: a 3-pixel border whose outer edge lies
-            // 1.33 interface pixels beyond the fill.
+            // output pixels wide.
             float border = (float) Math.ceil(scale);
 
             this.fillRoundedRectangle(x - border, y - border,

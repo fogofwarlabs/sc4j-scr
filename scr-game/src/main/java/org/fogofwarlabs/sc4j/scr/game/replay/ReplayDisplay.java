@@ -77,8 +77,7 @@ public final class ReplayDisplay {
      * @param colorCycleEnabled the retained ColorCycle setting
      * @param phaseGate         the retained phase gate
      * @param placementActive   the retained placement-preview state
-     * @throws UnsupportedOperationException if the local UI selection is not the represented empty one, a placement preview is
-     *                                       active or the game has no execution scope
+     * @throws UnsupportedOperationException if the local UI selection is not the represented empty one, a placement preview is active or the game has no execution scope
      */
     public void update(int hostTicks, boolean minimized, boolean colorCycleEnabled, int phaseGate, int placementActive) {
         if (!this.displayState.isPanelSelectionInitialized() || this.displayState.getSelectionCount() != 0 ||

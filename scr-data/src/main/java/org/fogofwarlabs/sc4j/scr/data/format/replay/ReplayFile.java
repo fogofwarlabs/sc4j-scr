@@ -1292,8 +1292,7 @@ public final class ReplayFile {
     }
 
     /**
-     * @return the game's speed override selector: the {@code XSPD} section's, or the one a live game set ({@link #setSpeedOverrideIndex}),
-     * {@code 0} for none
+     * @return the game's speed override selector: the {@code XSPD} section's, or the one a live game set ({@link #setSpeedOverrideIndex}), {@code 0} for none
      */
     public int getSpeedOverrideIndex() {
         return this.speedOverrideIndex;
@@ -1314,8 +1313,7 @@ public final class ReplayFile {
     }
 
     /**
-     * @return a copy of the game's custom color table: the {@code CCLR} section's, or the one a live game set ({@link #setCustomColors}),
-     * {@code null} for none
+     * @return a copy of the game's custom color table: the {@code CCLR} section's, or the one a live game set ({@link #setCustomColors}), {@code null} for none
      */
     public byte @Nullable [] getCustomColors() {
         return this.customColors == null ? null : this.customColors.clone();

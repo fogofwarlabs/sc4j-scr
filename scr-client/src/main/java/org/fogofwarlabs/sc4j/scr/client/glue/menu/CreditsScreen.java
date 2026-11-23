@@ -234,8 +234,7 @@ public final class CreditsScreen extends GlueScreen {
     /**
      * Creates a {@link CreditsScreen} instance.
      *
-     * @param music    the glue music track the screen starts (Show Credits: track {@code 6}, {@code terran2}), or {@code null} to
-     *                 keep the music that plays
+     * @param music    the glue music track the screen starts (Show Credits: track {@code 6}, {@code terran2}), or {@code null} to keep the music that plays
      * @param finished what follows the credits
      */
     public CreditsScreen(@Nullable String music, @NotNull Runnable finished) {

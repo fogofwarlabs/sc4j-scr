@@ -299,8 +299,7 @@ public final class UnitDamage {
      * @param target           the hit unit
      * @param instructionLimit the image and order instruction budget
      * @throws NullPointerException          if the world was built without game data
-     * @throws UnsupportedOperationException if the player upgrade levels are missing, or the damage type and size read past the damage
-     *                                       multiplier table
+     * @throws UnsupportedOperationException if the player upgrade levels are missing, or the damage type and size read past the damage multiplier table
      */
     public void dealWeaponHit(int weapon, @NotNull Unit source, @NotNull Unit target, int instructionLimit) {
         this.dealWeaponDamage(weapon,
@@ -323,10 +322,37 @@ public final class UnitDamage {
      * @param heading          the hit direction used for shield overlays
      * @param instructionLimit the image and order instruction budget
      * @throws NullPointerException          if the world was built without game data
+     * @throws UnsupportedOperationException if the player upgrade levels are missing, or the damage type and size read past the damage multiplier table
+     */
+    public void dealWeaponDamage(int weapon,
+                                 int damage,
+                                 int divisor,
+                                 @Nullable Unit source, int sourceOwner,
+                                 @NotNull Unit target, int heading,
+                                 int instructionLimit) {
+        this.dealWeaponDamage(weapon, this.game.requireGameData().getWeaponTypes().getDamageType(weapon), damage, divisor, source, sourceOwner,
+                              target, heading, instructionLimit);
+    }
+
+    /**
+     * Applies hallucination, divisor, acid spores, shields, armor and size factors to damage of a damage type, as weapon damage of a weapon with
+     * that damage type.
+     *
+     * @param weapon           the weapon, or {@code -1} for damage without a weapon
+     * @param damageType       the {@code weapons.dat} damage type
+     * @param damage           the base damage with eight fractional bits
+     * @param divisor          the positive damage divisor
+     * @param source           the attacking unit, or {@code null}
+     * @param sourceOwner      the attacking player
+     * @param target           the damaged unit
+     * @param heading          the hit direction used for shield overlays
+     * @param instructionLimit the image and order instruction budget
+     * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the player upgrade levels are missing, or the damage type and size read past the damage
      *                                       multiplier table
      */
     public void dealWeaponDamage(int weapon,
+                                 int damageType,
                                  int damage,
                                  int divisor,
                                  @Nullable Unit source, int sourceOwner,
@@ -353,7 +379,6 @@ public final class UnitDamage {
         }
 
         ScrUnitTypeView unitTypes = this.game.requireGameData().getUnitTypes();
-        ScrWeaponTypeView weapons = this.game.requireGameData().getWeaponTypes();
 
         if (this.game.getGameCheats().suppressesDamage(sourceOwner, false)) {
             damage = 0;
@@ -378,7 +403,6 @@ public final class UnitDamage {
             damage -= absorbed;
         }
 
-        int damageType = weapons.getDamageType(weapon);
         int targetType = target.getUnitId();
 
         this.hit.set(target, source, ScrDamageKinds.find(damageType), damage);
@@ -843,8 +867,7 @@ public final class UnitDamage {
      * @param source           the attacking unit, or {@code null}
      * @param revealSource     whether the attacker's position is revealed
      * @param instructionLimit the order instruction budget
-     * @throws IllegalStateException         if a unit damaged by another player's unit has no computer record and no sprite, or an attacker in
-     *                                       a Bunker has no Bunker
+     * @throws IllegalStateException         if a unit damaged by another player's unit has no computer record and no sprite, or an attacker in a Bunker has no Bunker
      * @throws UnsupportedOperationException if the unit finder is missing
      */
     public void onDamage(@NotNull Unit unit, @Nullable Unit source, boolean revealSource, int instructionLimit) {

@@ -398,8 +398,7 @@ public final class ClassicDynamicRegionsUtils {
          * Tells whether the region's bytes are plain memory: reading them has no effect, and a DWORD read at any offset
          * and a range read give what the byte reads give.
          *
-         * @return {@code true} if the region's bytes are plain memory, {@code false} otherwise; always {@code true} for the
-         * string section
+         * @return {@code true} if the region's bytes are plain memory, {@code false} otherwise; always {@code true} for the string section
          */
         @Override
         public boolean isPlainMemory() {

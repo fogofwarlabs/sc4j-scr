@@ -106,9 +106,7 @@ public final class ScrTriggerSystem implements TriggerSystem {
      * @param replayMode        the replay flag DWORD: nonzero while replaying, {@code 0} in a live game
      * @param phaseGate         the game-paused DWORD
      * @param enabledWhileGated the trigger pause BYTE
-     * @throws UnsupportedOperationException if player records are not retained, the trigger records lack their bodies or evaluation
-     *                                       controls, a trigger result addresses an observing or unrepresented local player, or an
-     *                                       executed action or memory address is unsupported
+     * @throws UnsupportedOperationException if trigger state is not retained, a result addresses an unrepresented local player, or an action or memory address is unsupported
      */
     public static void update(@NotNull TriggerContext context, int frameDuration, int replayMode, int phaseGate, int enabledWhileGated) {
         update(context, frameDuration, replayMode, phaseGate, enabledWhileGated, null, 0);
@@ -132,9 +130,7 @@ public final class ScrTriggerSystem implements TriggerSystem {
      * @param enabledWhileGated the trigger pause BYTE
      * @param world             the world whose players a trigger defeat removes, or {@code null} when unavailable
      * @param instructionLimit  the order and animation script budget for player removal
-     * @throws UnsupportedOperationException if player records are not retained, the trigger records lack their bodies or evaluation
-     *                                       controls, a trigger result addresses an observing or unrepresented local player, or an
-     *                                       executed action or memory address is unsupported
+     * @throws UnsupportedOperationException if trigger state is not retained, a result addresses an unrepresented local player, or an action or memory address is unsupported
      */
     public static void update(@NotNull TriggerContext context,
                               int frameDuration,

@@ -531,8 +531,7 @@ public final class TriggerConditions {
      *
      * @param context  the trigger context
      * @param location the location index
-     * @throws UnsupportedOperationException if the evaluation runs without a world, or the world has no unit spatial index for the rectangle query,
-     *                                       or the unit pool is not initialized
+     * @throws UnsupportedOperationException if the evaluation runs without a world, or the world has no unit spatial index for the rectangle query, or the unit pool is not initialized
      * @throws NullPointerException          if the world was built without game data
      * @throws IllegalStateException         if the terrain miniature flags cannot be loaded
      */

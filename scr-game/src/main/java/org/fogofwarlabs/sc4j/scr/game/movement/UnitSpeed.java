@@ -58,8 +58,7 @@ public final class UnitSpeed {
      *
      * @param unit             the unit whose movement fields are recalculated
      * @param instructionLimit the Walking interpreter instruction limit
-     * @throws UnsupportedOperationException if a flingy-controlled unit has no initialized execution scope, or neither construction, command dispatch
-     *                                       nor a frame phase is active
+     * @throws UnsupportedOperationException if a flingy-controlled unit has no initialized execution scope, or neither construction, command dispatch nor a frame phase is active
      * @throws NullPointerException          if the world was built without game data
      */
     public void recalculate(@NotNull Unit unit, int instructionLimit) {

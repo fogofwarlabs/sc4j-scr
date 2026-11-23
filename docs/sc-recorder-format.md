@@ -156,7 +156,7 @@ canonical VALUES payload
 
 ## Capture
 
-The recorder polls the frame counter (game context +0x14C) in a spin loop, or every N microseconds with `--poll-us N`, and samples a selected frame as soon as the counter changes, after one warm-up pass. The game increments the counter at 0x140319F38, before the frame phase 0x14031C610 enables the RNG and runs the simulation; the RNG gate is set while that phase runs. A pass is accepted when the counter is equal before and after it and the RNG block (state, total, gate) is unchanged with the gate clear. A pass whose counter changed loses the frame; one whose RNG check stays unstable is retried, then written as TORN (strict) or dropped (tolerant).
+The recorder polls the frame counter (game context +0x14C) in a spin loop, or every N microseconds with `--poll-us N`, and samples a selected frame as soon as the counter changes, after the warm-up passes (`--warm-up N`, default 3). The game increments the counter at 0x140319F38, before the frame phase 0x14031C610 enables the RNG and runs the simulation; the RNG gate is set while that phase runs. A pass is accepted when the counter is equal before and after it and the RNG block (state, total, gate) is unchanged with the gate clear. A pass whose counter changed loses the frame; one whose RNG check stays unstable is retried, then written as TORN (strict) or dropped (tolerant).
 
 | Option | Effect |
 |---|---|

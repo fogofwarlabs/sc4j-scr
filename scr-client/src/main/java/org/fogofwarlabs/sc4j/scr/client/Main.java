@@ -570,8 +570,7 @@ public final class Main {
      * Starts the client.
      *
      * @param arguments the launch options; {@code --help} describes available options
-     * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a
-     *                     bounded replay load fails
+     * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a bounded replay load fails
      */
     public static void main(@NotNull String @NotNull [] arguments) throws IOException {
         ConsoleOutputUtils.install();
@@ -589,8 +588,7 @@ public final class Main {
      * @param layout    the client root and its folders
      * @param resources the mod's resource provider, which the client context reads and closes
      * @param arguments the launch options; {@code --help} describes available options
-     * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a
-     *                     bounded replay load fails
+     * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a bounded replay load fails
      */
     public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources, @NotNull String @NotNull [] arguments) throws IOException {
         launch(layout, resources, null, UNKNOWN_BUILD, arguments);
@@ -605,8 +603,7 @@ public final class Main {
      * @param beaconLink the run's Beacon.Link, or {@code null} if the run offers none
      * @param build      the run's build identity, which the desync dumps of network games name
      * @param arguments  the launch options; {@code --help} describes available options
-     * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a
-     *                     bounded replay load fails
+     * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a bounded replay load fails
      */
     public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources,
                               @Nullable BeaconLink beaconLink, @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
@@ -2144,8 +2141,7 @@ public final class Main {
                 /**
                  * Returns the frame rate limit of the frame just run. It is read after {@link #runFrame} returned a presented frame.
                  *
-                 * @return the frames per second the host paces to, or {@code 0} to present without waiting (for example while the
-                 *         display's vertical sync paces the frames)
+                 * @return the frames per second the host paces to, or {@code 0} to present without waiting (for example while the display's vertical sync paces the frames)
                  */
                 @Override
                 public int getFrameRateLimit() {
@@ -2163,8 +2159,7 @@ public final class Main {
      * Runs one frame of the client's frame loop ({@link ClientHost#run}): input, loading, simulation, drawing, screenshots and the present.
      *
      * @param host the host
-     * @return {@link FrameResult#SKIPPED} for a frame that presented nothing (loading, a minimized window), {@link FrameResult#LAST} for the
-     * frame that ends the run, {@link FrameResult#PRESENTED} otherwise
+     * @return {@link FrameResult#SKIPPED} for a frame that presented nothing (loading, a minimized window), {@link FrameResult#LAST} for the frame that ends the run, {@link FrameResult#PRESENTED} otherwise
      * @throws IOException if a screenshot cannot be written or a bounded replay load fails
      */
     private @NotNull FrameResult runFrame(@NotNull ClientHost host) throws IOException {
@@ -3560,8 +3555,7 @@ public final class Main {
      *
      * @param request the game the glue asked for
      * @return the started session
-     * @throws IOException if the request has no map or file, the data directory holds no data pack, the client resources cannot be opened or the game
-     *                     cannot be loaded
+     * @throws IOException if the request has no map or file, the data directory holds no data pack, the client resources cannot be opened or the game cannot be loaded
      */
     private @NotNull ClientSession startGlueGame(@NotNull GlueGameRequest request) throws IOException {
         Path map = request.getPath();
@@ -6567,8 +6561,7 @@ public final class Main {
             /**
              * Saves under a name: writes the replay into {@link #getDirectory()}, or sends the Save Game command whose execution writes the game.
              *
-             * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer,
-             *             without trailing spaces and without terminator
+             * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer, without trailing spaces and without terminator
              * @return {@code true} if the save was written or sent, {@code false} otherwise
              */
             @Override
@@ -7030,8 +7023,7 @@ public final class Main {
                                          * <p>
                                          * A replay saver writes the game's replay into {@link #getDirectory()}.
                                          *
-                                         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer,
-                                         *             without trailing spaces and without terminator
+                                         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer, without trailing spaces and without terminator
                                          * @return {@code true} if the save was written or sent, {@code false} otherwise
                                          */
                                         @Override

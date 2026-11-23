@@ -181,8 +181,7 @@ public final class UnitTargetMovement {
     /**
      * @param unit   the moving unit
      * @param target the movement target
-     * @return {@code true} if the movement destination of the unit lies on the asymmetric signed-WORD contact border of the target, {@code false}
-     * otherwise
+     * @return {@code true} if the movement destination of the unit lies on the asymmetric signed-WORD contact border of the target, {@code false} otherwise
      * @throws IllegalStateException if the target has no sprite
      * @throws NullPointerException  if the world was built without game data
      */

@@ -110,8 +110,7 @@ public final class LanProbeScenario {
     /**
      * Runs the probe.
      *
-     * @param arguments the mode ({@code browse}, {@code advertise}, {@code host} or {@code join}), the toon, the game name
-     *                  and, for {@code join}, the local port
+     * @param arguments the mode ({@code browse}, {@code advertise}, {@code host} or {@code join}), the toon, the game name and, for {@code join}, the local port
      * @throws Exception if the network cannot be opened
      */
     public static void main(String @NotNull [] arguments) throws Exception {

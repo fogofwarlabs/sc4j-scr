@@ -101,8 +101,7 @@ public final class ScrAddedImage {
          * @param overlayType the overlay table, {@link ScrImageTypeView#OVERLAY_ATTACK} through {@link ScrImageTypeView#OVERLAY_SHIELD}
          * @param offsets     per frame, the x and y offsets of each position in turn; every frame holds the same number of positions
          * @return this instance for chaining
-         * @throws IllegalArgumentException if the table is unknown, there is no frame or position, the frames hold different numbers of values
-         *                                  or an offset is outside a signed WORD
+         * @throws IllegalArgumentException if the table is unknown, there is no frame or position, the frames hold different numbers of values or an offset is outside a signed WORD
          */
         public @NotNull Builder setOverlayOffsets(int overlayType, int @NotNull [] @NotNull [] offsets) {
             if (overlayType < ScrImageTypeView.OVERLAY_ATTACK || overlayType > ScrImageTypeView.OVERLAY_SHIELD) {
@@ -196,8 +195,7 @@ public final class ScrAddedImage {
 
     /**
      * @param overlayType the overlay table, {@link ScrImageTypeView#OVERLAY_ATTACK} through {@link ScrImageTypeView#OVERLAY_SHIELD}
-     * @return {@code true} if the image has its own offsets of the table ({@link Builder#setOverlayOffsets}), {@code false} otherwise (it reads
-     * its base image's overlay file)
+     * @return {@code true} if the image has its own offsets of the table ({@link Builder#setOverlayOffsets}), {@code false} otherwise (it reads its base image's overlay file)
      */
     public boolean hasOverlayOffsets(int overlayType) {
         return overlayType >= 0 && overlayType < OVERLAY_TABLE_COUNT && this.overlayOffsets[overlayType] != null;

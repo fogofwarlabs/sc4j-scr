@@ -223,8 +223,7 @@ public final class MovementCollision {
      * @param currentY   the current vertical position
      * @param positionX  the target horizontal position
      * @param positionY  the target vertical position
-     * @return {@code true} if the unit moves from the current to the target position along both axes without crossing a terrain boundary,
-     * {@code false} otherwise
+     * @return {@code true} if the unit moves from the current to the target position along both axes without crossing a terrain boundary, {@code false} otherwise
      */
     public static boolean isTerrainSegmentClear(@NotNull TerrainContours terrain,
                                                 long dimensions,

@@ -989,7 +989,7 @@ public final class UnitHangar {
     /**
      * Chases the target until splash range, starts the explosion animation and dies when the action signal is set.
      * <p>
-     * Startup deliberately ignores the core movement result before storing the launched state.
+     * Startup ignores the core movement result before storing the launched state.
      *
      * @param unit             the Scarab
      * @param instructionLimit the order and script budget

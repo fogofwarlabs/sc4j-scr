@@ -319,7 +319,7 @@ public final class UnitNuclear {
 
         Sprite ghostSprite = ghost.requireSprite();
 
-        this.game.getInterfaceLink().getSoundEvents().add(SoundIds.GHOST_LASER, ghostSprite.getX(), ghostSprite.getY(), ghost.getUnitId());
+        this.game.getUnitSounds().play(SoundIds.GHOST_LASER, ghost);
 
         Unit missile = silo.getSiloNuke();
 
@@ -371,7 +371,7 @@ public final class UnitNuclear {
 
         switch (missile.getPrimaryOrderState()) {
             case LAUNCH_STATE_LAUNCHED -> {
-                this.game.getInterfaceLink().getSoundEvents().add(SoundIds.NUCLEAR_MISSILE_LAUNCH, sprite.getX(), sprite.getY(), type);
+                this.game.getUnitSounds().play(SoundIds.NUCLEAR_MISSILE_LAUNCH, missile);
 
                 int topY = units.getDimensionUp(type);
 

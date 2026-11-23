@@ -83,8 +83,7 @@ public final class ScrAddedUnitType {
             /**
              * Creates a {@link Text} instance.
              *
-             * @param enabledText  the tooltip of the enabled button, in the format of an installed button string after its hotkey and button kind
-             *                     characters
+             * @param enabledText  the tooltip of the enabled button, in the format of an installed button string after its hotkey and button kind characters
              * @param disabledText the tooltip of the disabled button, or {@code null} for none (a disabled button then shows no tooltip)
              */
             public Text(@NotNull String enabledText, @Nullable String disabledText) {
@@ -375,8 +374,7 @@ public final class ScrAddedUnitType {
         /**
          * Sets the added wireframe the status panel shows for the added type instead of the wireframe type's.
          *
-         * @param wireframe the frame of an added wireframe ({@link ScrAddedGraphics#addWireframe}), or {@link #NO_INTERFACE_FRAME} for the
-         *                  wireframe type's
+         * @param wireframe the frame of an added wireframe ({@link ScrAddedGraphics#addWireframe}), or {@link #NO_INTERFACE_FRAME} for the wireframe type's
          * @return this instance for chaining
          * @throws IllegalArgumentException if the frame is neither an added frame nor {@link #NO_INTERFACE_FRAME}
          */
@@ -390,8 +388,7 @@ public final class ScrAddedUnitType {
          * Sets the added command icon the train button, the production queue and the observer production list show for the added type instead of
          * the wireframe type's.
          *
-         * @param commandIcon the frame of an added command icon ({@link ScrAddedGraphics#addCommandIcon}), or {@link #NO_INTERFACE_FRAME} for
-         *                    the wireframe type's
+         * @param commandIcon the frame of an added command icon ({@link ScrAddedGraphics#addCommandIcon}), or {@link #NO_INTERFACE_FRAME} for the wireframe type's
          * @return this instance for chaining
          * @throws IllegalArgumentException if the frame is neither an added frame nor {@link #NO_INTERFACE_FRAME}
          */
@@ -417,8 +414,7 @@ public final class ScrAddedUnitType {
          * Builds a {@link ScrAddedUnitType} instance with the current values.
          *
          * @return the built {@link ScrAddedUnitType} instance
-         * @throws IllegalStateException if the button is a {@link ProductionAction#BUILDING_MORPH} button and the type is no building morph
-         *                               result
+         * @throws IllegalStateException if the button is a {@link ProductionAction#BUILDING_MORPH} button and the type is no building morph result
          */
         public @NotNull ScrAddedUnitType build() {
             TrainButton button = this.trainButton;

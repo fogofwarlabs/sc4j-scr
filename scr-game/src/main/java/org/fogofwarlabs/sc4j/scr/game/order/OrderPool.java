@@ -266,8 +266,10 @@ public final class OrderPool {
     }
 
     /**
-     * @return the native capacity ({@link #getNativeCapacity()}) minus the allocated orders ({@link #getAllocatedCount()}); the result is negative
-     * when more orders are allocated than the native capacity, which the entries added by a free-list commit allow
+     * Returns the native capacity ({@link #getNativeCapacity()}) minus the allocated orders ({@link #getAllocatedCount()}). The result is negative
+     * when more orders are allocated than the native capacity, which the entries added by a free-list commit allow.
+     *
+     * @return the free order count
      */
     public int getFreeCount() {
         return this.nativeCapacity - this.allocatedCount;

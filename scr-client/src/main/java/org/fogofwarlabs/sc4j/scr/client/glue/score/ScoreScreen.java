@@ -518,12 +518,11 @@ public final class ScoreScreen {
     private @Nullable Path watchedReplay;
 
     /**
-     * Creates a {@link ScoreScreen} instance from the game counters.
+     * Creates a {@link ScoreScreen} instance from the game counters. A single player game names computer players by their slot's name.
      *
      * @param view           the game view after the outcome
      * @param names          the player names by slot, {@code null} entries for none
-     * @param computerName   the name of computer players in a multiplayer game ({@code network.json strCOMPUTER}); a
-     *                       single player game uses the slot's name
+     * @param computerName   the name of computer players in a multiplayer game ({@code network.json strCOMPUTER})
      * @param multiplayer    whether the game is a multiplayer game
      * @param forceNames     the force names shown under player names, or {@code null} when none are shown
      * @param localPlayer    the local player's slot
@@ -692,9 +691,10 @@ public final class ScoreScreen {
     }
 
     /**
+     * Returns whether a control is enabled. Watch Replay needs a replay path; Save Replay needs saving to be allowed and not yet done.
+     *
      * @param control a control id
-     * @return {@code true} if the control is enabled (Watch Replay needs a replay path, Save Replay needs saving to be allowed
-     * and not yet done), {@code false} otherwise
+     * @return {@code true} if the control is enabled, {@code false} otherwise
      */
     public boolean isEnabled(int control) {
         if (control == WATCH_REPLAY_CONTROL) {

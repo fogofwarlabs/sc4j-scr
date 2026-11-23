@@ -208,11 +208,11 @@ final class RegionRecordPathsTest {
     }
 
     /**
-     * Creates a random player operand and unit WORD.
+     * Creates a random player operand and unit WORD: a death-table slot, the current player, a player group, a loss-counter group, a DWORD of the
+     * result area or of the running record itself, or an address without a region.
      *
      * @param random the case generator
-     * @return a player operand and unit WORD: a death-table slot, the current player, a player group, a loss-counter
-     * group, a DWORD of the result area or of the running record itself, or an address without a region
+     * @return the player operand and unit WORD
      */
     private static int @NotNull [] createOperands(@NotNull Random random) {
         return switch (random.nextInt(7)) {

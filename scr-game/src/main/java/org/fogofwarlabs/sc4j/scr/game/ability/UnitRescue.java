@@ -54,8 +54,7 @@ public final class UnitRescue {
      *
      * @param unit             the unit executing {@link ScrOrderIds#RESCUE_PASSIVE}
      * @param instructionLimit the ownership and order budget
-     * @throws UnsupportedOperationException if the computer player phase (the unit rectangle query) is unavailable or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the computer player phase (the unit rectangle query) is unavailable or the unit pool is not initialized
      * @throws NullPointerException          if the world was built without game data
      */
     public void update(@NotNull Unit unit, int instructionLimit) {

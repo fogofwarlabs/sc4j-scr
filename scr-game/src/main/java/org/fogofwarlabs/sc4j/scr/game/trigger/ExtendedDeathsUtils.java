@@ -30,8 +30,7 @@ final class ExtendedDeathsUtils {
      * Tests whether an extended operand names a player group whose players each take part.
      *
      * @param selector the player operand
-     * @return {@code true} if the operand names a player group ({@code 14..26}), {@code false} otherwise (one
-     * player index, {@link #getPlayerIndex}, which includes the current player {@code 13})
+     * @return {@code true} if the operand names a player group ({@code 14..26}), {@code false} otherwise (one player index, {@link #getPlayerIndex}, which includes the current player {@code 13})
      */
     static boolean isPlayerGroup(int selector) {
         return selector != TriggerPlayerSelectors.CURRENT_PLAYER &&
@@ -66,8 +65,7 @@ final class ExtendedDeathsUtils {
      * @param address  the classic address of the record
      * @param selector the player operand of the Set Deaths
      * @param unitType the unit operand of the Set Deaths
-     * @return {@code true} if a write of the selector and unit WORD may reach the record's bytes
-     * ({@link ClassicAddressSpace#canWriteDeathsRange}), {@code false} otherwise
+     * @return {@code true} if a write of the selector and unit WORD may reach the record's bytes ({@link ClassicAddressSpace#canWriteDeathsRange}), {@code false} otherwise
      */
     static boolean mayWriteRecord(int address, int selector, int unitType) {
         if (isCounterWrite(unitType)) {

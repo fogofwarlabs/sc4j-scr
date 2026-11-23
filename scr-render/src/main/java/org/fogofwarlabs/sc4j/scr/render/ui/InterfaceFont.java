@@ -238,8 +238,7 @@ public final class InterfaceFont implements Font {
     }
 
     /**
-     * @return {@code true} if the TrueType text path is on for this font (the global flag of the text layout; {@link #setMode}), not only for
-     * characters outside the {@code .fnt}, {@code false} otherwise
+     * @return {@code true} if the TrueType text path is on for this font (the global flag of the text layout; {@link #setMode}), not only for characters outside the {@code .fnt}, {@code false} otherwise
      */
     public boolean isTrueTypeMode() {
         return this.trueTypeMode;
@@ -253,8 +252,7 @@ public final class InterfaceFont implements Font {
     }
 
     /**
-     * @return the line height in font pixels: the maximum height plus {@link InterfaceText#LINE_GAP} (the {@code .fnt} header is read in TrueType
-     * mode too, as for the message area)
+     * @return the line height in font pixels: the maximum height plus {@link InterfaceText#LINE_GAP} (the {@code .fnt} header is read in TrueType mode too, as for the message area)
      */
     @Override
     public int getLineHeight() {
@@ -262,8 +260,7 @@ public final class InterfaceFont implements Font {
     }
 
     /**
-     * @return the style of the engine forms without one: the game's {@code tfontgam} code colors and the one-pixel kerning at one screen pixel per
-     * font pixel
+     * @return the style of the engine forms without one: the game's {@code tfontgam} code colors and the one-pixel kerning at one screen pixel per font pixel
      */
     @Override
     public @NotNull TextStyle getDefaultStyle() {
@@ -272,8 +269,7 @@ public final class InterfaceFont implements Font {
 
     /**
      * @param text the text to be drawn (it selects the path)
-     * @return the text height of a one-line layout: the line height less {@link InterfaceText#LINE_GAP}; in TrueType mode the Latin face's
-     * {@code pointSize * 4/3 + gap}
+     * @return the text height of a one-line layout: the line height less {@link InterfaceText#LINE_GAP}; in TrueType mode the Latin face's {@code pointSize * 4/3 + gap}
      */
     public float getTextHeight(@NotNull String text) {
         if (this.shouldUseTrueType(text)) {

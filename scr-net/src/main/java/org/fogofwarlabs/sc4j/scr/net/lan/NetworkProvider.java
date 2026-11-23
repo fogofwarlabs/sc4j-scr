@@ -32,29 +32,27 @@ public interface NetworkProvider extends AutoCloseable {
     @NotNull List<LanDiscovery.Game> getGames();
 
     /**
-     * @return the rooms found on a network of rooms, except the one this client hosts: first the joinable ones, which {@link #getGames()}
-     * lists as games, then those of another version or content of the mod, each with the refusal its host gives this run; empty for a
-     * network without rooms
+     * Lists the rooms found on a network of rooms, except the one this client hosts: first the joinable ones, which {@link #getGames()} lists
+     * as games, then those of another version or content of the mod, each with the refusal its host gives this run.
+     *
+     * @return the rooms, empty for a network without rooms
      */
     default @NotNull List<@NotNull FoundRoom> getRooms() {
         return List.of();
     }
 
     /**
-     * @return the game whose host {@link #connect} made reachable, with the host's own game attributes, or {@code null} while the connection
-     * is pending, has failed or was never started
+     * @return the game whose host {@link #connect} made reachable, with the host's own game attributes, or {@code null} while the connection is pending, has failed or was never started
      */
     LanDiscovery.@Nullable Game getConnectedGame();
 
     /**
-     * @return why the connection {@link #connect} started failed ({@link ProviderSession.JoinState#REJECTED} or
-     * {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} while it is pending or reached the host
+     * @return why the connection {@link #connect} started failed ({@link ProviderSession.JoinState#REJECTED} or {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} while it is pending or reached the host
      */
     ProviderSession.@Nullable JoinState getConnectionFailure();
 
     /**
-     * @return {@code true} if the hosted game may start as far as the network goes (every pair of its players can reach each other) or this
-     * client hosts no game, {@code false} otherwise (a pair of players is not connected yet)
+     * @return {@code true} if the hosted game may start as far as the network goes (every pair of its players can reach each other) or this client hosts no game, {@code false} otherwise
      */
     boolean isReadyToStart();
 
@@ -64,16 +62,14 @@ public interface NetworkProvider extends AutoCloseable {
     @Nullable String getFailureText();
 
     /**
-     * @return the Beacon.Link session the network runs on, whose community part (presence, channels, whispers) the multiplayer screens show,
-     * or {@code null} for a network without one
+     * @return the Beacon.Link session the network runs on, whose community part (presence, channels, whispers) the multiplayer screens show, or {@code null} for a network without one
      */
     default @Nullable BeaconLinkSession getBeaconLinkSession() {
         return null;
     }
 
     /**
-     * @return why the host refused the connection {@link #connect} started, when {@link #getConnectionFailure()} is
-     * {@link ProviderSession.JoinState#REJECTED} and the network names a reason, otherwise {@code null}
+     * @return why the host refused the connection {@link #connect} started, when {@link #getConnectionFailure()} is {@link ProviderSession.JoinState#REJECTED} and the network names a reason, otherwise {@code null}
      */
     default @Nullable JoinRefusal getJoinRefusal() {
         return null;

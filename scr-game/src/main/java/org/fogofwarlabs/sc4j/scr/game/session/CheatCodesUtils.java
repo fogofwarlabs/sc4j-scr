@@ -138,8 +138,7 @@ public final class CheatCodesUtils {
      *
      * @param text         the typed text
      * @param currentFlags the current cheat flags
-     * @return the new cheat flags when the text is a cheat (equal to {@code currentFlags} for {@code radio free zerg}), else
-     * {@link #NOT_A_CHEAT}
+     * @return the new cheat flags when the text is a cheat (equal to {@code currentFlags} for {@code radio free zerg}), else {@link #NOT_A_CHEAT}
      */
     public static long apply(@NotNull String text, int currentFlags) {
         return match(hash(text), currentFlags);
@@ -154,8 +153,7 @@ public final class CheatCodesUtils {
      * @param currentFlags  the current cheat flags
      * @param runtimeRandom the game's C runtime generator
      * @param unixTime      the current Unix time in seconds, truncated to an {@code int}
-     * @return the new cheat flags when the text is a cheat (equal to {@code currentFlags} for {@code radio free zerg}), else
-     * {@link #NOT_A_CHEAT}
+     * @return the new cheat flags when the text is a cheat (equal to {@code currentFlags} for {@code radio free zerg}), else {@link #NOT_A_CHEAT}
      */
     public static long apply(@NotNull String text, int currentFlags, @NotNull RuntimeRandom runtimeRandom, int unixTime) {
         int[] subkeys = createSubkeys(runtimeRandom);

@@ -95,9 +95,7 @@ public final class InterfaceFonts implements AutoCloseable {
      * Returns the slot of a web text style using its face family, CSS size and line height ({@link TrueTypeText#getWebSlot}). The slot can be passed
      * wherever a font slot is taken.
      *
-     * @param family     the page's {@code font-family}: {@link TrueTypeText#WEB_REGULAR_FAMILY} ({@code eurostile-reg}),
-     *                   {@link TrueTypeText#WEB_EXTENDED_FAMILY} ({@code eurostileext-reg}) or {@link TrueTypeText#WEB_ARIAL_FAMILY} ({@code Arial}),
-     *                   each followed by the Hangul face
+     * @param family     the page's {@code font-family}: {@link TrueTypeText#WEB_REGULAR_FAMILY} ({@code eurostile-reg}), {@link TrueTypeText#WEB_EXTENDED_FAMILY} ({@code eurostileext-reg}) or {@link TrueTypeText#WEB_ARIAL_FAMILY} ({@code Arial}), each followed by the Hangul face
      * @param size       the CSS font size in interface pixels (the page's {@code 640}-wide stylesheet)
      * @param lineHeight the CSS line height in interface pixels, or {@code 0} for {@code line-height: normal}
      * @return the slot

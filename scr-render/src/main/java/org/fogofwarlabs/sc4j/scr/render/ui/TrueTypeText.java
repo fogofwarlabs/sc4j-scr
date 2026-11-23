@@ -1069,8 +1069,7 @@ public final class TrueTypeText implements AutoCloseable {
      * @param screenScale  the screen pixels per interface pixel
      * @param renderScale  the render scale
      * @param defaultColor the starting color code
-     * @param shadow       whether the face has the drop shadow (drawn when {@code renderScale != 1}: {@code renderScale} atlas texels, weight
-     *                     {@code 0.75})
+     * @param shadow       whether the face has the drop shadow (drawn when {@code renderScale != 1}: {@code renderScale} atlas texels, weight {@code 0.75})
      * @return the advance in screen pixels
      */
     public float draw(int slot, @NotNull String text, float x, float y, float screenScale, int renderScale, int defaultColor, boolean shadow) {

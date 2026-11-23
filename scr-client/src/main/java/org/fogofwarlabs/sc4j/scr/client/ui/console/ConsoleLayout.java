@@ -157,8 +157,7 @@ public final class ConsoleLayout implements InterfaceTransform {
     }
 
     /**
-     * @return the console dialogs as open dialogs: {@code statbtn}, {@code statdata}, {@code statres},
-     * {@code statport}, {@code minimap}, {@code stat_f10}
+     * @return the console dialogs as open dialogs: {@code statbtn}, {@code statdata}, {@code statres}, {@code statport}, {@code minimap}, {@code stat_f10}
      */
     public @NotNull List<ConsoleDialog> getDialogs() {
         return this.dialogs;
@@ -246,8 +245,7 @@ public final class ConsoleLayout implements InterfaceTransform {
     }
 
     /**
-     * @return the logical width {@code W} of the interface pixels the transform maps
-     * ({@link org.fogofwarlabs.sc4j.engine.client.host.AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
+     * @return the logical width {@code W} of the interface pixels the transform maps ({@link org.fogofwarlabs.sc4j.engine.client.host.AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
      */
     @Override
     public float getLogicalWidth() {

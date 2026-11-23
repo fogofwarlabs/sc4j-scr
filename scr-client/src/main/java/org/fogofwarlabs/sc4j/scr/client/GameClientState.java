@@ -229,8 +229,7 @@ final class GameClientState implements InputListener {
     }
 
     /**
-     * @return {@code true} if the mouse wheel zooms the game view (as {@code /zoom on|off} chose, else in the replay viewer only),
-     * {@code false} otherwise
+     * @return {@code true} if the mouse wheel zooms the game view (as {@code /zoom on|off} chose, else in the replay viewer only), {@code false} otherwise
      */
     boolean isWheelZoom() {
         Boolean chosen = this.wheelZoom;

@@ -42,7 +42,7 @@ import java.util.*;
 @RequiresInstallation
 final class LanUseMapSettingsEudTest {
     /**
-     * The options the user's LAN game used.
+     * The options of a Use Map Settings LAN game.
      */
     private static final @NotNull String OPTIONS = "0a00010000000000000000020001030100010000000000000000000000000000";
     private static final int FRAMES = 5000;
@@ -208,7 +208,7 @@ final class LanUseMapSettingsEudTest {
             while (game.getCurrentFrame() < FRAMES) {
                 long frame = game.getCurrentFrame();
 
-                // The user's choices with the civilian: speed (location 105), difficulty (113), then a civilization. The
+                // The player's choices with the civilian: speed (location 105), difficulty (113), then a civilization. The
                 // civilization choice removes the choice row, Assimilators among them, twice (removed refineries).
                 if (frame == SPEED_CHOICE_FRAME) {
                     moveCivilian(live, game, CIVILIAN_START_X, CIVILIAN_START_Y, SPEED_CHOICE_X, SPEED_CHOICE_Y);

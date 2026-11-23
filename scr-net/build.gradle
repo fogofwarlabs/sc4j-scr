@@ -16,7 +16,7 @@ dependencies {
     testImplementation testFixtures("org.fogofwarlabs.sc4j:sc4j-beaconlink:$sc4jVersion")
 }
 
-// The EUD maps of LanEudSessionMapsTest hold more than the default 512 MB (뱀서류 also in single player).
+// The EUD maps of LanEudSessionMapsTest need more than the default 512 MB heap.
 tasks.withType(Test).configureEach {
     maxHeapSize = '2g'
 }

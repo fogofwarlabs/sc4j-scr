@@ -119,11 +119,9 @@ public final class ReplayLoaderUtils {
      * @param mapFile          the ordered embedded map sections
      * @param gameData         the installed tables and assets
      * @param random           the enabled game random state at map initialization
-     * @param runtimeRandom    the C runtime generator in its established state before map construction, which the game
-     *                         shares
+     * @param runtimeRandom    the C runtime generator in its established state before map construction, which the game shares
      * @param sharedVision     the twelve established shared-vision masks
-     * @param comparisonMask   the local comparison mask while the map objects are created; the replay's vision starts after
-     *                         them ({@link LocalVision#startReplayOrObserver})
+     * @param comparisonMask   the local comparison mask while the map objects are created; the replay's vision starts after them ({@link LocalVision#startReplayOrObserver})
      * @param viewportWidth    the viewport width in pixels
      * @param viewportHeight   the viewport height in pixels
      * @param instructionLimit the checked script execution bound

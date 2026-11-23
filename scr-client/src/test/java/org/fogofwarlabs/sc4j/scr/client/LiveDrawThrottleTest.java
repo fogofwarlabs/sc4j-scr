@@ -27,14 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Checks the live game loop pacing of the speed overrides on two clients of a network game, each running the client's passes on a simulated host
- * clock: a pass runs the live frames due ({@link ReplayPlayback#takeLiveDueFrames}) after their turn exchanges, giving the time of frames whose
- * turn is missing back ({@link ReplayPlayback#refundLiveFrames}), then draws if the draw throttle lets it ({@link PresentThrottle} with
- * {@link GameSpeed#THROTTLED_DRAW_INTERVAL}), and a drawn pass costs more host time than a pass without drawing. At {@code #x4} and {@code #x5}
- * several frames run per drawn frame and the drawn frames keep the draw interval; without an override and at {@code #x2} every pass draws and
- * the clients run no more frames than they draw; both clients stay in step whatever their drawing costs. A user's frame rate limit
- * below the draw interval's rate ({@link PresentThrottle#setFrameRateLimit}) spaces the drawn frames of {@code #x3} to {@code #x5} to the limit's
- * period and leaves the frame schedule as it is: the clients run no fewer frames than without it.
+ * Checks the live game loop pacing of the speed overrides on two network clients with a simulated host clock: the frames run per drawn frame,
+ * the draw interval, the spacing of drawn frames by a frame rate limit and both clients staying in step.
  */
 @RequiresInstallation
 final class LiveDrawThrottleTest {

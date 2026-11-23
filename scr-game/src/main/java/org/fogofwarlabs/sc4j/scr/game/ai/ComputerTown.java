@@ -97,7 +97,7 @@ final class ComputerTown {
     private static final int SAVED_REQUEST_PRIORITY = 1;
     private static final int SAVED_REQUEST_TYPE = Short.BYTES;
     /**
-     * Clearing a free town before saving stops one entry short, so the last request stays; reproduced on purpose.
+     * Clearing a free town before saving stops one entry short, as native does, so the last request stays.
      */
     private static final int CLEARED_REQUEST_COUNT = REQUEST_COUNT - 1;
 
@@ -157,7 +157,7 @@ final class ComputerTown {
     boolean resourceAreaPending;
     /**
      * While nonzero the town's unit requests wait; decremented by the town update. Town initialization leaves it
-     * unchanged, so a reused town keeps the previous value; reproduced on purpose.
+     * unchanged, so a reused town keeps the previous value.
      */
     int requestDelay;
 

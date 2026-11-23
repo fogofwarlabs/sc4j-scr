@@ -745,8 +745,7 @@ public final class ComputerTerrain {
     /**
      * Selects the route region with the most neighboring components, later regions winning ties.
      *
-     * @return {@value #CHOKE_FOUND} if found, {@value #CHOKE_SEARCH_FAILED} on search failure, {@value #CHOKE_NO_CANDIDATE}
-     * without candidate, {@value #CHOKE_SHORT_ROUTE} for a short route
+     * @return {@value #CHOKE_FOUND} if found, {@value #CHOKE_SEARCH_FAILED} on search failure, {@value #CHOKE_NO_CANDIDATE} without candidate, {@value #CHOKE_SHORT_ROUTE} for a short route
      */
     private int selectChoke(@NotNull TerrainRegions regions,
                             @NotNull RegionPathSearch search,

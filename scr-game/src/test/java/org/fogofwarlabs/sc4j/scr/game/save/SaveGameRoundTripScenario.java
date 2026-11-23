@@ -79,8 +79,7 @@ public final class SaveGameRoundTripScenario {
         }
 
         /**
-         * @return the first frame whose state hashes differ between the game loaded from the saved file and the game loaded from its re-save, or
-         * {@code -1} if none differs
+         * @return the first frame whose state hashes differ between the game loaded from the saved file and the game loaded from its re-save, or {@code -1} if none differs
          */
         int getFirstHashMismatchFrame() {
             return this.firstHashMismatchFrame;

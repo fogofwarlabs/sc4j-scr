@@ -98,8 +98,10 @@ public final class ConsoleModel {
     }
 
     /**
-     * @return whose command card the last update showed; {@link CommandCard.Perspective#NATIVE_REPLAY} is the replay
-     * viewer, where the native replay flag is set
+     * Returns whose command card the last update showed; {@link CommandCard.Perspective#NATIVE_REPLAY} is the replay viewer, where the native
+     * replay flag is set.
+     *
+     * @return the perspective of the last update
      */
     public @NotNull CommandCard.Perspective getPerspective() {
         return this.perspective;
@@ -163,8 +165,10 @@ public final class ConsoleModel {
     }
 
     /**
-     * @return {@code true} if a local-only selection (the replay viewer's, or another player's units) replaces the player's
-     * synchronized selection, {@code false} otherwise, also while an own selection command is pending
+     * Tests whether a local-only selection (the replay viewer's, or another player's units) replaces the player's synchronized selection. It
+     * does not while an own selection command is pending.
+     *
+     * @return {@code true} if a local-only selection replaces the synchronized selection, {@code false} otherwise
      */
     public boolean isLocalSelection() {
         return this.localSelection && !this.pendingSelection;
@@ -315,7 +319,7 @@ public final class ConsoleModel {
             Unit[] previous = this.copySelection();
 
             // The replay viewer selects on its own: the recorded players' selections are not the viewer's, so the panel
-            // stays empty until the viewer clicks (inferred from the viewer never sending select commands).
+            // stays empty until the viewer clicks.
             this.selection.set(player);
             this.updateSelectionImages(previous);
         } else if (!local) {

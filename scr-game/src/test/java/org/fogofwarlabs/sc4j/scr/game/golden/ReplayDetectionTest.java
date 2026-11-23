@@ -58,8 +58,7 @@ final class ReplayDetectionTest {
      *
      * @param resources the installed game resources
      * @return one test per detection replay
-     * @throws IOException if the known problem list or the detection folder cannot be read, the list names a key without a replay, or the result
-     *                     table cannot be written
+     * @throws IOException if the known problem list or the detection folder cannot be read, the list names a key without a replay, or the result table cannot be written
      */
     @TestFactory
     @NotNull Stream<DynamicTest> replay_detection(@NotNull InstallationTestResources resources) throws IOException {

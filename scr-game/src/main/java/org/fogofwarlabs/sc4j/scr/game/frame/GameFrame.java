@@ -181,8 +181,7 @@ public final class GameFrame {
     }
 
     /**
-     * @return the viewport of the current frame: horizontal and vertical tile, width and height in pixels; the caller's array of the last
-     * {@link #update}, not a copy
+     * @return the viewport of the current frame: horizontal and vertical tile, width and height in pixels; the caller's array of the last {@link #update}, not a copy
      */
     public int @NotNull [] getViewport() {
         return this.viewport;
@@ -211,11 +210,9 @@ public final class GameFrame {
      * @param elapsedHostTicks       the measured DWORD difference used by the unit phase
      * @param buildingRefreshEnabled whether the caller's building refresh is enabled
      * @param statusRefreshEnabled   whether the caller's status refresh is enabled
-     * @param viewport               the horizontal/vertical tile WORDs and width/height pixel DWORDs; the frame keeps this array (no copy) for its
-     *                               phases
+     * @param viewport               the horizontal/vertical tile WORDs and width/height pixel DWORDs, kept without a copy
      * @param instructionLimit       the per-invocation movement and script budget
-     * @throws UnsupportedOperationException if a phase is not ready, the execution scope, the building power gate or an original player record is
-     *                                       missing, or the viewport does not hold {@code 4} values
+     * @throws UnsupportedOperationException if a phase is not ready, required frame state is missing or the viewport does not hold {@code 4} values
      */
     public void update(@NotNull Game game,
                        int elapsedHostTicks,
@@ -233,8 +230,7 @@ public final class GameFrame {
      * @param elapsedHostTicks       the measured DWORD difference used by the unit phase
      * @param buildingRefreshEnabled whether the caller's building refresh is enabled
      * @param statusRefreshEnabled   whether the caller's status refresh is enabled
-     * @param viewport               the horizontal/vertical tile WORDs and width/height pixel DWORDs; the frame keeps this array (no copy) for its
-     *                               phases
+     * @param viewport               the horizontal/vertical tile WORDs and width/height pixel DWORDs; the frame keeps this array (no copy) for its phases
      * @param instructionLimit       the per-invocation movement and script budget
      */
     public void prepare(int elapsedHostTicks,
@@ -254,8 +250,7 @@ public final class GameFrame {
      * the execution scope, and the phase index does not advance.
      *
      * @param game the initialized game world
-     * @throws UnsupportedOperationException if a phase is not ready, the execution scope, the building power gate or an original player record is
-     *                                       missing, or the viewport does not hold {@code 4} values
+     * @throws UnsupportedOperationException if a phase is not ready, required frame state is missing or the viewport does not hold {@code 4} values
      */
     public void run(@NotNull Game game) {
         FramePhaseList phases = game.getFramePhases();

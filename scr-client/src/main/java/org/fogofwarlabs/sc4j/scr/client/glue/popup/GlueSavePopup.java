@@ -105,8 +105,7 @@ public final class GlueSavePopup extends GlueFramedPopup {
         /**
          * Saves under a name: writes the replay into {@link #getDirectory()}, or sends the Save Game command whose execution writes the game.
          *
-         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer,
-         *             without trailing spaces and without terminator
+         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer, without trailing spaces and without terminator
          * @return {@code true} if the save was written or sent, {@code false} otherwise
          */
         boolean save(byte @NotNull [] name);

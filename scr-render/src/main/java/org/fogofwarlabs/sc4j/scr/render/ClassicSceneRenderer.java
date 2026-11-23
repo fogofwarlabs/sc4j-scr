@@ -572,8 +572,7 @@ public final class ClassicSceneRenderer implements SceneRenderer, AutoCloseable 
      * An observer slot darkens through the observer table, whose alpha stops at {@code 218}, so unexplored ground stays faintly visible. The replay
      * viewer is not an observer (its local human is a player slot).
      *
-     * @param tileFlags    the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per
-     *                     player)
+     * @param tileFlags    the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per player)
      * @param visionMask   the eight-bit mask of players whose vision is shown
      * @param visibleLevel the fog level of visible tiles, the game's visible level BYTE (default {@code 31}); explored tiles get half of it
      * @param observer     whether the local human is an observer slot ({@code 0x80..0x83})

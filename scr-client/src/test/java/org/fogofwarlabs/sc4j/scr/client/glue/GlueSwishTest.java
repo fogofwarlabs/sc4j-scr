@@ -13,10 +13,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Checks the panel slide of the glue screens: a panel held while the screen opens stays out and later slides in alone, a panel slides out
- * alone with a doubling step and back in from where it is, and the controls attached to a panel move with it while the other panels and the
- * screen's lock stay as they are. Each panel keeps its own motion: a panel that slid out stays out while another slides, and an entering
- * panel keeps entering while another slides out.
+ * Checks the panel slide of the glue screens: a panel held while the screen opens slides in later alone, a panel slides out with a doubling
+ * step and back in from where it is, attached controls move with their panel, and each panel keeps its own motion while another slides.
  */
 final class GlueSwishTest {
     private static final int INTERFACE_WIDTH = 640;

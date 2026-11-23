@@ -110,13 +110,13 @@ public final class SightCoverage {
     }
 
     /**
-     * Returns one field of a sight record.
+     * Returns one field of a sight record. The fields {@code 0} to {@link #RECORD_FIELD_COUNT} minus one are the predecessor indices
+     * ({@link #RECORD_FIELD_FIRST_PREDECESSOR}, {@link #RECORD_FIELD_SECOND_PREDECESSOR}), the tile offset, the cached flags, the signed
+     * coordinates and the predecessor count.
      *
      * @param radiusIndex the original sight descriptor index
      * @param recordIndex the ordered record index
-     * @param field       the field, {@code 0} to {@link #RECORD_FIELD_COUNT} minus one: the predecessor indices
-     *                    ({@link #RECORD_FIELD_FIRST_PREDECESSOR}, {@link #RECORD_FIELD_SECOND_PREDECESSOR}), the tile offset, the cached flags, the
-     *                    signed coordinates and the predecessor count
+     * @param field       the field
      * @return the represented record field
      * @throws IllegalArgumentException if the field is unknown
      */

@@ -203,8 +203,7 @@ public final class ComputerUnitRecord {
     /**
      * Creates a {@link ComputerUnitRecord} instance without unit, town or region record.
      *
-     * @param kind      the record kind: {@link #KIND_GUARD}, {@link #KIND_WORKER}, {@link #KIND_BUILDING} or
-     *                  {@link #KIND_MILITARY}
+     * @param kind      the record kind: {@link #KIND_GUARD}, {@link #KIND_WORKER}, {@link #KIND_BUILDING} or {@link #KIND_MILITARY}
      * @param poolIndex the zero-based index in the record pool of the kind
      */
     public ComputerUnitRecord(int kind, int poolIndex) {
@@ -237,8 +236,7 @@ public final class ComputerUnitRecord {
     }
 
     /**
-     * @return the record kind: {@link #KIND_GUARD}, {@link #KIND_WORKER}, {@link #KIND_BUILDING} or
-     * {@link #KIND_MILITARY}
+     * @return the record kind: {@link #KIND_GUARD}, {@link #KIND_WORKER}, {@link #KIND_BUILDING} or {@link #KIND_MILITARY}
      */
     public int getKind() {
         return this.kind;

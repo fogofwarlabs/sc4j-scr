@@ -33,8 +33,7 @@ public final class TransmissionPortraitTimer {
      * Arms the timer, replacing a running one.
      *
      * @param now      the host millisecond DWORD at the Transmission
-     * @param duration the Transmission duration in milliseconds (the {@link TriggerEvents#TRANSMISSION} fourth value), a
-     *                 DWORD
+     * @param duration the Transmission duration in milliseconds (the {@link TriggerEvents#TRANSMISSION} fourth value), a DWORD
      */
     public void arm(int now, int duration) {
         this.armed    = true;

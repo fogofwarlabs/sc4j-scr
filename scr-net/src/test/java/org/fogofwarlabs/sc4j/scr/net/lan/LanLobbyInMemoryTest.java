@@ -796,7 +796,7 @@ final class LanLobbyInMemoryTest {
     }
 
     /**
-     * Checks the live case: the host's lobby ran alone for minutes before the joiner came (high turn numbers, the joiner taken as joined late until
+     * Checks a late join: the host's lobby ran alone for minutes before the joiner came (high turn numbers, the joiner taken as joined late until
      * its first turn), the host presses the ready room's Start first and the joiner seconds later. The host's room waits for the joiner's ready
      * command (every player whose turn status has {@link ProviderSession#TURN_PRESENT} must have its ready flag) and both rooms end after the same
      * turn.

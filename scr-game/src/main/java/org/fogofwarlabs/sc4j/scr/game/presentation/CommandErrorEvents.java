@@ -190,8 +190,7 @@ public final class CommandErrorEvents {
         }
 
         /**
-         * @return the key of a localized Remastered string ({@code strMAXUNITS}, {@code strCANTCREATE}, {@code strEXITBLOCKED}) that replaces the
-         * {@code stat_txt} id, or {@code null} for an id text
+         * @return the key of a localized Remastered string ({@code strMAXUNITS}, {@code strCANTCREATE}, {@code strEXITBLOCKED}) that replaces the {@code stat_txt} id, or {@code null} for an id text
          */
         public @Nullable String getTextKey() {
             return this.textKey;
@@ -205,8 +204,7 @@ public final class CommandErrorEvents {
         }
 
         /**
-         * @return the race index of the sound (Zerg {@code 0}, Terran {@code 1}, Protoss {@code 2}, other {@code 4}), {@link #CONSOLE_RACE} or
-         * {@link #NO_RACE}
+         * @return the race index of the sound (Zerg {@code 0}, Terran {@code 1}, Protoss {@code 2}, other {@code 4}), {@link #CONSOLE_RACE} or {@link #NO_RACE}
          */
         public int getRace() {
             return this.race;

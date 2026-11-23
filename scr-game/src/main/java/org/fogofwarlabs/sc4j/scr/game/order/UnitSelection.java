@@ -257,8 +257,7 @@ public final class UnitSelection {
      * @param playerIndex the command player index from {@code 0..7}
      * @param position    the selection position from {@code 0..11}
      * @return the selected unit, or {@code null} at the end of the selection
-     * @throws IndexOutOfBoundsException if the resolved selection slot or position is outside its table, or a stored nonzero index is outside the
-     *                                   unit pool
+     * @throws IndexOutOfBoundsException if the resolved selection slot or position is outside its table, or a stored nonzero index is outside the unit pool
      */
     public @Nullable Unit getSelectedUnit(int playerIndex, int position) {
         int poolIndex = this.getSelectedPoolIndex(playerIndex, position);
@@ -434,13 +433,14 @@ public final class UnitSelection {
 
     /**
      * Applies a supported selection request after checking all required effects.
+     * <p>
+     * The request is unsupported when the local slot of a team selection names no represented player record or every history timestamp is
+     * {@code 0xFFFF}.
      *
      * @param game        the game
      * @param command     the decoded selection request
      * @param playerIndex the full resolved command player DWORD
-     * @throws UnsupportedOperationException if the command player is outside the playable player slots, a legacy selection request holds more than
-     *                                       {@code 12} WORD handles, the local slot of a team selection names no represented player record or every
-     *                                       history timestamp is {@code 0xFFFF}
+     * @throws UnsupportedOperationException if the command player is not playable, a legacy request holds more than {@code 12} handles or a required record is not represented
      * @throws NullPointerException          if the world was built without game data
      * @throws IllegalStateException         if a requested unit to insert, other than a Nuclear Missile of a replacing selection, has no sprite
      */
@@ -522,7 +522,8 @@ public final class UnitSelection {
      * check: record {@code player * 18 + group}, so records from {@code 18} are the following players' records. A record holds its leading nonzero
      * handles. A recall of a record from {@code 10} takes the current timestamp of history timestamp {@code player * 8 + n} for record
      * {@code 10 + n}; a recall of a group below {@code 10} becomes the newest selection-history record instead. A record BYTE above {@code 18} or an
-     * operation other than {@code 0..2} does nothing.
+     * operation other than {@code 0..2} does nothing. A record, history timestamp or append past the represented storage, a team selection whose
+     * local slot names no represented player record, or a history whose timestamps are all {@code 0xFFFF} is unsupported.
      *
      * @param game        the game
      * @param playerIndex the command player from {@code 0..7}
@@ -530,9 +531,7 @@ public final class UnitSelection {
      * @param operation   {@code 0} to set, {@code 1} to recall, or {@code 2} to append
      * @return {@code true} if a unit was stored or recalled, {@code false} otherwise
      * @throws IndexOutOfBoundsException     if the command player is outside the playable player slots
-     * @throws UnsupportedOperationException if a hotkey record, its history timestamp or an append to a full record lies past the represented
-     *                                       storage, the local slot of a team selection names no represented player record or every history timestamp
-     *                                       is {@code 0xFFFF}
+     * @throws UnsupportedOperationException if the operation reaches unrepresented storage or records
      * @throws NullPointerException          if the world was built without game data
      * @throws IllegalStateException         if a recalled unit has no sprite
      */
@@ -993,9 +992,7 @@ public final class UnitSelection {
      * @param playerIndex the full resolved command player DWORD
      * @param commit      whether to apply the effects after the checks
      * @param accounted   whether a committed request counts in the scope accounting
-     * @throws UnsupportedOperationException if the command player is outside the playable player slots, a legacy selection request holds more than
-     *                                       {@code 12} WORD handles, the local slot of a team selection names no represented player record or every
-     *                                       history timestamp is {@code 0xFFFF}
+     * @throws UnsupportedOperationException if the command player is not playable, a legacy request holds more than {@code 12} handles or a required record is not represented
      * @throws NullPointerException          if the world was built without game data
      * @throws IllegalStateException         if a requested unit to insert, other than a Nuclear Missile of a replacing selection, has no sprite
      */

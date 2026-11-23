@@ -286,8 +286,7 @@ public final class UnitSpatialIndex {
     }
 
     /**
-     * @return the owned count grid ({@link #FLYING_GRID_SIZE} bytes), borrowed by state hashing and by the EUD region of the grid, or {@code null}
-     * before allocation
+     * @return the owned count grid ({@link #FLYING_GRID_SIZE} bytes), borrowed by state hashing and by the EUD region of the grid, or {@code null} before allocation
      */
     public byte @Nullable [] getFlyingUnitCounts() {
         return this.repulsion.getCellCounts();
@@ -462,8 +461,7 @@ public final class UnitSpatialIndex {
      *
      * @param unit  the unit to insert
      * @param units the unit type table
-     * @throws UnsupportedOperationException if the unit is not from the owning pool, its type lies past {@link ScrUnitIds#NONE}, it has no sprite or
-     *                                       the edge storage is full
+     * @throws UnsupportedOperationException if the unit is not from the owning pool, its type lies past {@link ScrUnitIds#NONE}, it has no sprite or the edge storage is full
      */
     public void insert(@NotNull Unit unit, @NotNull ScrUnitTypeView units) {
         int unitIndex = unit.getIndex();

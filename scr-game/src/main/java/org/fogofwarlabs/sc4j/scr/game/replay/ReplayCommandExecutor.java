@@ -126,8 +126,7 @@ public final class ReplayCommandExecutor implements ReplayCommandHandler {
     }
 
     /**
-     * @return the native command types of this dispatcher by type byte: their codecs encode and decode the command payloads, their cases run
-     * with this dispatcher's script budget and playback
+     * @return the native command types of this dispatcher by type byte: their codecs encode and decode the command payloads, their cases run with this dispatcher's script budget and playback
      */
     public @NotNull CommandRegistry<ScrCommandType<?>> getCommandTypes() {
         return this.commandTypes;
@@ -150,8 +149,7 @@ public final class ReplayCommandExecutor implements ReplayCommandHandler {
      *
      * @param game    the simulation state
      * @param command the replay command
-     * @return {@code true} if dispatch is supported with a resolved issuer, {@code false} otherwise; production
-     * requirements are checked during execution
+     * @return {@code true} if dispatch is supported with a resolved issuer, {@code false} otherwise; production requirements are checked during execution
      */
     public boolean canExecute(@NotNull Game game, @NotNull ReplayCommand command) {
         if (command.getPlayerId() < 0 || command.getPlayerId() > ReplayCommandIssuer.LAST_ISSUER) {

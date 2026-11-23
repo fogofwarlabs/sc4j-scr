@@ -107,8 +107,7 @@ public final class ReplayInitialization {
      * @param speedOverrideIndex the speed override selector of the game's name ({@link GameSpeed#parseOverrideIndex}), {@code 0} for none
      * @param musicRotation      the music rotation of the client process, advanced by a non-campaign start
      * @return the created {@link ReplayInitialization} instance
-     * @throws IllegalArgumentException if the local player is neither one of the eight game players nor an observer slot, or the speed
-     *                                  override selector lies outside the override table
+     * @throws IllegalArgumentException if the local player is neither one of the eight game players nor an observer slot, or the speed override selector lies outside the override table
      */
     public static @NotNull ReplayInitialization createLiveGame(@NotNull ReplayHeader header, int localPlayer, boolean networkGame,
                                                                int speedOverrideIndex, @NotNull MusicRotation musicRotation) {
@@ -189,8 +188,7 @@ public final class ReplayInitialization {
      * @param header the accepted expansion normal-game replay header
      * @param random the established enabled game random state at the first constructor
      * @throws UnsupportedOperationException if the replay setup is outside the represented scope
-     * @throws IllegalArgumentException      if the game random scope is disabled or the header has fewer than eight player
-     *                                       records
+     * @throws IllegalArgumentException      if the game random scope is disabled or the header has fewer than eight player records
      */
     public ReplayInitialization(@NotNull ReplayHeader header, @NotNull LcgRandom random) {
         this(header, random, -1, 0, 0, new MusicRotation());
@@ -211,8 +209,7 @@ public final class ReplayInitialization {
      * @param speedOverrideIndex the speed override selector of the frame timing, {@code 0} for none
      * @param musicRotation      the music rotation of the client process
      * @throws UnsupportedOperationException if the replay setup is outside the represented scope
-     * @throws IllegalArgumentException      if the game random scope is disabled, the header has fewer than eight player
-     *                                       records or the speed override selector lies outside the override table
+     * @throws IllegalArgumentException      if the game random scope is disabled, the header has fewer than eight player records or the speed override selector lies outside the override table
      */
     private ReplayInitialization(@NotNull ReplayHeader header, @NotNull LcgRandom random, int liveLocalPlayer, int multiplayerSession,
                                  int speedOverrideIndex, @NotNull MusicRotation musicRotation) {
@@ -288,8 +285,7 @@ public final class ReplayInitialization {
     }
 
     /**
-     * @return {@code true} if the game is replay playback or the local player is an observer ({@link PlayerTable#isReplayOrObserver}),
-     * {@code false} otherwise
+     * @return {@code true} if the game is replay playback or the local player is an observer ({@link PlayerTable#isReplayOrObserver}), {@code false} otherwise
      */
     public boolean isReplayOrObserver() {
         return PlayerTable.isReplayOrObserver(!this.live, this.localPlayer);
@@ -303,24 +299,21 @@ public final class ReplayInitialization {
     }
 
     /**
-     * @return the local player of trigger evaluation: {@link #getLocalPlayer()} unless {@link #selectNativeReplayLocalPlayer()}
-     * chose the replay local player
+     * @return the local player of trigger evaluation: {@link #getLocalPlayer()} unless {@link #selectNativeReplayLocalPlayer()} chose the replay local player
      */
     public int getTriggerLocalPlayer() {
         return this.triggerLocalPlayer;
     }
 
     /**
-     * @return the local comparison mask while the world is created: the local player's bit in a live game, no player in a
-     * replay, whose vision starts with every player after the world is created
+     * @return the local comparison mask while the world is created: the local player's bit in a live game, no player in a replay, whose vision starts with every player after the world is created
      */
     public int getComparisonMask() {
         return this.comparisonMask;
     }
 
     /**
-     * @return the C runtime generator seeded with the header seed, after the start-up draws; the game created from this
-     * initialization shares it
+     * @return the C runtime generator seeded with the header seed, after the start-up draws; the game created from this initialization shares it
      */
     public @NotNull RuntimeRandom getRuntimeRandom() {
         return this.runtimeRandom;
@@ -394,20 +387,18 @@ public final class ReplayInitialization {
     /**
      * Finds the player whose start location the game start's screen is placed on.
      *
-     * @return the first human ({@link #findNativeReplayLocalPlayer}) of a replay or observer start ({@link #isReplayOrObserver()}),
-     * the local player otherwise
+     * @return the first human ({@link #findNativeReplayLocalPlayer}) of a replay or observer start ({@link #isReplayOrObserver()}), the local player otherwise
      */
     public int findStartScreenPlayer() {
         return this.isReplayOrObserver() ? findNativeReplayLocalPlayer(this.header) : this.localPlayer;
     }
 
     /**
-     * Finds the race of the game music.
+     * Finds the race of the game music: the race of the human the start-up draws picked ({@link #getMusicPlayer()}). Without one it is the
+     * console race of the start: Terran for a replay or observer start ({@link #isReplayOrObserver()}), the local player's race otherwise.
      *
      * @param playerTable the players of the game created from this initialization
-     * @return the race of the human the start-up draws picked ({@link #getMusicPlayer()}); without one, the console race of the
-     * start: Terran for a replay or observer start ({@link #isReplayOrObserver()}), the local player's race otherwise;
-     * {@link #NO_MUSIC_RACE} if that player has no record
+     * @return the music race, or {@link #NO_MUSIC_RACE} if the chosen player has no record
      */
     public int findMusicRace(@NotNull PlayerTable playerTable) {
         if (this.musicPlayer == NO_MUSIC_PLAYER && this.isReplayOrObserver()) {

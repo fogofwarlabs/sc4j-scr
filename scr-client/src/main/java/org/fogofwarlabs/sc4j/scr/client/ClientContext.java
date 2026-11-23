@@ -593,8 +593,10 @@ public final class ClientContext implements AutoCloseable {
 
 
     /**
-     * @return the number of steps of {@link #loadClientData}: the four tables, then one per image the mods add, counted once the game data (the
-     * first step) is loaded
+     * Returns the number of steps of {@link #loadClientData}: the four tables, then one per image the mods add, counted once the game data (the
+     * first step) is loaded.
+     *
+     * @return the number of steps
      */
     public int getClientDataStepCount() {
         GameData data = this.gameData;
@@ -604,10 +606,10 @@ public final class ClientContext implements AutoCloseable {
 
     /**
      * Loads one step of the client's locale-independent game data ({@link org.fogofwarlabs.sc4j.scr.client.loading.ClientDataLoadTask} at the
-     * client start); a loaded step is kept.
+     * client start); a loaded step is kept. The steps are {@code 0} the game data, {@code 1} the sound table, {@code 2} the portrait tables,
+     * {@code 3} the production panel, then the SD frames of the added images in id order ({@link #getClientDataStepCount()}).
      *
-     * @param step the step: {@code 0} the game data, {@code 1} the sound table, {@code 2} the portrait tables, {@code 3} the production panel, then
-     *             the SD frames of the added images in id order ({@link #getClientDataStepCount()})
+     * @param step the step
      * @throws IOException              if the table or the frames are missing or malformed
      * @throws IllegalArgumentException if the step is unknown
      */

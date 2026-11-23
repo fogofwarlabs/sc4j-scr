@@ -228,8 +228,7 @@ public final class LanTurnTransport implements LockstepTransport {
     }
 
     /**
-     * @return the waiting state of the all-turns barrier (the awaited and overdue participants, the drop countdown), or {@code null} for a
-     * transport that never drops a participant
+     * @return the waiting state of the all-turns barrier (the awaited and overdue participants, the drop countdown), or {@code null} if the transport never drops one
      * @implSpec The awaited participants are the present players and observers whose turn the last waiting receive missed, each peer the
      * network id; the wait counts from the last receive that took every turn, in milliseconds of the session's clock. The drop countdown
      * is the nominal one ({@value #WAIT_COUNTDOWN_SECONDS} seconds after the overdue time); the dialog's seconds are those of its
@@ -285,8 +284,7 @@ public final class LanTurnTransport implements LockstepTransport {
      * Takes the next turn of every player once all of them arrived. A player who left since the last turn comes first with
      * its Leave Game command and reason byte.
      *
-     * @return the players' turns in execution order, each peer the sender's network id, or {@code null} while a player's turn
-     * is missing
+     * @return the players' turns in execution order, each peer the sender's network id, or {@code null} while a player's turn is missing
      * @implSpec Runs the network pump first and starts the waiting countdown after {@value #WAIT_DELAY_MILLISECONDS} milliseconds without a turn.
      * A receive that takes every turn reports the departures of the session's events since the last such receive ({@link #takeDepartures()}).
      */

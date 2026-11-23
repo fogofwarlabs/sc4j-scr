@@ -56,6 +56,11 @@ public final class ClientSoundPlayback implements AutoCloseable {
     private static final int VOLUME_FALLOFF_PIXELS = 512;
 
     /**
+     * The minimum volume of a sound file event: it fades to silence outside the screen.
+     */
+    private static final int FILE_MINIMUM_VOLUME = 0;
+
+    /**
      * SC:R sounds keep the centre: their stereo position does not follow the screen.
      */
     private static final float NO_PANNING = 0.0f;
@@ -217,6 +222,20 @@ public final class ClientSoundPlayback implements AutoCloseable {
     private static int getVolume(@NotNull ScrSoundTypeView sounds, int soundIdentifier, int horizontal, int vertical, @NotNull ClientCamera camera) {
         int volume = sounds.getVolume(soundIdentifier);
 
+        return getVolume(volume, volume, horizontal, vertical, camera);
+    }
+
+    /**
+     * Resolves a minimum volume against distance outside the viewport ({@link SoundPositioning#getVolume}).
+     *
+     * @param volume        the volume of a sound without position
+     * @param minimumVolume the volume the distance does not lower a sound below
+     * @param horizontal    the horizontal map position of the sound; the position {@code (0, 0)} is a sound without position
+     * @param vertical      the vertical map position of the sound
+     * @param camera        the camera whose game view is the screen
+     * @return the volume from {@code 0} to {@code 100}
+     */
+    private static int getVolume(int volume, int minimumVolume, int horizontal, int vertical, @NotNull ClientCamera camera) {
         if (horizontal == 0 && vertical == 0) {
             return volume;
         }
@@ -224,7 +243,7 @@ public final class ClientSoundPlayback implements AutoCloseable {
         // The screen is the game view of the client's viewport (GameViewport.getMapView).
         float[] view = camera.getViewport().getMapView(camera);
 
-        return POSITIONING.getVolume(volume, horizontal, vertical,
+        return POSITIONING.getVolume(minimumVolume, horizontal, vertical,
                                      (int) view[GameViewport.MAP_VIEW_LEFT_INDEX], (int) view[GameViewport.MAP_VIEW_TOP_INDEX],
                                      (int) (view[GameViewport.MAP_VIEW_LEFT_INDEX] + view[GameViewport.MAP_VIEW_WIDTH_INDEX]),
                                      (int) (view[GameViewport.MAP_VIEW_TOP_INDEX] + view[GameViewport.MAP_VIEW_HEIGHT_INDEX]));
@@ -422,6 +441,10 @@ public final class ClientSoundPlayback implements AutoCloseable {
         ScrSoundTypeView sounds = data.getSoundTypes();
 
         for (int index = 0; index < events.getCount(); index++) {
+            if (events.getFile(index) != null) {
+                continue;
+            }
+
             int soundIdentifier = events.getSoundId(index);
             boolean available;
 
@@ -458,6 +481,13 @@ public final class ClientSoundPlayback implements AutoCloseable {
 
         for (int index = 0; index < events.getCount() && this.effects == output; index++) {
             int soundIdentifier = events.getSoundId(index);
+            byte[] file = events.getFile(index);
+
+            if (file != null) {
+                this.playFile(file, events.getPositionX(index), events.getPositionY(index), camera, unitSpeechMuted);
+
+                continue;
+            }
 
             if (soundIdentifier < 0 || soundIdentifier >= this.unavailable.length || this.unavailable[soundIdentifier]) {
                 continue;
@@ -500,6 +530,29 @@ public final class ClientSoundPlayback implements AutoCloseable {
             } catch (RuntimeException exception) {
                 this.reportDeviceFailure(exception);
             }
+        }
+    }
+
+    /**
+     * Plays a sound file event on the map sound channels ({@link #playData}) at the volume of its position: the volume of a positioned sound on
+     * screen, fading to silence over {@link #VOLUME_FALLOFF_PIXELS} outside it, full volume without position; a fifth of it while unit speech is
+     * muted, and nothing at the silence threshold or below.
+     *
+     * @param file            the WAVE or Ogg Vorbis file
+     * @param horizontal      the horizontal map position of the sound
+     * @param vertical        the vertical map position of the sound
+     * @param camera          the camera used to resolve the position
+     * @param unitSpeechMuted whether unit speech is muted
+     */
+    private void playFile(byte @NotNull [] file, int horizontal, int vertical, @NotNull ClientCamera camera, boolean unitSpeechMuted) {
+        float scaled = getVolume(ClientAudio.MAXIMUM_VOLUME, FILE_MINIMUM_VOLUME, horizontal, vertical, camera);
+
+        if (unitSpeechMuted) {
+            scaled /= MUTED_VOLUME_DIVISOR;
+        }
+
+        if (scaled > SILENT_VOLUME) {
+            this.playData(file, (int) scaled);
         }
     }
 

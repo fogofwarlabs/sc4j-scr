@@ -180,8 +180,7 @@ public final class ScrConsolePlacement {
     }
 
     /**
-     * @return the number of dialog and control moves, hidden and restored dialogs and controls, anchor and minimap size changes and mask changes
-     * so far
+     * @return the number of dialog and control moves, hidden and restored dialogs and controls, anchor and minimap size changes and mask changes so far
      */
     public long getChangeCount() {
         return this.changeCount;

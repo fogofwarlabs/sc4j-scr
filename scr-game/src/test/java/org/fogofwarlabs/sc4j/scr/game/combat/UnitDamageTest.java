@@ -100,6 +100,14 @@ final class UnitDamageTest {
      */
     private static final int EXPLOSIVE_SMALL_DIVISOR = 2;
     /**
+     * The weapon of damage without a weapon, the {@code weapons.dat} damage types of explosive and normal damage, and the damage of the hits
+     * without a weapon.
+     */
+    private static final int NO_WEAPON = -1;
+    private static final int EXPLOSIVE_DAMAGE_TYPE = 1;
+    private static final int NORMAL_DAMAGE_TYPE = 3;
+    private static final int UNARMED_DAMAGE = 10 << FIXED_POINT_FRACTION_BITS;
+    /**
      * The order of a fleeing worker and the order of a killed unit.
      */
     private static final int MOVE_ORDER = 6;
@@ -243,6 +251,38 @@ final class UnitDamageTest {
 
         Assertions.assertEquals(0, target.getShieldPoints());
         Assertions.assertEquals(HIT_POINTS_AFTER_SHIELD_BREAK - EXPLOSIVE_DAMAGE_PAST_SHIELDS / EXPLOSIVE_SMALL_DIVISOR, target.getHitPoints());
+    }
+
+    @Test
+    void deal_weapon_damage_should_scale_damage_of_a_given_damage_type_without_a_weapon() {
+        Game game = createDuelGame(ScrUnitIds.PROTOSS_PROBE, ScrUnitIds.PROTOSS_PROBE);
+        UnitPool unitPool = game.getUnitSystem().getUnitPool();
+
+        Assertions.assertNotNull(unitPool);
+
+        Unit attacker = unitPool.getUnit(CombatGameScenario.FIRST_UNIT_INDEX);
+        Unit target = unitPool.getUnit(CombatGameScenario.SECOND_UNIT_INDEX);
+
+        target.setHitPoints(STARTING_HIT_POINTS);
+        target.setShieldPoints(0);
+        game.getUnitDamage().dealWeaponDamage(NO_WEAPON, EXPLOSIVE_DAMAGE_TYPE,
+                                              UNARMED_DAMAGE,
+                                              UNDIVIDED_DAMAGE_DIVISOR,
+                                              attacker, 0,
+                                              target, 0,
+                                              INSTRUCTION_LIMIT);
+
+        Assertions.assertEquals(STARTING_HIT_POINTS - UNARMED_DAMAGE / EXPLOSIVE_SMALL_DIVISOR, target.getHitPoints());
+
+        target.setHitPoints(STARTING_HIT_POINTS);
+        game.getUnitDamage().dealWeaponDamage(NO_WEAPON, NORMAL_DAMAGE_TYPE,
+                                              UNARMED_DAMAGE,
+                                              UNDIVIDED_DAMAGE_DIVISOR,
+                                              attacker, 0,
+                                              target, 0,
+                                              INSTRUCTION_LIMIT);
+
+        Assertions.assertEquals(STARTING_HIT_POINTS - UNARMED_DAMAGE, target.getHitPoints());
     }
 
     @Test

@@ -23,9 +23,7 @@ public final class ClassicMemorySink {
      * regions ({@link NativeRegionLayout#MAP_REGION_BASE}).
      *
      * @param region the region, whose base and size stay fixed
-     * @throws IllegalArgumentException if the region is empty, reaches the map-dependent regions, overlaps a region that is not emulation
-     *                                  storage or covers part of one, overlaps an earlier provided region, or covers an address with a
-     *                                  native region that no region of the address space serves
+     * @throws IllegalArgumentException if the region is empty, reaches the map-dependent regions or overlaps a region it may not replace
      */
     public void add(@NotNull ClassicRegion region) {
         this.space.provide(region);

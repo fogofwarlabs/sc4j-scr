@@ -606,8 +606,7 @@ public final class LanDiscovery implements AutoCloseable {
      * @param questions   the questions
      * @param answers     the answer records
      * @param additionals the additional records
-     * @param hostAnswer  {@code true} to send the host's address record as an answer, {@code false} to add it to the additional
-     *                    records of a message that announces a service record
+     * @param hostAnswer  {@code true} to send the host's address record as an answer, {@code false} to add it to the additional records of a message that announces a service record
      */
     private void sendAll(int flags,
                          @NotNull List<MulticastDnsMessage.Question> questions,

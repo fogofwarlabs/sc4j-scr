@@ -109,9 +109,10 @@ public final class InterfaceImageCache implements AutoCloseable {
         }
 
         /**
-         * @return the first column holding a pixel that is not fully transparent, in texture pixels ({@code 0} for images other than sheet frames):
-         * some SD {@code .dds.grp} frames (for example {@code glue\create\iCreate}) keep the classic frame offset as transparent columns,
-         * where the other sets crop the frame
+         * Some SD {@code .dds.grp} frames (for example {@code glue\create\iCreate}) keep the classic frame offset as transparent columns, where the
+         * other sets crop the frame.
+         *
+         * @return the first column holding a pixel that is not fully transparent, in texture pixels ({@code 0} for images other than sheet frames)
          */
         public int getOpaqueLeft() {
             return this.opaqueLeft;

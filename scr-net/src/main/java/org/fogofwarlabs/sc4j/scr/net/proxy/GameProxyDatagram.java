@@ -23,7 +23,7 @@ import java.util.Arrays;
 public final class GameProxyDatagram {
     /**
      * The envelope fields: the type, the provider payload, two unnamed scalars, the payload hash, the probe timestamp,
-     * the address information and the alternate type. The schema names of the scalars are unverified.
+     * the address information and the alternate type.
      */
     static final int TYPE_FIELD = 1;
     static final int PAYLOAD_FIELD = 2;
@@ -58,7 +58,7 @@ public final class GameProxyDatagram {
 
     /**
      * The {@code AddressInfo} fields: the relay route's address and port, the sender's address and port, the relay flag, the
-     * destination's address and port. The schema names of the relay route fields are unverified.
+     * destination's address and port.
      */
     private static final int RELAY_ADDRESS_FIELD = 1;
     private static final int RELAY_PORT_FIELD = 2;
@@ -562,7 +562,7 @@ public final class GameProxyDatagram {
     }
 
     /**
-     * Reads a supported scalar without assigning unverified schema names to the fields.
+     * Reads a supported scalar by its field number.
      *
      * @param fieldNumber the generated field number: {@code 1}, {@code 3}, {@code 4}, {@code 5}, {@code 9} or {@code 12}
      * @return the scalar value, or its generated default when absent

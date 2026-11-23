@@ -99,8 +99,7 @@ final class MapDetectionTest {
         }
 
         /**
-         * @return {@code true} if every section has a printable name and a complete payload and the last one ends at the end of the scenario,
-         * {@code false} otherwise
+         * @return {@code true} if every section has a printable name and a complete payload and the last one ends at the end of the scenario, {@code false} otherwise
          */
         private boolean isStrictlyValid() {
             return this.strictlyValid;

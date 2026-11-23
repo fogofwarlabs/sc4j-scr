@@ -280,8 +280,7 @@ public final class GlueGameRequest {
     }
 
     /**
-     * @return the screen to continue at after a watched replay ({@link #createReplayWithReturnDestination}), or {@code null} for the screen of
-     * the request's kind
+     * @return the screen to continue at after a watched replay ({@link #createReplayWithReturnDestination}), or {@code null} for the screen of the request's kind
      */
     public GlueNavigator.@Nullable Destination getReturnDestination() {
         return this.returnDestination;

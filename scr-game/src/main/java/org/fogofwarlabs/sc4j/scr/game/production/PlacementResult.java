@@ -214,8 +214,7 @@ public final class PlacementResult {
     }
 
     /**
-     * @return the parent building's footprint result of an add-on check, or {@code null} when the add-on footprint was invalid outside remembered
-     * state or the check was not an add-on check
+     * @return the parent building's footprint result of an add-on check, or {@code null} when the add-on footprint was invalid outside remembered state or the check was not an add-on check
      */
     public @Nullable PlacementResult getParent() {
         return this.parent;

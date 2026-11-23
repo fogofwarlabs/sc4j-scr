@@ -90,16 +90,16 @@ public class ScrControl extends Control {
     }
 
     /**
-     * @return {@code true} if the control is visible and not disabled (the native enabled test, which ignores the parents),
-     * {@code false} otherwise
+     * Tests whether the control is visible and not disabled: the native enabled test, which ignores the parents.
+     *
+     * @return {@code true} if the control is visible and not disabled, {@code false} otherwise
      */
     public boolean isActive() {
         return this.isVisible() && this.isEnabled();
     }
 
     /**
-     * @return {@code true} if a text control is highlighted (drawn in colour code {@code 6} instead of {@code 2} in the glue),
-     * {@code false} otherwise
+     * @return {@code true} if a text control is highlighted (drawn in colour code {@code 6} instead of {@code 2} in the glue), {@code false} otherwise
      */
     public boolean isHighlighted() {
         return this.highlighted;
@@ -264,9 +264,11 @@ public class ScrControl extends Control {
     }
 
     /**
+     * Returns the drawn string: the control string without the hotkey character of a {@code WS_HOTKEY} string, a set text too (the first
+     * character of every {@code WS_HOTKEY} control string is skipped), and of a page control's hotkey string ({@link #hasHotkey}).
+     *
      * @param controlTexts resolves a content key through the control strings
-     * @return the drawn string: without the hotkey character of a {@code WS_HOTKEY} string, a set text too (skips the first
-     * character of every {@code WS_HOTKEY} control string), and of a page control's hotkey string ({@link #hasHotkey})
+     * @return the drawn string
      */
     public @NotNull String getDrawnString(@NotNull Function<String, String> controlTexts) {
         String text = this.getControlString(controlTexts);
@@ -308,8 +310,7 @@ public class ScrControl extends Control {
     }
 
     /**
-     * @return {@code true} if the control takes presses (buttons, lists, combo boxes, scroll bars and edit controls, or a control
-     * set hit-testable), {@code false} otherwise
+     * @return {@code true} if the control takes presses (buttons, lists, combo boxes, scroll bars and edit controls, or a control set hit-testable), {@code false} otherwise
      */
     @Override
     public boolean isPressable() {

@@ -175,8 +175,7 @@ public final class ClientCamera {
     }
 
     /**
-     * @return the native scale: the interface scale of the viewport ({@link GameViewport#getNativeZoom}), {@code 480} game rows in the window height
-     * at the native aspects
+     * @return the native scale: the interface scale of the viewport ({@link GameViewport#getNativeZoom}), {@code 480} game rows in the window height at the native aspects
      */
     public float getNativeZoom() {
         return this.viewport.getNativeZoom();

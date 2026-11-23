@@ -45,8 +45,7 @@ import java.util.function.BooleanSupplier;
 /**
  * Handles pointer and hotkey interaction with the map view and exposes the selection, drag, cursor and click-marker state. Selection and order
  * commands are encoded through {@link CommandInput}. A selected foreign unit is shown as a local selection and selected by command too;
- * replay-viewer selections remain local. Selection filters retain the
- * existing click, box, type and Shift-merge rules. Click feedback can directly set a retained sprite's flash timer; selection and order changes are
+ * replay-viewer selections remain local. Click feedback can directly set a retained sprite's flash timer; selection and order changes are
  * submitted as commands.
  * <p>
  * The map presses go through the engine {@link CommandTranslator} in the native routing order: its selection is the interface selection
@@ -400,8 +399,7 @@ public final class WorldInterface implements WorldOverlayState, LocalSelection {
      *
      * @param console          the console whose selection, mode and command card are used
      * @param sink             the receiver of encoded commands
-     * @param executesCommands whether submitted commands are executed; a replay viewer shows clicked units as a local selection instead of
-     *                         sending selection commands
+     * @param executesCommands whether submitted commands are executed; a replay viewer shows clicked units as a local selection instead of sending selection commands
      */
     public WorldInterface(@NotNull ConsoleModel console, @NotNull CommandInput.CommandSink sink, boolean executesCommands) {
         this.console          = console;
@@ -1838,8 +1836,7 @@ public final class WorldInterface implements WorldOverlayState, LocalSelection {
     /**
      * Sends a selection command of the local player with the units' handles.
      *
-     * @param opcode the command: {@link ReplayCommandIds#SELECT_121}, {@link ReplayCommandIds#SELECT_ADD_121} or
-     *               {@link ReplayCommandIds#SELECT_REMOVE_121}
+     * @param opcode the command: {@link ReplayCommandIds#SELECT_121}, {@link ReplayCommandIds#SELECT_ADD_121} or {@link ReplayCommandIds#SELECT_REMOVE_121}
      * @param units  the units, at most twelve
      * @param pool   the unit pool that gives the handles
      */

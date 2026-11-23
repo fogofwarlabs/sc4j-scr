@@ -198,16 +198,14 @@ public interface SceneRenderer {
 
 
     /**
-     * @return {@code true} if the backend draws the remastered (HD) graphics, whose draw builder places images by their HD rules, {@code false}
-     * otherwise
+     * @return {@code true} if the backend draws the remastered (HD) graphics, whose draw builder places images by their HD rules, {@code false} otherwise
      */
     default boolean isRemastered() {
         return false;
     }
 
     /**
-     * @return the asset scale of the anims the backend draws ({@link #drawImageAnimation}): {@code 4} for HD, {@code 2} for HD2, {@code 0} when it
-     * draws no anims
+     * @return the asset scale of the anims the backend draws ({@link #drawImageAnimation}): {@code 4} for HD, {@code 2} for HD2, {@code 0} when it draws no anims
      */
     default int getAssetScale() {
         return 0;
@@ -454,8 +452,7 @@ public interface SceneRenderer {
     /**
      * Darkens the world by the fog of war; this is the last world drawing of a scene.
      *
-     * @param tileFlags  the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per
-     *                   player)
+     * @param tileFlags  the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per player)
      * @param visionMask the eight-bit mask of players whose vision is shown
      */
     default void drawFog(@NotNull IntUnaryOperator tileFlags, int visionMask) {
@@ -468,8 +465,7 @@ public interface SceneRenderer {
      * An observer slot darkens through the observer table, whose alpha stops at {@code 218}, so unexplored ground stays faintly visible. The replay
      * viewer is not an observer (its local human is a player slot).
      *
-     * @param tileFlags    the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per
-     *                     player)
+     * @param tileFlags    the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per player)
      * @param visionMask   the eight-bit mask of players whose vision is shown
      * @param visibleLevel the fog level of visible tiles, the game's visible level BYTE (default {@code 31}); explored tiles get half of it
      * @param observer     whether the local human is an observer slot ({@code 0x80..0x83})

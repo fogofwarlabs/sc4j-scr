@@ -342,8 +342,7 @@ public final class HotkeysScreen extends GlueScreen {
 
     /**
      * @param key the glue key
-     * @return {@code true} if a glue key is an editing or navigation key, which the page's key field does not receive as a
-     * character, {@code false} otherwise
+     * @return {@code true} if a glue key is an editing or navigation key, which the page's key field does not receive as a character, {@code false} otherwise
      */
     private static boolean isEditingKey(char key) {
         return key == KEY_ENTER || key == KEY_BACKSPACE || key == KEY_DELETE || key >= KEY_LEFT && key <= KEY_DOWN;

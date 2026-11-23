@@ -80,10 +80,8 @@ public final class PreplacedUnitLoaderUtils {
      * @param ownerPlayerType  the decoded player type used by completion and computer registration
      * @param expansionEnabled the game-context expansion BYTE
      * @param instructionLimit the iscript execution bound
-     * @return the created and completed {@link Unit} instance, or {@code null} if the expansion gate rejects its type, construction fails or the unit
-     * finds no placement
-     * @throws UnsupportedOperationException if the type lies past the unit table and the native result is not represented, or the accounting, creep
-     *                                       or sprite context is missing
+     * @return the created and completed {@link Unit} instance, or {@code null} if the expansion gate rejects its type, construction fails or the unit finds no placement
+     * @throws UnsupportedOperationException if the type lies past the unit table and the native result is not represented, or the accounting, creep or sprite context is missing
      * @throws NullPointerException          if the world was built without game data
      */
     public static @Nullable Unit create(@NotNull UnitCreationContext creation, @NotNull Game game,

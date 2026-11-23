@@ -40,8 +40,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Checks how a live network game finds a player's slot from its player id (the waiting-for-players list and the issuer of the player's commands, in
  * melee games with fixed start positions), the name bytes of the Save Game commands a live game queues and executes, the turns a single-player game
- * keeps in transit, the player table of the game's start, and the replay a live game writes: its name section, a write while commands are
- * recorded and a submitted mod command.
+ * keeps in transit, the turns a full outgoing turn sends early, the player table of the game's start, and the replay a live game writes: its name
+ * section, a write while commands are recorded and a submitted mod command.
  * <p>
  * The Save Game command layout (type, time DWORD, name and terminator), the player records (36 bytes, the name at {@code +0xb}) and the replay's name
  * section (twelve 96-byte records) are native formats, so the tests compare their bytes.
@@ -260,6 +260,45 @@ final class LiveGameTest {
     }
 
     /**
+     * Creates a {@link LockstepTransport} instance whose sent turns stay in transit and whose receives miss a turn.
+     *
+     * @param sent the list that receives the sent turns
+     * @return the created {@link LockstepTransport} instance
+     */
+    private static @NotNull LockstepTransport createStalledTransport(@NotNull List<byte[]> sent) {
+        return new LockstepTransport() {
+            /**
+             * @return the local turns sent and not yet received back
+             */
+            @Override
+            public int getTurnsInTransit() {
+                return sent.size();
+            }
+
+
+            /**
+             * Sends the local player's next turn.
+             *
+             * @param turn the turn bytes
+             */
+            @Override
+            public void sendTurn(byte @NotNull [] turn) {
+                sent.add(turn);
+            }
+
+            /**
+             * Takes the next turn of every participant once all of them arrived.
+             *
+             * @return the participants' turns in execution order, or {@code null} while a participant's turn is missing
+             */
+            @Override
+            public @Nullable List<@NotNull PeerTurn> receiveTurns() {
+                return null;
+            }
+        };
+    }
+
+    /**
      * Creates a {@link LockstepTransport} instance whose players' turns are overdue.
      *
      * @param waitingPlayers the overdue players by their network ids
@@ -291,8 +330,7 @@ final class LiveGameTest {
             }
 
             /**
-             * @return the waiting state of the all-turns barrier (the awaited and overdue participants, the drop countdown), or {@code null}
-             *         for a transport that never drops a participant
+             * @return the waiting state of the all-turns barrier (the awaited and overdue participants, the drop countdown), or {@code null} for a transport that never drops a participant
              */
             @Override
             public @NotNull WaitingPeers getWaitingPeers() {
@@ -726,5 +764,44 @@ final class LiveGameTest {
         Assertions.assertTrue(length <= LiveGame.MAXIMUM_TURN_BYTES, "the queued commands fit the turn");
         Assertions.assertTrue(length + commandLength > LiveGame.MAXIMUM_TURN_BYTES, "the refused command does not fit");
         Assertions.assertEquals(initialLength + queued * commandLength, length, "the refused command leaves the turn unchanged");
+    }
+
+    @Test
+    void submit_should_send_a_full_turn_early_and_record_every_command() throws IOException {
+        LiveGame live = new LiveGame(createSetup(createTable()), SEED, HOST_PLAYER);
+        int stopsPerTurn = (LiveGame.MAXIMUM_TURN_BYTES - OutgoingTurnBuffer.SYNC_COMMAND_LENGTH) / (1 + STOP_PAYLOAD.length);
+
+        for (int index = 0; index <= stopsPerTurn; index++) {
+            Assertions.assertTrue(live.submit(ReplayCommandIds.STOP, STOP_PAYLOAD));
+        }
+
+        live.exchangeTurn(0);
+        live.exchangeTurn(1);
+
+        List<ReplayCommand> commands = ReplayFile.parse(live.writeReplay(0, 0)).getCommands();
+
+        Assertions.assertEquals(stopsPerTurn + 1, commands.size());
+        Assertions.assertEquals(0, commands.get(stopsPerTurn - 1).getFrame(), "The full turn was sent early and runs in the first turn step.");
+        Assertions.assertEquals(1, commands.get(stopsPerTurn).getFrame(), "The command that did not fit runs with the next turn.");
+    }
+
+    @Test
+    void submit_should_drop_a_command_that_does_not_fit_while_too_many_turns_are_in_transit() throws IOException {
+        LiveGame live = new LiveGame(createSetup(createTable()), SEED, HOST_PLAYER);
+        List<byte[]> sent = new ArrayList<>();
+        int queued = 0;
+
+        live.attachNetwork(createStalledTransport(sent), TURNS_IN_TRANSIT, false);
+
+        while (live.submit(ReplayCommandIds.STOP, STOP_PAYLOAD)) {
+            queued++;
+        }
+
+        Assertions.assertTrue(queued > 0);
+        Assertions.assertEquals(OutgoingTurnBuffer.MAXIMUM_TURNS_IN_TRANSIT - TURNS_IN_TRANSIT, sent.size());
+
+        for (byte[] turn : sent) {
+            Assertions.assertEquals(OutgoingTurnBuffer.SYNC_COMMAND, turn[0], "Each early turn starts with its Sync command.");
+        }
     }
 }

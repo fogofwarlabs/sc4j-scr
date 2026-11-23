@@ -98,8 +98,7 @@ final class ComputerScriptProgram {
      * Finds a strategy identifier in the main directory, then in the expansion directory.
      *
      * @param identifier the strategy identifier
-     * @return the program index in the upper 32 bits and the script address in the lower 32 bits, or {@code -1} if no
-     * directory entry with a nonzero address has the identifier
+     * @return the program index in the upper 32 bits and the script address in the lower 32 bits, or {@code -1} if no directory entry with a nonzero address has the identifier
      * @throws IllegalArgumentException if the entry's address is outside its resource
      */
     long find(int identifier) {

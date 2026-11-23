@@ -55,8 +55,7 @@ public final class ScrPathfindingSystem implements PathfindingSystem {
      * @throws IllegalArgumentException      if the unit is not an SC:R unit
      * @throws IllegalStateException         if the system is not attached or the unit has no sprite
      * @throws UnsupportedOperationException if the unit path workspace is not initialized
-     * @throws NullPointerException          if the path pool or the local path workspace is not initialized, or the world was built without game
-     *                                       data
+     * @throws NullPointerException          if the path pool or the local path workspace is not initialized, or the world was built without game data
      */
     @Override
     public boolean updatePath(org.fogofwarlabs.sc4j.engine.entity.@NotNull Unit unit, int targetX, int targetY) {

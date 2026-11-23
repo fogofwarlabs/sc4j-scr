@@ -17,7 +17,7 @@ import java.util.*;
  * Represents a parsed CHK ({@code scenario.chk}) file.
  * <p>
  * The CHK file uses {@code name[4] + raw length DWORD LE + data}; its signed length DWORD controls section traversal. This
- * class keeps every encountered header and provides typed accessors for the sections that the early engine phases need.
+ * class keeps every encountered header and provides typed accessors for the sections the game reads.
  */
 public final class ChkFile {
     /**
@@ -378,8 +378,7 @@ public final class ChkFile {
 
     /**
      * @param version the {@code VER } value
-     * @return {@code true} if the version is a Brood War map version ({@link #VERSION_BROOD_WAR} or
-     * {@link #VERSION_REMASTERED_BROOD_WAR}), {@code false} otherwise
+     * @return {@code true} if the version is a Brood War map version ({@link #VERSION_BROOD_WAR} or {@link #VERSION_REMASTERED_BROOD_WAR}), {@code false} otherwise
      */
     static boolean isExpansionVersion(int version) {
         return version == VERSION_BROOD_WAR || version == VERSION_REMASTERED_BROOD_WAR;
@@ -387,8 +386,7 @@ public final class ChkFile {
 
     /**
      * @param version the {@code VER } value
-     * @return {@code true} if the version is a Remastered map version ({@link #VERSION_REMASTERED_ORIGINAL} or
-     * {@link #VERSION_REMASTERED_BROOD_WAR}), {@code false} otherwise
+     * @return {@code true} if the version is a Remastered map version ({@link #VERSION_REMASTERED_ORIGINAL} or {@link #VERSION_REMASTERED_BROOD_WAR}), {@code false} otherwise
      */
     static boolean isRemasteredVersion(int version) {
         return version == VERSION_REMASTERED_ORIGINAL || version == VERSION_REMASTERED_BROOD_WAR;
@@ -467,8 +465,7 @@ public final class ChkFile {
     /**
      * Returns the low three tileset bits from the map's {@code ERA } section.
      *
-     * @return the tileset index: {@code 0} badlands, {@code 1} space platform, {@code 2} installation, {@code 3} ashworld,
-     * {@code 4} jungle, {@code 5} desert, {@code 6} ice, {@code 7} twilight
+     * @return the tileset index: {@code 0} badlands, {@code 1} space platform, {@code 2} installation, {@code 3} ashworld, {@code 4} jungle, {@code 5} desert, {@code 6} ice, {@code 7} twilight
      * @throws IllegalStateException if the map has no {@code ERA } section
      */
     public int getTileset() {
@@ -577,8 +574,7 @@ public final class ChkFile {
      * Returns records from every {@code UNIT} section in discovery order.
      *
      * @return the preplaced units
-     * @throws IllegalStateException if the map has no {@code UNIT} section, or a payload is incomplete or is not divisible by the {@code 36}-byte
-     *                               record size
+     * @throws IllegalStateException if the map has no {@code UNIT} section, or a payload is incomplete or is not divisible by the {@code 36}-byte record size
      */
     public @NotNull List<ChkUnit> getUnits() {
         if (!this.hasSection(UNIT_SECTION)) {

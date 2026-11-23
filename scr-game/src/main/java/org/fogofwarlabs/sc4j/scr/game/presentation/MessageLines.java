@@ -776,8 +776,7 @@ public final class MessageLines {
      * @param unitType  the unit type
      * @param positionX the horizontal position the format receives
      * @param positionY the vertical position the format receives
-     * @throws UnsupportedOperationException if the localized format has a conversion other than {@code %%}, the first {@code %s} and the first two
-     *                                       {@code %d}
+     * @throws UnsupportedOperationException if the localized format has a conversion other than {@code %%}, the first {@code %s} and the first two {@code %d}
      */
     public void writeUnplaceable(@Nullable String mapName, int unitType, int positionX, int positionY) {
         StatusTexts texts = this.statusTexts;

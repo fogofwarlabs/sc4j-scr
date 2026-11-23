@@ -526,8 +526,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
      *
      * @param glueContext the shared services
      * @return the dialog
-     * @throws IOException if the dialog cannot be read, the local network's dialog has no type or subtype drop-down, or the Battle.net dialog
-     *                     has no create, browser or chat page
+     * @throws IOException if the dialog cannot be read, the local network's dialog has no type or subtype drop-down, or the Battle.net dialog has no create, browser or chat page
      */
     @Override
     protected @NotNull DialogDefinition loadDialog(@NotNull GlueContext glueContext) throws IOException {
@@ -762,8 +761,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
     }
 
     /**
-     * @return the name of the hosted game: the typed name over Beacon.Link (the default name when it is blank), the player's name on the local
-     * network
+     * @return the name of the hosted game: the typed name over Beacon.Link (the default name when it is blank), the player's name on the local network
      */
     private @NotNull String getGameName(@NotNull LanClient client) {
         EditControl input = this.gameName;
@@ -795,8 +793,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
     }
 
     /**
-     * @return the turn rate the turn rate slider chooses ({@link LanClient#DYNAMIC_TURN_RATE} at its first step), the dynamic turn rate
-     * before the screen opened
+     * @return the turn rate the turn rate slider chooses ({@link LanClient#DYNAMIC_TURN_RATE} at its first step), the dynamic turn rate before the screen opened
      */
     private int getTurnRate() {
         Slider rates = this.turnRate;
@@ -1216,8 +1213,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
      * Called when a control is activated by a click, its hotkey, Esc or Enter.
      * <p>
      * Over Beacon.Link the folder button opens the map browser and the radio buttons set the privacy, the custom hotkeys and the unit limits; Ok
-     * hosts the
-     * selected file from the create page, and in the map browser opens a folder or takes the file back to the create page; Cancel in the
+     * hosts the selected file from the create page, and in the map browser opens a folder or takes the file back to the create page; Cancel in the
      * map browser returns to the create page with the file it had. Otherwise as the file list: Ok opens the selected folder or chooses the
      * selected file, Cancel leaves.
      *

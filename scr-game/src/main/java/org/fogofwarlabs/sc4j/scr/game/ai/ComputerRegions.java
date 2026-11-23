@@ -768,13 +768,12 @@ final class ComputerRegions {
     }
 
     /**
-     * Tests whether the owner still attacks (aiscript {@code wait_finishattack}).
+     * Tests whether the owner still attacks (aiscript {@code wait_finishattack}): a region {@code 1..count-1} of the owner is in an attack state
+     * ({@link ComputerRegionStates#ATTACK}, {@link ComputerRegionStates#ATTACK_ENGAGED}, {@link ComputerRegionStates#ATTACK_GATHERING} or
+     * {@link ComputerRegionStates#ATTACK_LAUNCHED}).
      *
      * @param owner the script owner
-     * @return {@code true} if a region {@code 1..count-1} of the owner is in an attack state
-     * ({@link ComputerRegionStates#ATTACK}, {@link ComputerRegionStates#ATTACK_ENGAGED},
-     * {@link ComputerRegionStates#ATTACK_GATHERING} or {@link ComputerRegionStates#ATTACK_LAUNCHED}),
-     * {@code false} otherwise
+     * @return {@code true} if a region of the owner is in an attack state, {@code false} otherwise
      */
     boolean isAttacking(int owner) {
         int count = this.game.getComputerTerrain().getRegions().getRegionCount();
@@ -951,8 +950,7 @@ final class ComputerRegions {
      * Moves the military records of a region into another: each unit leaves its record and joins the target, or with
      * {@code target} {@code -1} the region under the unit.
      *
-     * @param filter {@link #TRANSFER_ALL}, {@link #TRANSFER_ATTACKERS} ({@link ComputerAttack#isTransferable}) or
-     *               {@link #TRANSFER_UNBUNKERED} (Bunker occupants stay outside campaigns)
+     * @param filter {@link #TRANSFER_ALL}, {@link #TRANSFER_ATTACKERS} ({@link ComputerAttack#isTransferable}) or {@link #TRANSFER_UNBUNKERED} (Bunker occupants stay outside campaigns)
      */
     private void transferMilitary(@NotNull ComputerPlayerPhase phase, int from, int target, int filter) {
         ComputerMilitary military = phase.getMilitary();

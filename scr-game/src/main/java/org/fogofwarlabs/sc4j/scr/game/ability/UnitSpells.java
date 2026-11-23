@@ -918,7 +918,7 @@ public final class UnitSpells {
         if (scan != null) {
             this.game.getUnitEnergy().spend(unit, cost);
             this.reportSpellCast(unit, ScrTechIds.SCANNER_SWEEP, null, creationX, creationY);
-            this.playSound(SoundIds.COMSAT_SCANNER_SWEEP, unit);
+            this.game.getUnitSounds().play(SoundIds.COMSAT_SCANNER_SWEEP, unit);
         }
     }
 
@@ -1132,7 +1132,7 @@ public final class UnitSpells {
         target.setDefensiveMatrixHealth(DEFENSIVE_MATRIX_HEALTH << FIXED_POINT_FRACTION_BITS);
         target.setDefensiveMatrixTimer(DEFENSIVE_MATRIX_DURATION);
         this.createDefensiveMatrixImage(target, instructionLimit);
-        this.playSound(SoundIds.SCIENCE_VESSEL_DEFENSIVE_MATRIX, unit);
+        this.game.getUnitSounds().play(SoundIds.SCIENCE_VESSEL_DEFENSIVE_MATRIX, unit);
 
         Sprite sprite = unit.requireSprite();
 
@@ -1183,10 +1183,8 @@ public final class UnitSpells {
                               (short) unit.getOrderTargetX(), (short) unit.getOrderTargetY(),
                               unit.requireSprite().getElevationLevel() + 1,
                               instructionLimit);
-            this.game.getInterfaceLink().getSoundEvents().add(SoundIds.ARBITER_RECALL_CAST +
-                                                              this.game.getRandom().next(RECALL_CAST_SOUND_RANDOM_SOURCE) % RECALL_SOUND_VARIANTS,
-                                                              (short) unit.getOrderTargetX(), (short) unit.getOrderTargetY(),
-                                                              ScrUnitIds.NONE);
+            this.game.getUnitSounds().playAt(SoundIds.ARBITER_RECALL_CAST + this.game.getRandom().next(RECALL_CAST_SOUND_RANDOM_SOURCE) % RECALL_SOUND_VARIANTS,
+                                             (short) unit.getOrderTargetX(), (short) unit.getOrderTargetY());
             unit.setOrderTimer(RECALL_DELAY);
             unit.setPrimaryOrderState(RECALL_STATE_TELEPORTING);
 
@@ -1256,10 +1254,7 @@ public final class UnitSpells {
         }
 
         if (recalled != 0) {
-            this.game.getInterfaceLink().getSoundEvents().add(SoundIds.ARBITER_RECALL_ARRIVAL +
-                                                              this.game.getRandom().next(RECALL_ARRIVAL_SOUND_RANDOM_SOURCE) % RECALL_SOUND_VARIANTS,
-                                                              casterSprite.getX(), casterSprite.getY(),
-                                                              unit.getUnitId());
+            this.game.getUnitSounds().play(SoundIds.ARBITER_RECALL_ARRIVAL + this.game.getRandom().next(RECALL_ARRIVAL_SOUND_RANDOM_SOURCE) % RECALL_SOUND_VARIANTS, unit);
         }
 
         this.game.getOrders().finishOrder(unit, instructionLimit);
@@ -1365,7 +1360,7 @@ public final class UnitSpells {
         }
 
         this.game.getUnitEnergy().spend(unit, this.getEnergyCost(ScrTechIds.HALLUCINATION));
-        this.playSound(SoundIds.HIGH_TEMPLAR_HALLUCINATION, target);
+        this.game.getUnitSounds().play(SoundIds.HIGH_TEMPLAR_HALLUCINATION, target);
 
         Unit carrier = target.getSubunit() != null ? target.getSubunit() : target;
         Sprite sprite = carrier.requireSprite();
@@ -1390,8 +1385,7 @@ public final class UnitSpells {
      * @param owner            the owner of the new hallucination
      * @param instructionLimit the creation and order budget
      * @return the hallucination, or {@code null} if construction failed
-     * @throws UnsupportedOperationException if the unit creation context is missing or a source hangar count exceeds its list, or the unit pool or
-     *                                       the unit accounting is not initialized
+     * @throws UnsupportedOperationException if the unit creation context is missing or a source hangar count exceeds its list, or the unit pool or the unit accounting is not initialized
      * @throws IllegalStateException         if the source has no sprite
      */
     private @Nullable Unit createHallucination(@NotNull Unit source, int owner, int instructionLimit) {
@@ -1485,7 +1479,7 @@ public final class UnitSpells {
         this.game.getUnitEnergy().spend(unit, this.getEnergyCost(ScrTechIds.MIND_CONTROL));
         unit.setShieldPoints(0);
         this.game.getOrders().finishOrder(unit, instructionLimit);
-        this.playSound(SoundIds.DARK_ARCHON_MIND_CONTROL, target);
+        this.game.getUnitSounds().play(SoundIds.DARK_ARCHON_MIND_CONTROL, target);
     }
 
     /**
@@ -1523,7 +1517,7 @@ public final class UnitSpells {
                                                        instructionLimit);
             target.setEnergy(0);
             this.game.getUnitEnergy().spend(unit, this.getEnergyCost(ScrTechIds.FEEDBACK));
-            this.playSound(SoundIds.DARK_ARCHON_FEEDBACK, target);
+            this.game.getUnitSounds().play(SoundIds.DARK_ARCHON_FEEDBACK, target);
 
             if (ComputerUnits.isDeadOrHidden(target)) {
                 this.createEffect(SpriteIds.FEEDBACK_HIT_SMALL + this.getSpriteSize(target), target, instructionLimit);
@@ -1569,7 +1563,7 @@ public final class UnitSpells {
             }
             case WeaponHitTypes.PARASITE -> {
                 if (target != null && target.getPrimaryOrder() != ScrOrderIds.DIE) {
-                    this.playSound(SoundIds.QUEEN_PARASITE, target);
+                    this.game.getUnitSounds().play(SoundIds.QUEEN_PARASITE, target);
                     target.setParasiteFlags(target.getParasiteFlags() | 1 << owner);
                 }
             }
@@ -1581,7 +1575,7 @@ public final class UnitSpells {
             case WeaponHitTypes.EMP_SHOCKWAVE -> this.applyEmpShockwave(sourceUnit, positionX, positionY, instructionLimit);
             case WeaponHitTypes.IRRADIATE -> {
                 if (target != null && target.getPrimaryOrder() != ScrOrderIds.DIE) {
-                    this.playSound(SoundIds.SCIENCE_VESSEL_IRRADIATE, target);
+                    this.game.getUnitSounds().play(SoundIds.SCIENCE_VESSEL_IRRADIATE, target);
                     this.applyIrradiation(sourceUnit, owner, target, instructionLimit);
                 }
             }
@@ -1611,7 +1605,7 @@ public final class UnitSpells {
             }
             case WeaponHitTypes.RESTORATION -> {
                 if (target != null) {
-                    this.playSound(SoundIds.MEDIC_RESTORATION, target);
+                    this.game.getUnitSounds().play(SoundIds.MEDIC_RESTORATION, target);
                     this.restore(target, instructionLimit);
                 }
             }
@@ -1788,7 +1782,7 @@ public final class UnitSpells {
         this.createEffect(SpriteIds.MAELSTROM_HIT, positionX, positionY, MAELSTROM_ELEVATION, instructionLimit);
 
         if (source != null) {
-            this.playSound(SoundIds.DARK_ARCHON_MAELSTROM, source);
+            this.game.getUnitSounds().play(SoundIds.DARK_ARCHON_MAELSTROM, source);
         }
 
         ScrUnitTypeView units = this.game.requireGameData().getUnitTypes();
@@ -1879,7 +1873,7 @@ public final class UnitSpells {
         }
 
         target.setBlindnessState(target.getBlindnessState() | 1 << owner);
-        this.playSound(SoundIds.MEDIC_OPTICAL_FLARE, target);
+        this.game.getUnitSounds().play(SoundIds.MEDIC_OPTICAL_FLARE, target);
         this.createTopImage(target, ImageIds.OPTICAL_FLARE_HIT_SMALL + this.getSpriteSize(target), instructionLimit);
         this.game.setUpdateTilesCountdown(BLINDNESS_TILE_UPDATE_DELAY);
     }
@@ -2450,8 +2444,7 @@ public final class UnitSpells {
      * @param notifiedPlayer   the player shown the pending creation message on failure
      * @param instructionLimit the creation and completion budget
      * @return the created spell unit, or {@code null} if construction failed
-     * @throws UnsupportedOperationException if the unit creation context or the owner player record is missing, or the unit accounting is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the unit creation context or the owner player record is missing, or the unit accounting is not initialized
      * @throws IllegalStateException         if the created unit has no sprite
      * @throws NullPointerException          if the world was built without game data
      */
@@ -2590,14 +2583,6 @@ public final class UnitSpells {
         if (image != null) {
             this.game.getIscriptExecutor().destroyImage(image);
         }
-    }
-
-    private void playSound(int sound, @NotNull Unit unit) {
-        Sprite sprite = unit.getSpriteOrNull();
-
-        this.game.getInterfaceLink().getSoundEvents().add(sound,
-                                                          sprite == null ? 0 : sprite.getX(), sprite == null ? 0 : sprite.getY(),
-                                                          unit.getUnitId());
     }
 
     /**

@@ -150,8 +150,7 @@ public final class MapSpriteEffectLoader {
      * @param expansionEnabled the native expansion flag
      * @param instructionLimit the iscript execution bound
      * @return immutable outcomes for every record, including filtered and failed requests
-     * @throws IllegalArgumentException      if the section is not a complete {@code THG2} section or the records are not the complete records of
-     *                                       this section occurrence
+     * @throws IllegalArgumentException      if the section is not a complete {@code THG2} section or the records are not the complete records of this section occurrence
      * @throws UnsupportedOperationException if a sprite precedes the startup thingy allocation or a unit owner has no record
      */
     public static @NotNull List<Creation> load(@NotNull UnitCreationContext creation, @NotNull Game game,

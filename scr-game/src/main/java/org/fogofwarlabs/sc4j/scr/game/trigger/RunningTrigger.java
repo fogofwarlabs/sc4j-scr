@@ -50,8 +50,7 @@ public final class RunningTrigger {
      * @param startedActions the started bits
      * @param index          the action index
      * @param flags          the action flags byte
-     * @return the started bits with bit {@code index} set if the flags hold {@link TriggerFlags#ACTION_STARTED}, cleared
-     * otherwise
+     * @return the started bits with bit {@code index} set if the flags hold {@link TriggerFlags#ACTION_STARTED}, cleared otherwise
      */
     static long updateStartedAction(long startedActions, int index, int flags) {
         return (flags & TriggerFlags.ACTION_STARTED) != 0 ? startedActions | 1L << index : startedActions & ~(1L << index);
@@ -121,8 +120,7 @@ public final class RunningTrigger {
     }
 
     /**
-     * @return {@code true} if a write changed the record bytes, so {@link #definition} is decoded from the changed bytes,
-     * {@code false} otherwise
+     * @return {@code true} if a write changed the record bytes, so {@link #definition} is decoded from the changed bytes, {@code false} otherwise
      */
     boolean isRecordBytesWritten() {
         return this.recordBytesWritten;

@@ -650,8 +650,8 @@ final class HdTerrainEffect implements AutoCloseable {
      * <p>
      * However, implementers of this interface are strongly encouraged
      * to make their {@code close} methods idempotent.
-     * @implSpec Releases the textures, buffers and program in the reverse order of their creation. A failing constructor closes the effect too; the objects of
-     * the steps after the failed one are not created then.
+     * @implSpec Releases the textures, buffers and program in the reverse order of their creation. A failing constructor closes the effect too; the
+     * objects of the steps after the failed one are not created then.
      */
     @Override
     public void close() {

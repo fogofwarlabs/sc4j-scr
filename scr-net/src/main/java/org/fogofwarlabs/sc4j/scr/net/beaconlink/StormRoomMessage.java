@@ -246,8 +246,7 @@ final class StormRoomMessage {
     }
 
     /**
-     * @return the room's members with the addresses the host assigned them, in the host's order, empty unless the kind is
-     * {@link Kind#MEMBERS}
+     * @return the room's members with the addresses the host assigned them, in the host's order, empty unless the kind is {@link Kind#MEMBERS}
      */
     @NotNull Map<@NotNull LinkParticipant, @NotNull InetSocketAddress> getMembers() {
         return this.members;

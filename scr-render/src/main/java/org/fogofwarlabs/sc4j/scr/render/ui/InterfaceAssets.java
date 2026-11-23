@@ -274,8 +274,7 @@ public final class InterfaceAssets {
 
     /**
      * @param frame the icon frame
-     * @return the classic {@code cmdicons.grp} frame-header width byte without canvas margins, used to center SD command and stat icons; the SD
-     * width of an added icon
+     * @return the classic {@code cmdicons.grp} frame-header width byte without canvas margins, used to center SD command and stat icons; the SD width of an added icon
      * @throws IOException if the SD file of an added icon cannot be read
      */
     public int getClassicCommandIconWidth(int frame) throws IOException {

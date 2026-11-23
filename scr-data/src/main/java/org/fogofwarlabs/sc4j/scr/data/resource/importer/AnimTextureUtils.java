@@ -35,8 +35,7 @@ public final class AnimTextureUtils {
      *
      * @param file the HD anim
      * @return the texture sheet
-     * @throws IOException if the anim is not a single-entry anim of a scale dividing {@value #UNIT_SCALE}, or a layer is not a
-     *                     block-compressed DDS texture
+     * @throws IOException if the anim is not a single-entry anim of a scale dividing {@value #UNIT_SCALE}, or a layer is not a block-compressed DDS texture
      */
     public static @NotNull TextureSheet createSheet(@NotNull AnimFile file) throws IOException {
         if (file.getEntryCount() != 1 || file.getEntry(0).isReference() || file.getScale() < 1 || UNIT_SCALE % file.getScale() != 0) {

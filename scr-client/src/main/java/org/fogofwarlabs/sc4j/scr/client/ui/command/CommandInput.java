@@ -26,7 +26,7 @@ import java.util.Objects;
 /**
  * Turns command-card actions and map clicks into encoded commands or local interface changes.
  * Production and per-unit gates run before action dispatch and report local errors through the configured output.
- * Selection publication and command submission follow their existing order; targeting and placement modes clear after submission.
+ * Targeting and placement modes clear after submission.
  */
 public final class CommandInput {
     /**

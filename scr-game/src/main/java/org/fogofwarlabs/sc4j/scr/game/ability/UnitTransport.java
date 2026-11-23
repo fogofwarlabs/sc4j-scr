@@ -204,10 +204,12 @@ public final class UnitTransport implements TransportCargo {
     }
 
     /**
+     * Checks whether a transport or Bunker can load a unit: the container is completed, enabled, of the same owner and has room for the
+     * unburrowed target. A building takes only non-Zerg Terran units requiring at most {@code 1} space.
+     *
      * @param transport the transport or Bunker
      * @param target    the unit to load
-     * @return {@code true} if the completed, enabled container of the same owner has room for the unburrowed target (a building takes only non-Zerg
-     * Terran units requiring at most {@code 1} space), {@code false} otherwise
+     * @return {@code true} if the container can load the target, {@code false} otherwise
      * @throws NullPointerException if the world was built without game data
      */
     public boolean canLoad(@NotNull Unit transport, @NotNull Unit target) {

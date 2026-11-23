@@ -276,11 +276,7 @@ public final class UnitTechnology {
         }
 
         int sound = this.game.getRandom().next(STIM_PACK_SOUND_RANDOM_SOURCE, SoundIds.MARINE_STIM_PACK, SoundIds.MARINE_STIM_PACK + 1);
-        Sprite sprite = unit.getSpriteOrNull();
-
-        this.game.getInterfaceLink().getSoundEvents().add(sound,
-                                                          sprite == null ? 0 : sprite.getX(), sprite == null ? 0 : sprite.getY(),
-                                                          unit.getUnitId());
+        this.game.getUnitSounds().play(sound, unit);
         this.reportSelfCast(unit, ScrTechIds.STIM_PACKS);
         this.game.getEngineGame().getCombat().dealDamage(unit, STIM_PACK_DAMAGE << FIXED_POINT_SHIFT, null, instructionLimit);
 

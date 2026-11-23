@@ -362,8 +362,10 @@ public final class ProjectilePhase {
         }
 
         /**
-         * @return the active bullet count from which no Halo Rockets bullet is created: eight tenths of the capacity the context was created with,
-         * multiplied in single precision and truncated toward zero
+         * Returns the active bullet count from which no Halo Rockets bullet is created: eight tenths of the capacity the context was created with,
+         * multiplied in single precision and truncated toward zero.
+         *
+         * @return the Halo Rockets bullet limit
          */
         public int getHaloRocketsLimit() {
             return (int) (this.nativeCapacity * HALO_ROCKETS_LIMIT_FRACTION);
@@ -1358,8 +1360,7 @@ public final class ProjectilePhase {
      * @param instructionLimit the image and order instruction budget
      * @return the created bullet, or {@code null} when none is created (limit reached, no free entry, no sprite, or an attack the source cannot make)
      * @throws UnsupportedOperationException if the projectile storage is not initialized
-     * @throws IllegalStateException         if the order target unit, or the source without an order target unit, has no sprite, or the source of a
-     *                                       bullet that extends to the maximum range has no sprite
+     * @throws IllegalStateException         if the target unit or a source whose position the bullet needs has no sprite
      * @throws NullPointerException          if the world was built without game data
      */
     public @Nullable Bullet create(@NotNull Unit source, int weapon, int positionX, int positionY, int instructionLimit) {
@@ -1610,8 +1611,7 @@ public final class ProjectilePhase {
      *
      * @param bullet           the active bullet
      * @param instructionLimit the image and order instruction budget
-     * @throws IllegalStateException if the bullet's order state is unknown, its target unit has no sprite, or the bullet has no sprite in a step
-     *                               that animates, moves or hits with it
+     * @throws IllegalStateException if the bullet's order state is unknown, its target unit has no sprite, or the bullet has no sprite in a step that animates, moves or hits with it
      */
     private void execute(@NotNull Bullet bullet, int instructionLimit) {
         while (true) {

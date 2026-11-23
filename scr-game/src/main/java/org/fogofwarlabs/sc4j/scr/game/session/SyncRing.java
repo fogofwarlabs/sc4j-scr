@@ -94,8 +94,7 @@ public final class SyncRing {
      * Creates an empty {@link SyncRing} instance.
      *
      * @param localSlot   the local player's slot
-     * @param multiplayer whether the game runs in a multiplayer session, whose records alternate the unit and resource kinds
-     *                    and take drawing values
+     * @param multiplayer whether the game runs in a multiplayer session, whose records alternate the unit and resource kinds and take drawing values
      */
     public SyncRing(int localSlot, boolean multiplayer) {
         this.localSlot   = localSlot;

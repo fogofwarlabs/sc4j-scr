@@ -529,8 +529,7 @@ public final class UnitAccounting {
     /**
      * Creates a {@link UnitAccounting} instance over a progress table with zeroed per-player state; game initialization establishes the supply caps.
      *
-     * @param progress the progress table of the game, which stores the type counts, the completed type counts and, in its SC:R extension columns
-     *                 ({@link PlayerProgressColumns}), the death and kill tables
+     * @param progress the progress table of the game: type counts, completed type counts and, in {@link PlayerProgressColumns}, the death and kill tables
      */
     public UnitAccounting(@NotNull PlayerProgressTable progress) {
         this.unitCounts           = new int[PlayerTable.PLAYER_SLOTS];
@@ -718,8 +717,7 @@ public final class UnitAccounting {
      * @param owner      the owning player
      * @param raceOffset the race counter base: Zerg {@code 0}, Terran {@link PlayerTable#PLAYER_SLOTS}, Protoss {@code 2 * PLAYER_SLOTS}
      * @param required   the requested half-supply amount
-     * @return {@code true} if the request is zero, or the cap and, unless it is ignored, the provided supply allow the request, {@code false}
-     * otherwise
+     * @return {@code true} if the request is zero, or the cap and, unless it is ignored, the provided supply allow the request, {@code false} otherwise
      */
     public boolean hasAvailableSupply(int owner, int raceOffset, int required) {
         if (required == 0) {
@@ -938,8 +936,7 @@ public final class UnitAccounting {
      * @param change          the signed DWORD increment
      * @param countProduction whether the production counters and scores of a non-neutral owner change as well
      * @param statistics      the established sample context, required only when a produced unit is recorded
-     * @throws UnsupportedOperationException if the unit type lies past {@link ScrUnitIds#NONE}, the owner lies past the player slots, or a produced
-     *                                       unit is recorded without statistics
+     * @throws UnsupportedOperationException if the unit type lies past {@link ScrUnitIds#NONE}, the owner lies past the player slots, or a produced unit is recorded without statistics
      */
     public void updateCompleted(@NotNull Unit unit,
                                 @NotNull ScrUnitTypeView units,
@@ -1036,8 +1033,7 @@ public final class UnitAccounting {
      * @param units                      the unit type table
      * @param change                     the signed DWORD increment
      * @param preserveNegativeTypeCounts whether a negative type count is kept instead of being reset to zero
-     * @throws UnsupportedOperationException if the unit type or its queued unit type lies past {@link ScrUnitIds#NONE} or the owner lies past the
-     *                                       player slots
+     * @throws UnsupportedOperationException if the unit type or its queued unit type lies past {@link ScrUnitIds#NONE} or the owner lies past the player slots
      */
     public void update(@NotNull Unit unit, @NotNull ScrUnitTypeView units, int change, boolean preserveNegativeTypeCounts) {
         int status = unit.getStatus();

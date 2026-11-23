@@ -203,8 +203,7 @@ public final class TargetValidation {
         }
 
         /**
-         * @return the one-based {@code stat_txt} id to show, or {@link CommandErrorEvents#NO_ERROR_TEXT} when the order is
-         * acknowledged
+         * @return the one-based {@code stat_txt} id to show, or {@link CommandErrorEvents#NO_ERROR_TEXT} when the order is acknowledged
          */
         public int getError() {
             return this.error;

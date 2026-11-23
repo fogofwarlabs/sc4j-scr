@@ -553,8 +553,7 @@ public final class RoomListScreen extends GlueScreen {
     }
 
     /**
-     * @return the mod of a room: the host's mod identifier and version, which the room's advertisement carries, with a note for a room of
-     * another version
+     * @return the mod of a room: the host's mod identifier and version, which the room's advertisement carries, with a note for a room of another version
      */
     private @NotNull String describeMod(RoomFilter.@NotNull Entry entry) {
         Locale locale = this.getContext().getTextLocale();

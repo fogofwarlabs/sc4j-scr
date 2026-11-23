@@ -102,9 +102,7 @@ public final class UnitHallucination {
      * @param replayObservation          whether the game is observed as a replay (every player is seen)
      * @param localPlayer                the local player
      * @param instructionLimit           the order budget of killed Interceptors
-     * @throws UnsupportedOperationException if the unit type is past {@link ScrUnitIds#NONE}, the unit accounting or the strength tables are absent,
-     *                                       the unit's sprite is missing when the unit is drawn, or a Reaver's hangar count exceeds its stored
-     *                                       Scarabs
+     * @throws UnsupportedOperationException if the unit type is past {@link ScrUnitIds#NONE}, required state is absent or a Reaver has fewer stored Scarabs than its hangar count
      * @throws NullPointerException          if the world was built without game data
      */
     public void convertToHallucination(@NotNull Unit unit,

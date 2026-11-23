@@ -39,8 +39,8 @@ import java.util.stream.IntStream;
 /**
  * Shows LAN lobby players, teams, observers, map details and chat, and submits authorized lobby changes.
  * <p>
- * Hosts start games after player, race and map checks. Lobby updates drive countdowns and game requests; refusal, departure and timeout errors return
- * to the game list (the channel chat over Beacon.Link) after the message closes.
+ * Hosts start games after player, race and map checks. Lobby updates drive countdowns and game requests; refusal, departure and timeout errors
+ * return to the game list (the channel chat over Beacon.Link) after the message closes.
  */
 public final class GameLobbyScreen extends GlueScreen {
     private static final @NotNull Logger LOGGER = Logger.of(GameLobbyScreen.class);
@@ -94,7 +94,8 @@ public final class GameLobbyScreen extends GlueScreen {
      */
     private static final int CHAT_SCROLL = 91;
     /**
-     * The race of a slot whose player has not selected a race yet ({@link ScrRaceIds#INACTIVE}); the race list shows its Select Race placeholder for it.
+     * The race of a slot whose player has not selected a race yet ({@link ScrRaceIds#INACTIVE}); the race list shows its Select Race placeholder
+     * for it.
      */
     private static final int UNSELECTED_RACE = ScrRaceIds.INACTIVE;
     private static final int COUNTDOWN_SECONDS = 5;
@@ -346,8 +347,7 @@ public final class GameLobbyScreen extends GlueScreen {
      *
      * @param glueContext the glue context, which holds the channel chat
      * @param client      the LAN client of the lobby
-     * @return the created {@link GameCommunityChat} instance, or {@code null} if the client plays without Beacon.Link or the channel chat is not
-     * open
+     * @return the created {@link GameCommunityChat} instance, or {@code null} if the client plays without Beacon.Link or the channel chat is not open
      */
     private static @Nullable GameCommunityChat createCommunityChat(@NotNull GlueContext glueContext, @NotNull LanClient client) {
         ChannelChat chat = glueContext.getChannelChat();
@@ -1390,7 +1390,8 @@ public final class GameLobbyScreen extends GlueScreen {
     /**
      * Called first for every press of the screen that no open popup or open combo box takes, while the screen takes input.
      * <p>
-     * Takes presses on the chat scroll bar and the chat text (a selection), and presses on a team or observers header to request a move to that team or to the observers.
+     * Takes presses on the chat scroll bar and the chat text (a selection), and presses on a team or observers header to request a move to that team
+     * or to the observers.
      *
      * @param x the interface x
      * @param y the interface y

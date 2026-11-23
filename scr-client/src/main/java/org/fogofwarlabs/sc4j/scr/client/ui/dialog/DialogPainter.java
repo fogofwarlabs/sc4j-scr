@@ -99,8 +99,7 @@ public interface DialogPainter {
         float getHeight();
 
         /**
-         * @return the frame width of the sheet's classic {@code .grp} header, which the dialog metric words are copied from; the drawn width when
-         * there is no classic header
+         * @return the frame width of the sheet's classic {@code .grp} header, the source of the dialog metric words, or the drawn width without one
          */
         default float getClassicWidth() {
             return this.getWidth();
@@ -215,12 +214,12 @@ public interface DialogPainter {
     }
 
     /**
-     * Returns the classic frame width as an integer dialog metric.
+     * Returns the classic frame width as an integer dialog metric, as the dialog setup copies it for the controls (for example frame {@code 103}
+     * into the push button tile).
      *
      * @param sheet the sheet path
      * @param frame the frame index
-     * @return a dialog metric word: the frame width of the sheet's classic {@code .grp} header, as the dialog setup copies it for the controls (for
-     * example frame {@code 103} into the push button tile)
+     * @return a dialog metric word: the frame width of the sheet's classic {@code .grp} header
      * @throws IOException if the sheet cannot be read
      */
     default int getMetricWidth(@NotNull String sheet, int frame) throws IOException {

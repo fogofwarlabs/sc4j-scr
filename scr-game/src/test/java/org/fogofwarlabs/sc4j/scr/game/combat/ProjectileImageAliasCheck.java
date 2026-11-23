@@ -3,8 +3,7 @@ package org.fogofwarlabs.sc4j.scr.game.combat;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Computes whether a write through one page is visible through another, reproducing the original executable-page protection experiment; deliberately
- * outside projectile simulation.
+ * Computes whether a write through one page is visible through another page. It is not part of the projectile simulation.
  */
 final class ProjectileImageAliasCheck {
     /**

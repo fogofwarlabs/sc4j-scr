@@ -91,8 +91,7 @@ public final class ScrModPortrait {
          *
          * @param chances the chance of each of the {@link PortraitTypeTable#IDLE_CLIP_COUNT} idle clips
          * @return this instance for chaining
-         * @throws IllegalArgumentException if the number of chances is not {@link PortraitTypeTable#IDLE_CLIP_COUNT}, a chance is negative or
-         *                                  their sum exceeds {@code 100}
+         * @throws IllegalArgumentException if the number of chances is not {@link PortraitTypeTable#IDLE_CLIP_COUNT}, a chance is negative or their sum exceeds {@code 100}
          */
         public @NotNull Builder setIdleChances(int @NotNull ... chances) {
             int sum = 0;

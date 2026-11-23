@@ -725,8 +725,7 @@ public final class ComputerPlayer {
      * urgency.
      *
      * @param clock the current clock
-     * @return {@code true} if no building-hit clock is stored or {@link #BUILDING_HIT_REQUEST_DELAY} clock ticks passed (unsigned),
-     * {@code false} otherwise
+     * @return {@code true} if no building-hit clock is stored or {@link #BUILDING_HIT_REQUEST_DELAY} clock ticks passed (unsigned), {@code false} otherwise
      */
     boolean isBuildingHitRequestDelayElapsed(int clock) {
         return this.lastBuildingHitClock == 0 || Integer.compareUnsigned(clock - this.lastBuildingHitClock, BUILDING_HIT_REQUEST_DELAY) >= 0;
@@ -768,8 +767,7 @@ public final class ComputerPlayer {
 
     /**
      * @param clock the current clock
-     * @return {@code true} if the nuke interval passed since the last nuke (unsigned DWORD compare), {@code false}
-     * otherwise
+     * @return {@code true} if the nuke interval passed since the last nuke (unsigned DWORD compare), {@code false} otherwise
      */
     boolean isNukeReady(int clock) {
         return Integer.compareUnsigned(this.nukeRate * ComputerScripts.CLOCK_TICKS_PER_MINUTE + this.lastNukeClock, clock) <= 0;
@@ -778,8 +776,7 @@ public final class ComputerPlayer {
     /**
      * Sets or clears {@link #FLAG_TRANSPORTS_OFF}.
      *
-     * @param enabled {@code false} for the {@link ComputerScriptOpcodes#TRANSPORTS_OFF} opcode, {@code true} for
-     *                {@link ComputerScriptOpcodes#CHECK_TRANSPORTS}
+     * @param enabled {@code false} for the {@link ComputerScriptOpcodes#TRANSPORTS_OFF} opcode, {@code true} for {@link ComputerScriptOpcodes#CHECK_TRANSPORTS}
      */
     void setTransportsEnabled(boolean enabled) {
         this.flags = enabled ? this.flags & ~FLAG_TRANSPORTS_OFF : this.flags | FLAG_TRANSPORTS_OFF;
@@ -788,8 +785,7 @@ public final class ComputerPlayer {
     /**
      * Sets or clears {@link #FLAG_FARMS_WITHOUT_TIMING}.
      *
-     * @param timing {@code false} for the {@link ComputerScriptOpcodes#FARMS_NOTIMING} opcode, {@code true} for
-     *               {@link ComputerScriptOpcodes#FARMS_TIMING}
+     * @param timing {@code false} for the {@link ComputerScriptOpcodes#FARMS_NOTIMING} opcode, {@code true} for {@link ComputerScriptOpcodes#FARMS_TIMING}
      */
     void setFarmTiming(boolean timing) {
         this.flags = timing ? this.flags & ~FLAG_FARMS_WITHOUT_TIMING : this.flags | FLAG_FARMS_WITHOUT_TIMING;

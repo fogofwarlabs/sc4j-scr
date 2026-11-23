@@ -269,8 +269,7 @@ public final class ClassicUnitMemory implements ScrTriggerSystem.ExtendedDeathsO
      *
      * @param playerOperand the encoded address index, not an unresolved player selector
      * @param unitOperand   the encoded unit operand
-     * @param comparison    {@link TriggerModifiers#AT_LEAST}, {@link TriggerModifiers#AT_MOST} or
-     *                      {@link TriggerModifiers#EXACTLY}
+     * @param comparison    {@link TriggerModifiers#AT_LEAST}, {@link TriggerModifiers#AT_MOST} or {@link TriggerModifiers#EXACTLY}
      * @param amount        the comparison DWORD
      * @return {@code true} if the unsigned comparison matches, {@code false} otherwise
      * @throws IllegalArgumentException      if the comparison is unsupported

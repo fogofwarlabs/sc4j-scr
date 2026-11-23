@@ -38,8 +38,7 @@ public final class InterfaceCodeColors implements TextColorHook {
      * @param codePoint     the color code, one {@link #isColorCode} accepts
      * @param lineColor     the packed {@code 0xRRGGBBAA} color the line started in, for codes that restore it
      * @param currentColor  the packed color of the pen before the code
-     * @param previousColor the packed color of the pen before the code that set the current color (the line's color before the first code), for
-     *                      codes that switch back
+     * @param previousColor the packed color of the pen before the code that set the current color (the line's color before the first code), for codes that switch back
      * @return the packed color of the following characters
      */
     @Override

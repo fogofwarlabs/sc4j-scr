@@ -165,8 +165,7 @@ public final class ReplayFrameRunner {
      * Checks the established contexts before any pending command is consumed.
      *
      * @throws IllegalStateException         if an earlier frame stopped part way
-     * @throws UnsupportedOperationException if the world, selection, execution scope, production statistics or foliage state
-     *                                       is not established
+     * @throws UnsupportedOperationException if the world, selection, execution scope, production statistics or foliage state is not established
      */
     public void prepareCommands() {
         if (this.game.getEngineGame().getFrameRunner().isFailed()) {

@@ -138,8 +138,7 @@ final class FlyerRepulsion {
     }
 
     /**
-     * @return the live cell counts, row by row, one unsigned byte per cell, or {@code null} before the grid is allocated; a mod's adapter may
-     * read and write them
+     * @return the live cell counts, row by row, one unsigned byte per cell, or {@code null} before the grid is allocated; a mod's adapter may read and write them
      */
     byte @Nullable [] getCellCounts() {
         return this.cellCounts;

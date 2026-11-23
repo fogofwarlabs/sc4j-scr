@@ -397,8 +397,7 @@ public final class GameCursor implements AutoCloseable {
      * Returns the frame layout of a cursor from its classic {@code cursor/<name>.grp} header, read once per name.
      *
      * @param name the classic cursor asset name
-     * @return the width and height of the union of the frame rectangles, then each frame's offset from the union's corner; empty if no valid layout
-     * could be read
+     * @return the width and height of the union of the frame rectangles, then each frame's offset from the union's corner; empty if no valid layout could be read
      */
     private int @NotNull [] getLayout(@NotNull String name) {
         return this.layouts.computeIfAbsent(name, this.layoutReader);

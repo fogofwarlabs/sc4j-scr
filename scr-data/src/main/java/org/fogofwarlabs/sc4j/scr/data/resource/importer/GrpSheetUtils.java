@@ -108,8 +108,7 @@ public final class GrpSheetUtils {
      *
      * @param sheet      a sheet of {@link #createSheet}
      * @param frameIndex the frame index
-     * @return {@code true} if the frame is not the first and starts at the previous frame's pixel offset with the same
-     * rectangle size, {@code false} otherwise
+     * @return {@code true} if the frame is not the first and starts at the previous frame's pixel offset with the same rectangle size, {@code false} otherwise
      */
     public static boolean isPreviousFrameRepeated(@NotNull SpriteSheet sheet, int frameIndex) {
         if (frameIndex <= 0) {

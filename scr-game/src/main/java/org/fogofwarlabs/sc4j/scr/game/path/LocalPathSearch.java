@@ -386,8 +386,7 @@ public final class LocalPathSearch {
      * @param request       the request with the source and destination positions
      * @param continueRoute whether the request continues its stored region route
      * @return {@code true} if the search produced a route, {@code false} otherwise
-     * @throws UnsupportedOperationException if the terrain contours, the unit spatial index, the movement collision controls or the target's sprite
-     *                                       are missing
+     * @throws UnsupportedOperationException if the terrain contours, the unit spatial index, the movement collision controls or the target's sprite are missing
      * @throws NullPointerException          if the world was built without game data
      */
     boolean search(@NotNull Game game, @NotNull Unit unit, @NotNull PathRequest request, boolean continueRoute) {

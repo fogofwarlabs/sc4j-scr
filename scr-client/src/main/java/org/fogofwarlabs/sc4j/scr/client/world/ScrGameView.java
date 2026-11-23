@@ -484,8 +484,7 @@ public final class ScrGameView implements GameView {
     }
 
     /**
-     * @return {@code true} if the game has plugins of the mod's game extensions, which may draw images with other graphics ({@link #findImageSheet}),
-     * {@code false} otherwise
+     * @return {@code true} if the game has plugins of the mod's game extensions, which may draw images with other graphics ({@link #findImageSheet}), {@code false} otherwise
      */
     public boolean hasPlugins() {
         return this.game.getPlugins().length != 0;

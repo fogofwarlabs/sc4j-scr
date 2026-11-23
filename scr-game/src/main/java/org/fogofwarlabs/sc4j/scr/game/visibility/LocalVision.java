@@ -94,8 +94,7 @@ public final class LocalVision {
     }
 
     /**
-     * @return {@code true} if the world plays a replay or the local slot is an observer's ({@link PlayerTable#isReplayOrObserver}),
-     * {@code false} otherwise
+     * @return {@code true} if the world plays a replay or the local slot is an observer's ({@link PlayerTable#isReplayOrObserver}), {@code false} otherwise
      */
     public boolean isReplayOrObserver() {
         UnitSelection selection = this.game.getSelection();

@@ -40,8 +40,7 @@ public final class SupplyCheck {
 
     /**
      * @param unitType the requested type
-     * @return the half-supply the test requires: {@code 2} times the supply for {@link UnitTypeFlags#TWO_UNITS_IN_ONE_EGG} types, a Lurker's less the
-     * Hydralisk's
+     * @return the half-supply the test requires: {@code 2} times the supply for {@link UnitTypeFlags#TWO_UNITS_IN_ONE_EGG} types, a Lurker's less the Hydralisk's
      * @throws NullPointerException if the world was built without game data
      */
     public int getRequiredSupply(int unitType) {
@@ -62,8 +61,7 @@ public final class SupplyCheck {
     /**
      * @param unitType the unit type selecting the race
      * @param owner    the player
-     * @return the available half-supply of the type's race: the minimum of provided supply and the cap (the cap alone under Food for Thought), minus
-     * used supply; {@code 0} for a type without a race
+     * @return the available half-supply of the type's race: the minimum of provided supply and the cap (the cap alone under Food for Thought), minus used supply; {@code 0} for a type without a race
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the unit accounting is not initialized
      */

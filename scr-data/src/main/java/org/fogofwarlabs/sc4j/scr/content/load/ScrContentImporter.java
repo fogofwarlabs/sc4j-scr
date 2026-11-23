@@ -141,8 +141,7 @@ public final class ScrContentImporter {
      * each table and the unit trait columns. The added unit types and graphics are closed first.
      *
      * @param content the open content registry
-     * @throws IllegalArgumentException if a DAT reference lies outside its table or an identity is registered at another
-     *                                  index
+     * @throws IllegalArgumentException if a DAT reference lies outside its table or an identity is registered at another index
      * @throws IllegalStateException    if the registration is closed or an identity already has another index
      */
     public void register(@NotNull ContentRegistry content) {

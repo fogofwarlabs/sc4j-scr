@@ -19,8 +19,7 @@ public interface Order {
     /**
      * Runs the step for one unit.
      *
-     * @param context the dispatch context: the player type of the unit's owner for this frame and the instruction budget of each animation script
-     *                invocation
+     * @param context the dispatch context: the player type of the unit's owner for this frame and the instruction budget of each animation script invocation
      * @param unit    the unit whose order runs
      */
     void update(@NotNull ScrOrderContext context, @NotNull Unit unit);

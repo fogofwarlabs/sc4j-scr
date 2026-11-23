@@ -776,8 +776,7 @@ public final class ProviderSession {
     }
 
     /**
-     * @return the players the game counts: the local player and every remote player with an identifier, less the observers
-     * present, plus the reserved slots
+     * @return the players the game counts: the local player and every remote player with an identifier, less the observers present, plus the reserved slots
      */
     public int getCurrentPlayers() {
         return this.countPresentPlayers() - this.observers + this.reservedSlots;
@@ -855,7 +854,7 @@ public final class ProviderSession {
      * @param playerLimit      the maximum number of players
      * @param observerLimit    the maximum number of observers
      * @param state            the initial game state bits from the game
-     * @param value            the value sent with subtype {@code 15} (meaning unverified)
+     * @param value            the value sent with subtype {@code 15}
      * @param data             the game data sent with subtype {@code 9}
      * @param playerName       the local player's name
      * @param playerStatistics the local player's statistics string

@@ -98,8 +98,7 @@ public final class PlayerSlots {
      * only its eight player slots are scanned and the records after them are not.
      *
      * @param records     the record table
-     * @param recordCount the number of records from the first that can hold a player: {@link #PLAYER_INDEXES} for a lobby's
-     *                    records, {@link PlayerTable#PLAYABLE_PLAYER_SLOTS} for a game's
+     * @param recordCount the number of records from the first that can hold a player: {@link #PLAYER_INDEXES} for a lobby's records, {@link PlayerTable#PLAYABLE_PLAYER_SLOTS} for a game's
      */
     public void update(MeleeGameSetup.@NotNull PlayerRecord @NotNull [] records, int recordCount) {
         Arrays.fill(this.slots, NO_SLOT);

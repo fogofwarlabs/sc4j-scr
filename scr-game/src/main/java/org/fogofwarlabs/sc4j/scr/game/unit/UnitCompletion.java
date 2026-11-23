@@ -131,8 +131,7 @@ public final class UnitCompletion {
      * @param unit             the constructed and placed unit
      * @param ownerPlayerType  the BYTE type read from the original owner player record
      * @param instructionLimit the checked script instruction limit
-     * @throws UnsupportedOperationException if the unit accounting, the unit sprite or the strength tables are absent, or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the unit accounting, the unit sprite or the strength tables are absent, or the unit pool is not initialized
      * @throws NullPointerException          if the world was built without game data
      */
     public void completeAfterPlacement(@NotNull UnitCreationContext creation, @NotNull Unit unit, int ownerPlayerType, int instructionLimit) {

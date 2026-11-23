@@ -512,8 +512,7 @@ public final class CreepField {
      * @param unitType  the original unit type WORD
      * @param positionX the original pixel coordinate DWORD
      * @param positionY the original pixel coordinate DWORD
-     * @return {@link #SPREAD_ADDED} if a tile was added, {@link #SPREAD_BLOCKED} if none was added but an occupied tile blocked growth,
-     * {@link #SPREAD_NONE} otherwise
+     * @return {@link #SPREAD_ADDED} if a tile was added, {@link #SPREAD_BLOCKED} if none was added but an occupied tile blocked growth, {@link #SPREAD_NONE} otherwise
      * @throws IllegalArgumentException      if the game has another map
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the scan or a candidate bucket exceeds the represented storage

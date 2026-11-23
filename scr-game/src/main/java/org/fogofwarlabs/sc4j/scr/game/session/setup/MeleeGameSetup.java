@@ -200,8 +200,7 @@ public final class MeleeGameSetup {
      * @param computerRaces    the comma-separated computer race names, in lobby order
      * @param humanSlot        the human's index among the map's start slots
      * @param speed            the game speed, {@code 0} (Slowest) through {@code 6} (Fastest)
-     * @param mapCompatibility whether the map loads with the 1.16-era relaxed rules
-     *                         ({@link ChkValidatorUtils#validate(ChkFile, boolean, boolean, boolean)}) instead of the strict rules
+     * @param mapCompatibility whether the map loads with the 1.16-era relaxed rules ({@link ChkValidatorUtils#validate(ChkFile, boolean, boolean, boolean)}) instead of the strict rules
      * @return the created {@link MeleeGameSetup} instance
      * @throws IOException              if the map cannot be read or the rules reject it
      * @throws IllegalArgumentException if a value is invalid for the map
@@ -747,8 +746,7 @@ public final class MeleeGameSetup {
     }
 
     /**
-     * @return the speed override selector of the network game's name ({@link GameSpeed#parseOverrideIndex}), {@code 0} for none or when no name
-     * was supplied
+     * @return the speed override selector of the network game's name ({@link GameSpeed#parseOverrideIndex}), {@code 0} for none or when no name was supplied
      */
     public int getSpeedOverrideIndex() {
         return this.speedOverrideIndex;
@@ -806,8 +804,7 @@ public final class MeleeGameSetup {
      * record winning.
      *
      * @param playerId the network id
-     * @return the observer slot from {@link PlayerTable#FIRST_OBSERVER_SLOT}, or {@link PlayerSlots#NO_SLOT} outside a network game
-     * or for a player who holds no observer record
+     * @return the observer slot from {@link PlayerTable#FIRST_OBSERVER_SLOT}, or {@link PlayerSlots#NO_SLOT} outside a network game or for a player who holds no observer record
      */
     public int getObserverSlot(int playerId) {
         LobbyResolution.Table table = this.networkTable;
@@ -1100,8 +1097,7 @@ public final class MeleeGameSetup {
     /**
      * Sets the localized nation names of computer players ({@code strNATION_<RACE>_<n>}).
      *
-     * @param nationNames the name of a race ({@code ZERG}, {@code TERRAN}, {@code PROTOSS}) and index, {@code null} when
-     *                    unknown; {@code null} keeps the records' names
+     * @param nationNames the name of a race ({@code ZERG}, {@code TERRAN}, {@code PROTOSS}) and index, {@code null} when unknown; {@code null} keeps the records' names
      */
     public void setNationNames(@Nullable BiFunction<String, Integer, String> nationNames) {
         this.nationNames = nationNames;

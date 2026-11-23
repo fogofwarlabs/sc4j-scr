@@ -107,8 +107,7 @@ public final class UnitHealth {
      *
      * @param unit             the damaged or repaired unit
      * @param instructionLimit the image creation instruction budget
-     * @throws IllegalStateException         if the main image is absent, overlay data cannot be loaded, or the position search finds no usable
-     *                                       position or exceeds its instruction limit
+     * @throws IllegalStateException         if the main image is absent, overlay data cannot be loaded, or the position search finds no usable position or exceeds its instruction limit
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the image pool is not initialized
      */

@@ -555,8 +555,7 @@ public final class MapInformationPanel {
      * @param slot   the font slot of the rows
      * @param rows   the rows, each a label (without the colon) and its value
      * @param margin the margin after each row
-     * @return the height of the summary rows: each row's height ({@link #getRowHeight}) and one margin after each row;
-     * the rows' margins collapse, one margin between two rows and one after the last
+     * @return the height of the summary rows: each row's height ({@link #getRowHeight}) and one margin after each row; the rows' margins collapse, one margin between two rows and one after the last
      */
     private static float getRowsHeight(@NotNull GlueCanvas canvas, int slot, @NotNull List<String[]> rows, float margin) {
         float height = 0;

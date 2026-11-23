@@ -229,9 +229,7 @@ public final class UnitLifecycle {
      * @param destroyed        whether a hidden unit is destroyed directly by {@link #destroyHidden}
      * @param instructionLimit the death animation instruction budget
      * @throws NullPointerException          if the world was built without game data
-     * @throws UnsupportedOperationException if a grounded Zerg building dies without the creep field or the unit creation context is not established,
-     *                                       or the unit spatial index, the path pool, the selection storage, the unit accounting or the unit pool is
-     *                                       not initialized
+     * @throws UnsupportedOperationException if a grounded Zerg building dies without the creep field or required state is not initialized
      * @throws IllegalStateException         if the unit has no sprite
      */
     private void die(@NotNull Unit unit, boolean destroyed, int instructionLimit) {
@@ -255,7 +253,7 @@ public final class UnitLifecycle {
         } else if (hallucination && !destroyed) {
             // A hallucination that did not expire through a lifetime-expiry flag plays its death sound, leaves the Hallucination Death sprite one
             // elevation above it with the hallucination's visibility, then is hidden and destroyed.
-            this.game.getInterfaceLink().getSoundEvents().add(SoundIds.HALLUCINATION_DEATH, sprite.getX(), sprite.getY(), type);
+            this.game.getUnitSounds().play(SoundIds.HALLUCINATION_DEATH, unit);
 
             SpriteEffect effect = this.game.getIscriptExecutor().createSpriteEffect(SpriteIds.HALLUCINATION_DEATH1,
                                                                                     sprite.getX(), sprite.getY(),
@@ -452,8 +450,7 @@ public final class UnitLifecycle {
      * @param updateSight      whether this frame refreshes unit sight
      * @param instructionLimit the death animation instruction budget
      * @throws NullPointerException          if the world was built without game data
-     * @throws UnsupportedOperationException if a creep provider retries its removal without a creep field or the sight coverage, the order pool or
-     *                                       the unit pool is not initialized
+     * @throws UnsupportedOperationException if a creep provider retries its removal without a creep field or the sight coverage, the order pool or the unit pool is not initialized
      */
     public void updateDead(@NotNull Unit unit, boolean updateSight, int instructionLimit) {
         Sprite sprite = unit.getSpriteOrNull();

@@ -823,8 +823,7 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     /**
-     * @return {@code true} if the backend draws the remastered (HD) graphics, whose draw builder places images by their HD rules, {@code false}
-     * otherwise
+     * @return {@code true} if the backend draws the remastered (HD) graphics, whose draw builder places images by their HD rules, {@code false} otherwise
      */
     @Override
     public boolean isRemastered() {
@@ -953,11 +952,11 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     /**
-     * Sets the lighting debug view of the deferred path (no effect on the forward path).
+     * Sets the lighting debug view of the deferred path (no effect on the forward path): {@code off}, {@code lights} (the scene with each point
+     * light's radius ring and center), {@code lighting} (the light a white surface receives: directional, shadows and point lights), {@code albedo},
+     * {@code normals}, {@code ao}, {@code emissive} and {@code amount} (the per-pixel lighting amount).
      *
-     * @param view an index into {@link #LIGHTING_DEBUG_VIEWS}: {@code off}, {@code lights} (the scene with each point light's radius ring and
-     *             center), {@code lighting} (the light a white surface receives: directional, shadows and point lights), {@code albedo},
-     *             {@code normals}, {@code ao}, {@code emissive} and {@code amount} (the per-pixel lighting amount)
+     * @param view an index into {@link #LIGHTING_DEBUG_VIEWS}
      * @throws IllegalArgumentException if the view index is out of range
      */
     public void setLightingDebugView(int view) {
@@ -2172,8 +2171,7 @@ public final class HdSceneRenderer implements SceneRenderer {
      * <p>
      * This backend applies the fog to the resolved scene in {@link #finishScene()}, with the calculation of {@link OverlayPass}.
      *
-     * @param tileFlags    the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per
-     *                     player)
+     * @param tileFlags    the current tile flag DWORD for each row-major tile index (low byte: not visible per player, second byte: not explored per player)
      * @param visionMask   the eight-bit mask of players whose vision is shown
      * @param visibleLevel the fog level of visible tiles, the game's visible level BYTE (default {@code 31}); explored tiles get half of it
      * @param observer     whether the local human is an observer slot ({@code 0x80..0x83})

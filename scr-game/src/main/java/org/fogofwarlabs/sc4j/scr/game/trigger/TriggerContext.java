@@ -799,8 +799,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return the player whose triggers run, or {@code null} outside the triggers of a player: the player of the current-player
-     * DWORD while the walk of the evaluation has set it to one of the eight playable players
+     * @return the player of the current-player DWORD while the evaluation walk runs a playable player's triggers, {@code null} otherwise
      * @throws UnsupportedOperationException if the evaluation runs without the world state
      */
     @Override
@@ -829,33 +828,34 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return the victory countdown WORD: Victory, Defeat and Draw set it to {@code 1} while the game is paused by a
-     * trigger and to {@code 45} otherwise, and the non-replay branch of the trigger update counts it down
+     * Returns the victory countdown WORD. Victory, Defeat and Draw set it to {@code 1} while a trigger pauses the game and to {@code 45}
+     * otherwise; the non-replay branch of the trigger update counts it down.
+     *
+     * @return the victory countdown
      */
     public int getVictoryCountdown() {
         return this.victoryCountdown;
     }
 
     /**
-     * @return the game-paused DWORD as the last trigger update left it: Pause Game sets it and Unpause Game clears it; the
-     * frame runner passes it back as the phase gate of the next update
+     * @return the game-paused DWORD as the last trigger update left it: Pause Game sets it and Unpause Game clears it; the frame runner passes it back as the phase gate of the next update
      */
     public int getPhaseGate() {
         return this.phaseGate;
     }
 
     /**
-     * @return the trigger pause BYTE as the last trigger update left it: nonzero while a trigger paused the game, so
-     * trigger evaluation continues under the phase gate
+     * @return the trigger pause BYTE as the last trigger update left it: nonzero while a trigger paused the game, so trigger evaluation continues under the phase gate
      */
     public int getTriggersEnabledWhileGated() {
         return this.triggersEnabledWhileGated;
     }
 
     /**
-     * @return the seconds that the trigger countdown text shows, as the once-per-second update last set it, or
-     * {@link #COUNTDOWN_HIDDEN} after it hid the text; the text keeps its value between those updates, so a Set
-     * Countdown Timer shows at the next second
+     * Returns the seconds the trigger countdown text shows, as the once-per-second update last set it. The text keeps its value between those
+     * updates, so a Set Countdown Timer shows at the next second.
+     *
+     * @return the shown seconds, or {@link #COUNTDOWN_HIDDEN} after the update hid the text
      */
     public int getCountdownDisplay() {
         return this.countdownDisplay;
@@ -908,8 +908,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return the leaderboard type BYTE: the action id of the last leaderboard action ({@code 17..21}, {@code 33..37},
-     * {@code 40} Greed), {@code 0} for none
+     * @return the leaderboard type BYTE: the action id of the last leaderboard action ({@code 17..21}, {@code 33..37}, {@code 40} Greed), {@code 0} for none
      */
     public int getLeaderboardType() {
         return this.leaderboardType & BYTE_MASK;
@@ -953,9 +952,10 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return the EUD mode bits of the map triggers, set by the {@code TRIG} scan:
-     * {@link #EXTENDED_DEATHS_CONDITION_MODE} for an extended Deaths condition,
-     * {@link #EXTENDED_SET_DEATHS_MODE} for an extended SetDeaths action
+     * Returns the EUD mode bits the {@code TRIG} scan sets: {@link #EXTENDED_DEATHS_CONDITION_MODE} for an extended Deaths condition,
+     * {@link #EXTENDED_SET_DEATHS_MODE} for an extended SetDeaths action.
+     *
+     * @return the EUD mode bits of the map triggers
      */
     public int getExtendedDeathsMode() {
         return this.extendedDeathsMode;
@@ -1012,8 +1012,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return the local player DWORD of trigger evaluation, whose triggers present text, sounds, transmissions and view
-     * changes ({@code 8} when no player is local)
+     * @return the local player DWORD of trigger evaluation, whose triggers present text, sounds, transmissions and view changes ({@code 8} when no player is local)
      */
     public int getLocalPlayer() {
         return this.localPlayer;
@@ -1105,10 +1104,9 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     /**
      * Sets the leader slots of a team network game, which the active-player walk ({@link #getNextActivePlayer}) visits in
      * force order instead of slots {@code 0}-{@code 7}. A slot can lead only one force: a repeated slot leads only the
-     * first force that names it.
+     * first force that names it. Only a game with a multiplayer session and the teams option has leaders.
      *
-     * @param leaders the leader slot of forces {@code 1}-{@code 4}, a value outside {@code 0}-{@code 7} for none, in a game
-     *                with a multiplayer session and the teams option; {@code null} in every other game
+     * @param leaders the leader slot of forces {@code 1}-{@code 4}, a value outside {@code 0}-{@code 7} for none, or {@code null} without leaders
      */
     public void setTeamLeaders(int @Nullable [] leaders) {
         if (leaders == null) {
@@ -1218,16 +1216,14 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return {@code true} if the stop byte is set or the session state is {@link #STOPPING_SESSION_STATE}, so the record
-     * and action loops stop, {@code false} otherwise
+     * @return {@code true} if the stop byte is set or the session state is {@link #STOPPING_SESSION_STATE}, so the record and action loops stop, {@code false} otherwise
      */
     boolean isEvaluationStopped() {
         return (this.evaluationStopFlags & BYTE_MASK) != 0 || this.decodedSessionState == STOPPING_SESSION_STATE;
     }
 
     /**
-     * @return {@code true} if a trigger accessed an EUD address the address space does not serve, which stops trigger
-     * evaluation and ends the game after the frame, {@code false} otherwise
+     * @return {@code true} if a trigger accessed an EUD address the address space does not serve, which stops trigger evaluation and ends the game after the frame, {@code false} otherwise
      */
     public boolean hasEudFailure() {
         return this.eudFailed;
@@ -1788,8 +1784,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
      * @param player the trigger-owner index, any value
      * @return the player-type byte
      * @throws IllegalStateException         if players have not been bound
-     * @throws UnsupportedOperationException if the record lies past the sixteen player records, or is one of records
-     *                                       {@code 8..11} while the evaluation runs without a world
+     * @throws UnsupportedOperationException if the record lies past the sixteen player records, or is one of records {@code 8..11} while the evaluation runs without a world
      */
     int getPlayerType(int player) {
         int record = PlayerTable.isObserverSlot(player) ? player - PlayerTable.FIRST_OBSERVER_SLOT + PlayerTable.PLAYER_SLOTS : player;
@@ -1885,8 +1880,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
     }
 
     /**
-     * @return the unit property records of the map's {@code UPRP} section, which Create Unit with Properties reads and a
-     * saved game keeps; zero when the map has none
+     * @return the unit property records of the map's {@code UPRP} section, which Create Unit with Properties reads and a saved game keeps; zero when the map has none
      */
     public byte @NotNull [] getSavedUnitProperties() {
         byte[] properties = new byte[UNIT_PROPERTIES_SIZE];
@@ -1926,8 +1920,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
      * or draw the victory screen; an observing local player sees the victory screen once every initially active player
      * has a victory state.
      *
-     * @return {@link #OUTCOME_DEFEAT_SCREEN} for the defeat screen, {@link #OUTCOME_VICTORY_SCREEN} for the victory
-     * screen, or {@code 0} when none is due
+     * @return {@link #OUTCOME_DEFEAT_SCREEN} for the defeat screen, {@link #OUTCOME_VICTORY_SCREEN} for the victory screen, or {@code 0} when none is due
      */
     public int consumeOutcomeDisplay() {
         int outcome = this.outcomeDisplay;
@@ -2484,8 +2477,7 @@ public final class TriggerContext implements org.fogofwarlabs.sc4j.engine.trigge
      *
      * @param accounting the retained accounting source
      * @param relations  the retained original alliance BYTEs
-     * @param controls   the stop byte, the decoded session state, the multiplayer session BYTE, the cheat result flags
-     *                   and the local player DWORD, at the {@code CONTROL_*} indices
+     * @param controls   the stop byte, the decoded session state, the multiplayer session BYTE, the cheat result flags and the local player DWORD, at the {@code CONTROL_*} indices
      * @throws IllegalArgumentException if the controls are not {@link #CONTROL_COUNT} values
      */
     public void initializeEvaluation(@NotNull UnitAccounting accounting, @NotNull PlayerRelations relations, int @NotNull [] controls) {

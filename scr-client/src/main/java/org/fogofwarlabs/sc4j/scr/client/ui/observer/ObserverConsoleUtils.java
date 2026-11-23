@@ -111,7 +111,7 @@ public final class ObserverConsoleUtils {
         DialogLayout buttons = replay.getCommandButtons();
         float buttonsX = width + BUTTONS_RIGHT_OFFSET - MARGIN - squareFullWidth - buttons.getX();
         float buttonsY = height + BUTTONS_BOTTOM_OFFSET - squareFullHeight - buttons.getY();
-        // The stored dialog height is (bottom - top), one less than the rect height (inclusive rects, uncertain for dialogs).
+        // The stored dialog height is (bottom - top), one less than the rect height (inclusive rects).
         float panelX = width / 2 - PANEL_CENTER_OFFSET - panel.getX();
         float panelY = height - PANEL_BOTTOM_MARGIN - (panel.getHeight() - 1) - panel.getY();
         float minimapX = -minimap.getX();

@@ -72,8 +72,7 @@ final class ConsoleDialogPainter implements Canvas, DialogPainter {
         }
 
         /**
-         * @return the frame width of the sheet's classic {@code .grp} header, which the dialog metric words are copied from; the drawn width when
-         * there is no classic header
+         * @return the frame width of the sheet's classic {@code .grp} header, the source of the dialog metric words, or the drawn width without one
          */
         @Override
         public float getClassicWidth() {
@@ -316,8 +315,7 @@ final class ConsoleDialogPainter implements Canvas, DialogPainter {
      *
      * @param width  the image width in pixels
      * @param height the image height in pixels
-     * @param colors the row-major pixels, top row first, packed {@code 0xAARRGGBB} with straight alpha as the resource model
-     *               stores them
+     * @param colors the row-major pixels, top row first, packed {@code 0xAARRGGBB} with straight alpha as the resource model stores them
      * @return the created {@link Texture} instance, closed by the caller
      * @throws IllegalArgumentException if a dimension is not positive or the pixels do not match the dimensions
      */

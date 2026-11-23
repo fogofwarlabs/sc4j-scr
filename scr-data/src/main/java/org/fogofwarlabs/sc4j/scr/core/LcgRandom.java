@@ -90,8 +90,7 @@ public final class LcgRandom implements DeterministicRandom {
     }
 
     /**
-     * @return the number of bits of a value of {@link #next}: its values are {@code 0} up to
-     * {@code (1 << getOutputBits()) - 1}
+     * @return the number of bits of a value of {@link #next}: its values are {@code 0} up to {@code (1 << getOutputBits()) - 1}
      */
     @Override
     public int getOutputBits() {

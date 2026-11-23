@@ -478,8 +478,7 @@ public final class ComputerMilitary {
      * @param unit      the moving unit
      * @param positionX the horizontal position
      * @param positionY the vertical position
-     * @return {@code true} if the unit lacks the ground elevation path flag or reaches the position in its ground component along a safe route,
-     * {@code false} otherwise
+     * @return {@code true} if the unit lacks the ground elevation path flag or reaches the position in its ground component along a safe route, {@code false} otherwise
      */
     public boolean canReachSafely(@NotNull Unit unit, int positionX, int positionY) {
         if ((unit.getPathCollisionFlags() & UnitInitializer.GROUND_ELEVATION_PATH_FLAG) == 0) {

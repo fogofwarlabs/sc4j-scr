@@ -94,8 +94,7 @@ public interface ClassicRegion {
      * @param offset      the first byte offset, with {@code length} bytes inside the region
      * @param length      the number of bytes, at least {@code 1}
      * @param changeCount a change count observed earlier
-     * @return the index in the range of that byte, or {@code -1} only if the range surely holds the bytes it held then;
-     * {@code 0} for untracked regions
+     * @return the index in the range of that byte, or {@code -1} only if the range surely holds the bytes it held then; {@code 0} for untracked regions
      */
     default int findChangeSince(int offset, int length, long changeCount) {
         return 0;

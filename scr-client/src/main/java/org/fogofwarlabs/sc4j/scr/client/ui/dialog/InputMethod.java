@@ -89,11 +89,11 @@ public final class InputMethod implements TextCompositionListener {
     }
 
     /**
-     * Returns the input-language code of the window's keyboard layout while text input is on and the input method converts to the native characters,
-     * with {@code 0} otherwise.
+     * Returns the input-language code of the window's keyboard layout while text input is on and the input method converts to the native
+     * characters: {@code 1} Japanese, {@code 2} Korean, {@code 3} / {@code 4} Chinese, {@code 5} English, {@code 6} Polish, {@code 7} Russian.
+     * The code is {@code 0} while text input is off, without native conversion and for another language.
      *
-     * @return the input-language code: {@code 0} (off, not native conversion, or another language), {@code 1} Japanese, {@code 2} Korean, {@code 3} /
-     * {@code 4} Chinese, {@code 5} English, {@code 6} Polish, {@code 7} Russian
+     * @return the input-language code
      */
     public static int getInputLanguage() {
         InputMethod binding = current;
@@ -138,7 +138,6 @@ public final class InputMethod implements TextCompositionListener {
 
     /**
      * @return the target clause of the shown composition as {start, end, cursor} characters from its start, or {@code null} without a composition
-     * (for the edit draw)
      */
     public static int @Nullable [] getCompositionClause() {
         InputMethod binding = current;

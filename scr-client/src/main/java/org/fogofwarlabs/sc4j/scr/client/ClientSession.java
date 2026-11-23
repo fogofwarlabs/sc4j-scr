@@ -707,8 +707,7 @@ public final class ClientSession implements AutoCloseable {
      * @param localPlayerIdentifier the local player's network player identifier
      * @param transport             the turn stream, continuing the lobby's
      * @param turnsInTransit        the own turns kept in transit
-     * @param keepAlive             debug switch: Keep Alive instead of Sync
-     *                              ({@link org.fogofwarlabs.sc4j.scr.game.session.OutgoingTurnBuffer#useKeepAlive()})
+     * @param keepAlive             debug switch: Keep Alive instead of Sync ({@link org.fogofwarlabs.sc4j.scr.game.session.OutgoingTurnBuffer#useKeepAlive()})
      * @param locale                the requested locale, or {@code null}
      * @return the created {@link ClientSession} instance, not yet started
      * @throws IOException if the header cannot be decoded
@@ -1253,7 +1252,7 @@ public final class ClientSession implements AutoCloseable {
      * Returns the scenario's force name for the requested force.
      *
      * @param force the force index from {@code 0} through {@code 3}
-     * @return the map name, or {@code null} when no name is recorded
+     * @return the force name, or {@code null} when no name is recorded
      */
     public @Nullable String getForceName(int force) {
         return ForceNamesUtils.getMapForceName(this.mapFile, force + 1);
@@ -1261,8 +1260,7 @@ public final class ClientSession implements AutoCloseable {
 
     /**
      * @param force a force from {@code 1} through {@code 4}
-     * @return the force's name ({@link ForceNamesUtils}): {@code strTEAM1} through {@code strTEAM4} in a team game, else the map's {@code FORC}
-     * string or {@code strFORCE1} through {@code strFORCE4}
+     * @return the force's name ({@link ForceNamesUtils}): {@code strTEAM1} through {@code strTEAM4} in a team game, else the map's {@code FORC} string or {@code strFORCE1} through {@code strFORCE4}
      */
     public @NotNull String getForceDisplayName(int force) {
         return ForceNamesUtils.resolveForceName(key -> {
@@ -1280,16 +1278,14 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * @return the read-only view of {@link #getGame()} the client's interface and world view read: one view per game state, replaced
-     * when the session's game state changes
+     * @return the read-only view of {@link #getGame()} the client's interface and world view read: one view per game state, replaced when the session's game state changes
      */
     public @NotNull ScrGameView getView() {
         return this.view;
     }
 
     /**
-     * @return the SC:R presentation state of {@link #getView()}'s game that the client writes (interface link, local interface effects, the
-     * presentation's C runtime generator): one per game state, replaced with the view
+     * @return the SC:R presentation state of {@link #getView()}'s game that the client writes (interface link, local interface effects, the presentation's C runtime generator): one per game state, replaced with the view
      */
     public @NotNull ScrPresentation getPresentation() {
         return this.presentation;
@@ -1334,7 +1330,7 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * Returns issuer diagnostics for the pending command without changing player records. Unresolved records receive no Java slot fallback.
+     * Returns issuer diagnostics for the pending command without changing player records. Unresolved records receive no fallback slot.
      *
      * @return the initial resolution, or {@code null} if no command was decoded
      */
@@ -1494,8 +1490,7 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * @return {@code true} if this is a live game whose speed override throttles drawing ({@link GameSpeed#isDrawThrottled()}), {@code false}
-     * otherwise (a replay never throttles)
+     * @return {@code true} if this is a live game whose speed override throttles drawing ({@link GameSpeed#isDrawThrottled()}), {@code false} otherwise (a replay never throttles)
      */
     public boolean isDrawThrottled() {
         return this.liveGame != null && this.runtime != null && this.runtime.getFrameTiming().isDrawThrottled();
@@ -1607,8 +1602,7 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * @return the race the game music starts with ({@link ReplayInitialization#findMusicRace}), or
-     * {@link ReplayInitialization#NO_MUSIC_RACE} before the start or when the player record it reads is missing
+     * @return the race the game music starts with ({@link ReplayInitialization#findMusicRace}), or {@link ReplayInitialization#NO_MUSIC_RACE} before the start or when the player record it reads is missing
      */
     public int getMusicRace() {
         ReplayRuntime current = this.runtime;
@@ -1698,8 +1692,7 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * @return {@code true} if this session runs a live game whose local player is an observer ({@link LiveGame#isLocalObserver()}),
-     * {@code false} otherwise
+     * @return {@code true} if this session runs a live game whose local player is an observer ({@link LiveGame#isLocalObserver()}), {@code false} otherwise
      */
     public boolean isLocalObserver() {
         return this.liveGame != null && this.liveGame.isLocalObserver();
@@ -2119,8 +2112,7 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * @return the characters a saved game name must not hold: the {@link FileNameUtils#BAD_CHARACTERS_KEY} network text of the client's locale, or
-     * {@link FileNameUtils#BAD_CHARACTERS} without text tables
+     * @return the characters a saved game name must not hold: the {@link FileNameUtils#BAD_CHARACTERS_KEY} network text of the client's locale, or {@link FileNameUtils#BAD_CHARACTERS} without text tables
      */
     private @NotNull String getBadFileCharacters() {
         TextTables tables = this.textTables;
@@ -2132,8 +2124,7 @@ public final class ClientSession implements AutoCloseable {
      * Checks the name bytes of a Save Game or Load Game command as the name of a saved game file.
      *
      * @param name the name bytes without terminator: the file name without extension
-     * @return {@code true} if the name is not empty and is a valid file name in a saved game name buffer
-     * ({@link FileNameUtils#isValidFileName(byte[], int, String)}), {@code false} otherwise
+     * @return {@code true} if the name is not empty and is a valid file name in a saved game name buffer ({@link FileNameUtils#isValidFileName(byte[], int, String)}), {@code false} otherwise
      */
     private boolean isValidSavedGameName(byte @NotNull [] name) {
         return name.length != 0 && FileNameUtils.isValidFileName(name, ReplayFile.SAVED_GAME_NAME_SIZE, this.getBadFileCharacters());
@@ -2848,8 +2839,7 @@ public final class ClientSession implements AutoCloseable {
      *
      * @param screenWidth  the game screen width in map pixels of a live player's start or a world without a start
      * @param screenHeight the game screen height in map pixels of a live player's start or a world without a start
-     * @return the placed screen top-left {@code {x, y}} in map pixels, or {@code null} if a replay has no human player or the
-     * live player has no start location
+     * @return the placed screen top-left {@code {x, y}} in map pixels, or {@code null} if a replay has no human player or the live player has no start location
      */
     public int @Nullable [] placeStartScreen(int screenWidth, int screenHeight) {
         LocalView view = this.state.getInterfaceLink().getLocalView();

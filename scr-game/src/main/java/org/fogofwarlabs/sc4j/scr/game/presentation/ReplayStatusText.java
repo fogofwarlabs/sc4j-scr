@@ -95,8 +95,7 @@ public final class ReplayStatusText {
      * Creates a {@link ReplayStatusText} instance with established localization results.
      *
      * @param labels        the four visible byte strings in label order ({@code -45}, {@code -46}, {@code -47}, {@code -48})
-     * @param localizedText the byte strings of {@code 609}, {@code scoreTIME_s}, {@code 60C}, {@code gameSPEED}, {@code gameSLOWEST} through
-     *                      {@code gameFASTEST} and {@code 60A}
+     * @param localizedText the byte strings of {@code 609}, {@code scoreTIME_s}, {@code 60C}, {@code gameSPEED}, {@code gameSLOWEST} through {@code gameFASTEST} and {@code 60A}
      * @throws IllegalArgumentException if {@code labels} does not hold {@code 4} strings or {@code localizedText} does not hold {@code 12}
      */
     public ReplayStatusText(byte @NotNull [] @NotNull [] labels, byte @NotNull [] @NotNull [] localizedText) {
@@ -138,8 +137,7 @@ public final class ReplayStatusText {
      * @param pauseMessage the pause message state
      * @param speedSetting the signed speed setting
      * @param replaySpeed  the replay speed multiplier
-     * @throws UnsupportedOperationException if {@code targetFrame} is not after {@code frame} (unsigned) and {@code speedSetting} lies outside
-     *                                       {@code 0} through {@link GameSpeed#FASTEST}
+     * @throws UnsupportedOperationException if {@code targetFrame} is not after {@code frame} (unsigned) and {@code speedSetting} lies outside {@code 0} through {@link GameSpeed#FASTEST}
      */
     public void update(int frame, int targetFrame, int framePeriod, int paused, int pauseMessage, int speedSetting, int replaySpeed) {
         this.writeLabelText(REPLAY_LABEL, "\u0003" + this.localizedText[REPLAY_TEXT]);

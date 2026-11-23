@@ -857,8 +857,7 @@ public final class ComputerPlayerPhase {
      *
      * @param meleeScripts whether the Melee scripts start
      * @throws IOException                   if either original program cannot be read
-     * @throws IllegalStateException         if a Melee computer has no resolved race, no expansion mode, a start location of
-     *                                       another player, or no startable script
+     * @throws IllegalStateException         if a Melee computer has no resolved race, no expansion mode, a start location of another player, or no startable script
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the game has no unit strength tables
      */
@@ -1848,8 +1847,7 @@ public final class ComputerPlayerPhase {
      * @param unit             the created unit, or the producer itself for an in-place transformation
      * @param instructionLimit the iscript budget for issued orders
      * @throws IllegalStateException         if the unit has no sprite
-     * @throws UnsupportedOperationException if the unit is a worker or a town building and the producer has a military or
-     *                                       guard record
+     * @throws UnsupportedOperationException if the unit is a worker or a town building and the producer has a military or guard record
      */
     public void registerCreatedUnit(@NotNull Unit producer, @NotNull Unit unit, int instructionLimit) {
         Player owner = this.game.getPlayerTable().getPlayer(producer.getOwnerIndex());
@@ -1915,8 +1913,7 @@ public final class ComputerPlayerPhase {
      * @param producer         the producing unit, or the unit itself for an in-place transformation
      * @param unit             the completed unit
      * @param instructionLimit the iscript budget for issued orders
-     * @throws UnsupportedOperationException if the producer has a military or guard record and the unit is a worker, an
-     *                                       Overlord or a unit that takes a record after transforming in place
+     * @throws UnsupportedOperationException if the producer has a military or guard record and the unit is a worker, an Overlord or a unit that takes a record after transforming in place
      */
     public void registerCompletedUnit(@NotNull Unit producer, @NotNull Unit unit, int instructionLimit) {
         Player owner = this.game.getPlayerTable().getPlayer(producer.getOwnerIndex());
@@ -1962,10 +1959,8 @@ public final class ComputerPlayerPhase {
      * and binds a worker or town building to the town in the producer record's town slot. Other units bind nothing and
      * leave the slot unread, so they pass for a producer with a military or guard record.
      *
-     * @return the producer's town, or {@code null} if the producer has no record or the unit is neither a worker nor a town
-     * building
-     * @throws UnsupportedOperationException if the unit is a worker or a town building and the producer has a military or
-     *                                       guard record
+     * @return the producer's town, or {@code null} if the producer has no record or the unit is neither a worker nor a town building
+     * @throws UnsupportedOperationException if the unit is a worker or a town building and the producer has a military or guard record
      */
     private @Nullable ComputerTown bindToProducerTown(@NotNull Unit producer, @NotNull Unit unit, int instructionLimit) {
         ComputerUnitRecord producerRecord = producer.getComputerRecord();

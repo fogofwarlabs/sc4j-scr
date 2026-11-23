@@ -102,8 +102,7 @@ public final class ProviderTestResources {
     /**
      * Reads a LAN provider packet log.
      *
-     * @param name the log: {@code lan-lobby-join.txt} (the first {@code 20} s) or {@code lan-game-start.txt} (the same
-     *             packets through {@code 21.6} s, the countdown's end and the first in-game turns)
+     * @param name the log: {@code lan-lobby-join.txt} (the first {@code 20} s) or {@code lan-game-start.txt} (the same packets through {@code 21.6} s, the countdown's end and the first in-game turns)
      * @return the packets in recorded order
      * @throws IOException if the log is missing, cannot be read or holds an invalid packet
      */

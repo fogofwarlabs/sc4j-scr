@@ -152,8 +152,7 @@ final class DynamicTurnRate {
         int getLatency();
 
         /**
-         * @return {@code true} if the local player is the present player of the lowest network id below {@code 8}, {@code false}
-         * otherwise
+         * @return {@code true} if the local player is the present player of the lowest network id below {@code 8}, {@code false} otherwise
          */
         boolean isLowestPresentPlayer();
 
@@ -267,8 +266,7 @@ final class DynamicTurnRate {
      *
      * @param session                the game it adjusts
      * @param clock                  the time in nanoseconds
-     * @param enabled                whether the game's flags carry {@link LiveGame#DYNAMIC_TURN_RATE_FLAG}; without it only the stalls
-     *                               are kept
+     * @param enabled                whether the game's flags carry {@link LiveGame#DYNAMIC_TURN_RATE_FLAG}; without it only the stalls are kept
      * @param providerTurnsInTransit the network's turns in transit the latency adds to
      */
     DynamicTurnRate(@NotNull Session session, @NotNull LongSupplier clock, boolean enabled, int providerTurnsInTransit) {
@@ -303,8 +301,7 @@ final class DynamicTurnRate {
     }
 
     /**
-     * @return {@code true} if the dynamic turn rate is on and its scan runs (from the scan start to the scan result), {@code false}
-     * otherwise
+     * @return {@code true} if the dynamic turn rate is on and its scan runs (from the scan start to the scan result), {@code false} otherwise
      */
     boolean isScanning() {
         return this.enabled && this.started && this.state >= SCAN_STARTED && this.state <= SCANNED;

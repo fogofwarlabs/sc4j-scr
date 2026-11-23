@@ -120,8 +120,7 @@ final class ScrUnitBounds implements UnitBounds<Unit> {
 
     /**
      * @param unit the unit
-     * @return {@code true} if the unit's sprite is not hidden, so a search around it starts at its own edges, {@code false} if it is hidden and a
-     * search around it starts at its sprite position
+     * @return {@code true} if the unit's sprite is not hidden, so a search around it starts at its own edges, {@code false} if it is hidden and a search around it starts at its sprite position
      * @throws IllegalStateException if the unit has no sprite
      */
     @Override

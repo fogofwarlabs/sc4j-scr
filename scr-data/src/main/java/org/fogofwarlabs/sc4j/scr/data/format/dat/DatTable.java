@@ -476,8 +476,7 @@ public final class DatTable {
      * @return the value
      * @throws IllegalArgumentException       if the field does not exist
      * @throws ArrayIndexOutOfBoundsException if the schema has no known memory layout and the element lies outside the array
-     * @throws UnsupportedOperationException  if the element lies outside the memory of the column blocks or reads a block
-     *                                        of references to loaded data
+     * @throws UnsupportedOperationException  if the element lies outside the memory of the column blocks or reads a block of references to loaded data
      */
     public int readNativeElement(@NotNull String fieldName, int elementIndex) {
         int fieldIndex = this.getFieldIndex(fieldName);

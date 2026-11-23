@@ -67,8 +67,7 @@ public final class InterfaceSelection implements Selection {
     }
 
     /**
-     * @return the number of selections made through {@link #select(int, Unit...)}; a change tells that the console was
-     * recomputed for a new selection
+     * @return the number of selections made through {@link #select(int, Unit...)}; a change tells that the console was recomputed for a new selection
      */
     public int getSelectionCount() {
         return this.selectionCount;

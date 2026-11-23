@@ -20,8 +20,10 @@ import org.jetbrains.annotations.Nullable;
  * A plugin turns local input into simulation input only through mod commands: it sees the local keyboard, mouse, chat lines and command card
  * buttons ({@link #onKeyInput}, {@link #onMouseInput}, {@link #onChatInput}, {@link #onButtonInput}) and queues mod commands of the local player
  * through the game's submitter ({@link InterfaceLink#getModCommandSubmitter()}), which a live session supplies after the plugin is created; the
- * game's simulation plugins receive them at the same frame on every peer. It reads the local camera and centers the local view through the game's local view
- * ({@link InterfaceLink#getLocalView()}): the screen position of the last frame ({@link LocalView#getScreenX()}, {@link LocalView#getScreenY()})
+ * game's simulation plugins receive them at the same frame on every peer.
+ * <p>
+ * It reads the local camera and centers the local view through the game's local view
+ * ({@link InterfaceLink#getLocalView()}):the screen position of the last frame ({@link LocalView#getScreenX()}, {@link LocalView#getScreenY()})
  * and the centering of the network game's Center View trigger action ({@link LocalView#centerScreen}), which the client applies after the input
  * method or the frame that called it. It reads the game screen the client last drew, its size, scale, graphics and font measure, through the
  * game's local display ({@link InterfaceLink#getLocalDisplay()}).

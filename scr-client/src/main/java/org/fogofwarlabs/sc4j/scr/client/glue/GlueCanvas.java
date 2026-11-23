@@ -226,8 +226,7 @@ public final class GlueCanvas implements AutoCloseable, Canvas, InterfaceTransfo
         }
 
         /**
-         * @return the frame width of the sheet's classic {@code .grp} header, which the dialog metric words are copied
-         * from; the drawn width when there is no classic header
+         * @return the frame width of the sheet's classic {@code .grp} header, the source of the dialog metric words, or the drawn width without one
          */
         @Override
         public float getClassicWidth() {
@@ -464,8 +463,7 @@ public final class GlueCanvas implements AutoCloseable, Canvas, InterfaceTransfo
     }
 
     /**
-     * @return the logical width {@code W} of the interface pixels the transform maps
-     * ({@link org.fogofwarlabs.sc4j.engine.client.host.AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
+     * @return the logical width {@code W} of the interface pixels the transform maps ({@link org.fogofwarlabs.sc4j.engine.client.host.AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
      */
     @Override
     public float getLogicalWidth() {
@@ -1156,8 +1154,7 @@ public final class GlueCanvas implements AutoCloseable, Canvas, InterfaceTransfo
      *
      * @param width  the image width in pixels
      * @param height the image height in pixels
-     * @param colors the row-major pixels, top row first, packed {@code 0xAARRGGBB} with straight alpha as the resource model
-     *               stores them
+     * @param colors the row-major pixels, top row first, packed {@code 0xAARRGGBB} with straight alpha as the resource model stores them
      * @return the created {@link Texture} instance, closed by the caller
      * @throws IllegalArgumentException if a dimension is not positive or the pixels do not match the dimensions
      */

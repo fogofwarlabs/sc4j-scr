@@ -374,16 +374,14 @@ public final class GameSpeed {
     }
 
     /**
-     * @return the turn-wait budget: the game start stores {@value #FRAME_BUDGET}, every game loop takes {@value #FRAME_BUDGET} and every completed
-     * turn step adds the timeout of the speed setting
+     * @return the turn-wait budget: the game start stores {@value #FRAME_BUDGET}, every game loop takes {@value #FRAME_BUDGET} and every completed turn step adds the timeout of the speed setting
      */
     public int getTurnBudget() {
         return this.turnBudget;
     }
 
     /**
-     * @return {@code true} if the next game loop runs a turn step, because taking {@value #FRAME_BUDGET} leaves the turn-wait budget at most
-     * {@code 0}, {@code false} otherwise
+     * @return {@code true} if the next game loop runs a turn step, because taking {@value #FRAME_BUDGET} leaves the turn-wait budget at most {@code 0}, {@code false} otherwise
      */
     public boolean isTurnStepDue() {
         return this.turnBudget - FRAME_BUDGET <= 0;

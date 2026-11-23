@@ -101,8 +101,7 @@ public final class MapSettingsLoaderUtils {
      *
      * @param gameData the game's own data ({@link GameData#createGameCopy}), whose tables are written
      * @param mapFile  the map
-     * @throws UnsupportedOperationException if the map version is unsupported, a required section is absent, a settings section is malformed, or a
-     *                                       {@code THG2} unit precedes its changed unit settings
+     * @throws UnsupportedOperationException if the map version is unsupported, a required section is absent, a settings section is malformed, or a {@code THG2} unit precedes its changed unit settings
      */
     public static void applyScenarioSettings(@NotNull GameData gameData, @NotNull ChkFile mapFile) {
         boolean classic = isClassicVersion(mapFile);
@@ -185,8 +184,7 @@ public final class MapSettingsLoaderUtils {
      *
      * @param game    the game state with installed upgrade and technology storage
      * @param mapFile the map
-     * @throws UnsupportedOperationException if the map version is unsupported, a required section is absent, a settings section is malformed, or
-     *                                       storage is missing
+     * @throws UnsupportedOperationException if the map version is unsupported, a required section is absent, a settings section is malformed, or storage is missing
      */
     public static void applyPlayerSettings(@NotNull Game game, @NotNull ChkFile mapFile) {
         boolean classic = isClassicVersion(mapFile);

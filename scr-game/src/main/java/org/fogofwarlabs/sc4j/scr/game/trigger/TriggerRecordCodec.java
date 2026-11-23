@@ -246,8 +246,7 @@ public final class TriggerRecordCodec {
      *
      * @param player   the player operand DWORD
      * @param unitType the unit operand WORD
-     * @return {@code true} if the player operand is {@link PlayerTable#PLAYER_SLOTS} or above the player selectors
-     * (unsigned) or the unit operand is above the unit groups, {@code false} otherwise
+     * @return {@code true} if the player operand is {@link PlayerTable#PLAYER_SLOTS} or above the player selectors (unsigned) or the unit operand is above the unit groups, {@code false} otherwise
      */
     private static boolean isExtendedOperand(int player, int unitType) {
         return Integer.compareUnsigned(player, TriggerPlayerSelectors.NON_ALLIED_VICTORY_PLAYERS + 1) >= 0 ||

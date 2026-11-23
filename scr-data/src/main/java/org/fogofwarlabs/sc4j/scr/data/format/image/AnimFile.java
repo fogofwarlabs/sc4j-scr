@@ -289,8 +289,7 @@ public final class AnimFile {
      *
      * @param data   the bytes, from the anim's start
      * @param length the number of valid bytes in {@code data}
-     * @return the anim's size; a value above {@code length} if more bytes are needed to find it; {@code -1} if the bytes hold no anim header or
-     * the entry's records are invalid
+     * @return the anim's size; a value above {@code length} if more bytes are needed to find it; {@code -1} if the bytes hold no anim header or the entry's records are invalid
      */
     public static long findContentSize(byte @NotNull [] data, int length) {
         if (length < Integer.BYTES) {

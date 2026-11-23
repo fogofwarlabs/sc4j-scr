@@ -219,8 +219,7 @@ public final class UnitMorphing {
      * @param unit             the emerging unit
      * @param instructionLimit the creation, completion, status overlay, construction image, speed and order budget
      * @throws UnsupportedOperationException if the creation context is missing or the unit accounting or the unit pool is not initialized
-     * @throws IllegalStateException         if the landing-dust overlay coordinates cannot be read or the unit has no sprite, or the sprite has no
-     *                                       main image
+     * @throws IllegalStateException         if the landing-dust overlay coordinates cannot be read or the unit has no sprite, or the sprite has no main image
      * @throws NullPointerException          if the world was built without game data
      */
     public void birth(@NotNull Unit unit, int instructionLimit) {

@@ -83,8 +83,7 @@ public final class TriggerDefinition {
         }
 
         /**
-         * @return {@code true} if the extension WORD holds the marker {@code 'S','C'} that makes an extended Deaths read
-         * masked by the location DWORD, {@code false} otherwise
+         * @return {@code true} if the extension WORD holds the marker {@code 'S','C'} that makes an extended Deaths read masked by the location DWORD, {@code false} otherwise
          */
         boolean isMasked() {
             return this.extension == TriggerRecordCodec.MASK_MARKER;
@@ -214,8 +213,7 @@ public final class TriggerDefinition {
         }
 
         /**
-         * @return {@code true} if the mask marker WORD holds the marker {@code 'S','C'} that makes an extended Set Deaths
-         * write masked by the location DWORD, {@code false} otherwise
+         * @return {@code true} if the mask marker WORD holds the marker {@code 'S','C'} that makes an extended Set Deaths write masked by the location DWORD, {@code false} otherwise
          */
         public boolean isMasked() {
             return this.masked;

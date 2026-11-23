@@ -194,8 +194,7 @@ public final class GlueContext {
     }
 
     /**
-     * @return the locale of the strings for the engine's texts: the language and country of the text locale, for example Korean in Korea for
-     * {@code koKR}; the root locale for a text locale without them
+     * @return the locale of the strings for the engine's texts: the language and country of the text locale, for example Korean in Korea for {@code koKR}; the root locale for a text locale without them
      */
     public @NotNull Locale getTextLocale() {
         if (this.locale.length() <= LANGUAGE_LENGTH) {
@@ -385,8 +384,7 @@ public final class GlueContext {
     }
 
     /**
-     * @return the screen the multiplayer screens return to after a lobby or a canceled game creation: the channel chat over Beacon.Link,
-     * the game list on the local network
+     * @return the screen the multiplayer screens return to after a lobby or a canceled game creation: the channel chat over Beacon.Link, the game list on the local network
      */
     public GlueNavigator.@NotNull Destination getMultiplayerHome() {
         return this.beaconLinkSelected ? GlueNavigator.Destination.CHANNEL_CHAT : GlueNavigator.Destination.GAME_LIST;
@@ -442,8 +440,10 @@ public final class GlueContext {
     }
 
     /**
-     * @return the Beacon.Link channel chat of the LAN client's network, kept while the client is open so that the chat screen shows its log
-     * again on every visit, or {@code null} before the chat screen opened it
+     * Returns the Beacon.Link channel chat of the LAN client's network. It is kept while the client is open, so the chat screen shows its log
+     * again on every visit.
+     *
+     * @return the Beacon.Link channel chat of the LAN client's network, or {@code null} before the chat screen opened it
      */
     public @Nullable ChannelChat getChannelChat() {
         return this.channelChat;
@@ -459,8 +459,7 @@ public final class GlueContext {
     }
 
     /**
-     * @return the filter of the Beacon.Link room list, kept while the LAN client is open so that the list shows the same rooms on every
-     * visit
+     * @return the filter of the Beacon.Link room list, kept while the LAN client is open so that the list shows the same rooms on every visit
      */
     public @NotNull RoomFilter getRoomFilter() {
         return this.roomFilter;

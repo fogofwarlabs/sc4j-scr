@@ -138,8 +138,7 @@ final class HdImageLoader implements AutoCloseable {
         }
 
         /**
-         * @return {@code true} if layer {@code 0} is the anim's bright layer (the lit path of an anim that has one) instead of diffuse, {@code false}
-         * otherwise
+         * @return {@code true} if layer {@code 0} is the anim's bright layer (the lit path of an anim that has one) instead of diffuse, {@code false} otherwise
          */
         boolean isBright() {
             return this.bright;

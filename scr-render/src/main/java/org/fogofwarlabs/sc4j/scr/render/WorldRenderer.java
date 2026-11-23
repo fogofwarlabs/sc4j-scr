@@ -1252,8 +1252,7 @@ public final class WorldRenderer implements AutoCloseable {
     }
 
     /**
-     * @return {@code true} if an SD frame waits for its interface before the present ({@link #beginSdInterface}, {@link #presentSd}), {@code false}
-     * otherwise
+     * @return {@code true} if an SD frame waits for its interface before the present ({@link #beginSdInterface}, {@link #presentSd}), {@code false} otherwise
      */
     public boolean isSdPresentPending() {
         return this.sdPresentPending;
@@ -1741,8 +1740,7 @@ public final class WorldRenderer implements AutoCloseable {
      * are decoded on demand.
      *
      * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
-     * @param megatiles       the picture of a megatile index ({@code 32x32} palette indices, the same array while it is unchanged), or
-     *                        {@code null} for the installed picture; {@code null} for no replacements
+     * @param megatiles       the picture of a megatile index ({@code 32x32} palette indices, the same array while it is unchanged), or {@code null} for the installed picture; {@code null} for no replacements
      * @throws IOException if a newly encountered tile identifier is outside the installed assets
      */
     public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles) throws IOException {
@@ -2043,8 +2041,7 @@ public final class WorldRenderer implements AutoCloseable {
      * of a player color {@link SceneRenderer#PLAYER_COLOR}{@code + player}.
      *
      * @param playerColor the player color index {@code 0..15}, or {@link SceneRenderer#PLAYER_COLOR}{@code + player}
-     * @return the {@link RenderAssets#PALETTE_ENTRIES} entries of {@link RenderAssets#PALETTE_ENTRY_SIZE} bytes, red, green and blue first, or
-     * {@code null} before a map is loaded
+     * @return the {@link RenderAssets#PALETTE_ENTRIES} entries of {@link RenderAssets#PALETTE_ENTRY_SIZE} bytes, red, green and blue first, or {@code null} before a map is loaded
      */
     public byte @Nullable [] copyPlayerColorPalette(int playerColor) {
         RenderAssets loadedAssets = this.assets;

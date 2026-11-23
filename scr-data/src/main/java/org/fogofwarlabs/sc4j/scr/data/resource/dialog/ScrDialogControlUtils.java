@@ -75,8 +75,7 @@ public final class ScrDialogControlUtils {
      * Combines the named control flags.
      *
      * @param names flag names
-     * @return the OR of their bits; unknown names and {@code WS_CHILD}, {@code WS_GROUP}, {@code WS_BORDER} and
-     * {@code SBS_HORZ} add nothing
+     * @return the OR of their bits; unknown names and {@code WS_CHILD}, {@code WS_GROUP}, {@code WS_BORDER} and {@code SBS_HORZ} add nothing
      */
     public static int toBits(@NotNull Set<@NotNull String> names) {
         int bits = 0;
@@ -92,8 +91,7 @@ public final class ScrDialogControlUtils {
      * Returns the engine kind of a native control type.
      *
      * @param type the native type
-     * @return the kind: rectangles and dialog roots are panels, button text, hit-test, web page and unknown elements are
-     * custom controls
+     * @return the kind: rectangles and dialog roots are panels, button text, hit-test, web page and unknown elements are custom controls
      */
     public static @NotNull ControlKind getKind(@NotNull ScrControlType type) {
         return switch (type) {

@@ -134,10 +134,11 @@ public final class WebPanelStyleUtils {
     private static final @NotNull String CUT_MARK = "...";
 
     /**
-     * Returns the font slot of a page's text style.
+     * Returns the font slot of a page's text style. The family is {@link TrueTypeText#WEB_REGULAR_FAMILY} ({@code eurostile-reg}, the pages'
+     * body), {@link TrueTypeText#WEB_EXTENDED_FAMILY} ({@code eurostileext-reg}, headings) or {@link TrueTypeText#WEB_ARIAL_FAMILY} (the chat
+     * page's {@code Arial}).
      *
-     * @param family     {@link TrueTypeText#WEB_REGULAR_FAMILY} ({@code eurostile-reg}, the pages' body), {@link TrueTypeText#WEB_EXTENDED_FAMILY}
-     *                   ({@code eurostileext-reg}, headings) or {@link TrueTypeText#WEB_ARIAL_FAMILY} (the chat page's {@code Arial})
+     * @param family     the font family
      * @param size       the CSS {@code font-size}
      * @param lineHeight the CSS {@code line-height}, or {@code 0} for {@code normal}
      * @return the slot

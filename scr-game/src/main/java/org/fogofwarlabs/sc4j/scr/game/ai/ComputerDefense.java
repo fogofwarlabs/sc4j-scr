@@ -174,8 +174,7 @@ public final class ComputerDefense {
      * @param unit   the unit that was hit or is called to help
      * @param source the attacking unit, or {@code null}
      * @param direct {@code true} for the unit that was hit itself, {@code false} for a unit called to help
-     * @param nested {@code true} for a helper call, which neither calls for further help nor records the attacker
-     *               region's strength, {@code false} otherwise
+     * @param nested {@code true} for a helper call, which neither calls for further help nor records the attacker region's strength, {@code false} otherwise
      * @throws UnsupportedOperationException if a hit building has a non-building record or no town
      * @throws NullPointerException          if the world was built without game data
      */

@@ -94,10 +94,7 @@ public final class ReplayStartup {
      * @param viewportHeight   the viewport height in pixels
      * @param instructionLimit the interpreter and movement budget
      * @throws IOException                   if a required installed resource cannot be read
-     * @throws UnsupportedOperationException if Greed or Slaughter has a subtype value without a trigger resource, a map-settings game has no
-     *                                       {@code TRIG} section, or the start locations are not the eight slots in order, or the terrain contours,
-     *                                       the unit pool, the computer-player phase, the local path search, the unit registry or the production
-     *                                       statistics are not initialized
+     * @throws UnsupportedOperationException if the game type, the map triggers or the start locations are not supported, or required state is not initialized
      */
     public ReplayStartup(@NotNull ReplayFile replay,
                          @NotNull ChkFile mapFile,

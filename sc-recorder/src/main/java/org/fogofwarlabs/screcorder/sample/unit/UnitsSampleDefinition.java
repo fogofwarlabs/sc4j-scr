@@ -65,8 +65,7 @@ public final class UnitsSampleDefinition extends SampleDefinition<UnitsSample> {
      * @param raw         the raw union QWORD
      * @param poolAddress the unit pool address
      * @param poolSlots   the unit pool slot count
-     * @return the logical slot of a union unit pointer ({@link UnitState#UNRESOLVED_UNIT} when it does not address a pool
-     * slot), the presence of a sprite pointer, or the raw words
+     * @return the logical slot of a union unit pointer ({@link UnitState#UNRESOLVED_UNIT} when it does not address a pool slot), the presence of a sprite pointer, or the raw words
      * @throws IOException if a pool slot cannot be resolved
      */
     static long decodeUnion(int type, long raw, long poolAddress, int poolSlots) throws IOException {

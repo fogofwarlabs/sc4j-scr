@@ -12,11 +12,10 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 /**
- * Converts the original {@code 488}-byte scalar layout to the unit's authoritative fields.
- * Reference imports are authoritative unresolved identities, never an independent mirror of a resolved reference.
+ * Converts the original {@code 488}-byte scalar layout to the unit's fields. Reference fields are read and written as the unit's retained
+ * references.
  * <p>
- * The offsets are the native classic unit memory that EUD triggers read and write, a layout contract rather than an
- * implementation detail.
+ * The offsets are the native classic unit memory that EUD triggers read and write; the layout is a contract.
  */
 final class UnitMemoryCheck {
     static final int SIZE = 488;

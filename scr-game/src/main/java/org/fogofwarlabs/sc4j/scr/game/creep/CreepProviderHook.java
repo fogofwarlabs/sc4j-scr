@@ -45,8 +45,7 @@ public final class CreepProviderHook implements TerrainReleaseHook, GameSystem {
      * is marked completed first, so it releases its full creep area. When the recession records run out, the removal must be retried.
      *
      * @param unit     the dying unit
-     * @param released {@code true} if the hooks before this one finished their release, {@code false} otherwise; the first hook receives
-     *                 {@code true}
+     * @param released {@code true} if the hooks before this one finished their release, {@code false} otherwise; the first hook receives {@code true}
      * @return {@code true} if every release so far is finished, {@code false} if one must be retried before the unit is released
      * @throws IllegalArgumentException      if the unit is not an SC:R unit
      * @throws IllegalStateException         if the hook is not attached

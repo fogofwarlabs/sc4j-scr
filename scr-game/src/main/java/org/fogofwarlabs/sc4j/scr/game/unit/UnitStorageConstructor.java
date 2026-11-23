@@ -510,8 +510,7 @@ public final class UnitStorageConstructor {
      *
      * @param unit           the unit being registered
      * @param foliageEnabled whether foliage is enabled, which registers a resource in the foliage
-     * @throws UnsupportedOperationException if required spatial, terrain, foliage or sprite storage is unavailable, or the occupied tiles lie outside
-     *                                       the terrain tile flags
+     * @throws UnsupportedOperationException if required spatial, terrain, foliage or sprite storage is unavailable, or the occupied tiles lie outside the terrain tile flags
      * @throws NullPointerException          if the world was built without game data
      */
     public void registerSpatially(@NotNull Unit unit, boolean foliageEnabled) {
@@ -596,8 +595,7 @@ public final class UnitStorageConstructor {
      * @param requestedType    the unsigned WORD constructor type
      * @param creation         the unit creation inputs
      * @param instructionLimit the iscript execution bound
-     * @throws UnsupportedOperationException if a building refresh is requested, the unit sprite is missing or the unit type is past
-     *                                       {@link ScrUnitIds#NONE}
+     * @throws UnsupportedOperationException if a building refresh is requested, the unit sprite is missing or the unit type is past {@link ScrUnitIds#NONE}
      * @throws IllegalStateException         if the sprite is absent after construction image initialization or the unit registry is missing
      * @throws NullPointerException          if the world was built without game data
      */

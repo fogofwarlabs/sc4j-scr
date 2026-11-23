@@ -200,8 +200,7 @@ final class GlueSwish {
     /**
      * @param dialog       the dialog
      * @param controlIndex a child index of the dialog
-     * @return {@code true} if the control is hidden by the slide: it comes after the listed panel with the highest identifier
-     * and the panels are not locked, {@code false} otherwise
+     * @return {@code true} if the control is hidden by the slide: it comes after the listed panel with the highest identifier and the panels are not locked, {@code false} otherwise
      */
     boolean isControlHidden(@NotNull DialogDefinition dialog, int controlIndex) {
         if (this.phase == Phase.NONE || this.phase == Phase.LOCKED) {

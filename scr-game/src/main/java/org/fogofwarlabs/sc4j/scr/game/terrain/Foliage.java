@@ -212,8 +212,7 @@ public final class Foliage {
     }
 
     /**
-     * @return {@code true} if rendering floats and image state are available, {@code false} otherwise; always {@code false} because they are not
-     * represented
+     * @return {@code true} if rendering floats and image state are available, {@code false} otherwise; always {@code false} because they are not represented
      */
     public boolean hasRenderingState() {
         return false;

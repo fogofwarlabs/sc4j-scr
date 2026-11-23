@@ -356,8 +356,7 @@ public final class StartingUnitLoader {
      * @return the constructor ledger in actual creation order, including failed allocations
      * @throws IllegalArgumentException      if the start positions are not eight WORD pairs
      * @throws IllegalStateException         if the initialization RNG scope, the accounting or the foliage grid is missing
-     * @throws UnsupportedOperationException if a player race lies above Protoss, the team count of the team start is outside two to four, or a depot
-     *                                       finds no spatial index or creep state
+     * @throws UnsupportedOperationException if a player race lies above Protoss, the team count of the team start is outside two to four, or a depot finds no spatial index or creep state
      */
     public static @NotNull List<Creation> create(@NotNull UnitCreationContext creation, @NotNull Game game,
                                                  @NotNull GameSettings settings,

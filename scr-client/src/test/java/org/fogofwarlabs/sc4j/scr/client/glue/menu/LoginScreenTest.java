@@ -28,11 +28,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Checks the ID screen of a run without an account: the title screen leads to it and opens New ID for an empty list, New ID creates and
- * selects an ID in the local ID folder and refuses an existing or invalid name, Delete removes an ID with its saved games and keeps another
- * player's saved games of the same name, and Ok makes the selected ID the run's player; after Cancel the main menu's login button and Single
- * Player lead to the ID screen; an account run goes from the title screen to the main menu. SD at 640x480 in English and HD at 1920x1080 in
- * Korean.
+ * Checks the ID screen of a run without an account, SD at 640x480 in English and HD at 1920x1080 in Korean: the title screen leads to it and
+ * opens New ID for an empty list, New ID creates and selects an ID in the local ID folder and refuses an existing or invalid name, Delete removes
+ * an ID with its saved games and keeps another player's saved games of the same name, Ok makes the selected ID the run's player, after Cancel the
+ * main menu's login button and Single Player lead to the ID screen, and an account run goes from the title screen to the main menu.
  */
 @RequiresInstallation
 final class LoginScreenTest {

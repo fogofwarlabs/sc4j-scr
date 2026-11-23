@@ -540,7 +540,7 @@ public final class ControlPainterUtils {
                 drawPushButton(painter, sheet, control, left, top, text, buttonBase, threeSlice, enabled, pressed, over);
 
                 // The focused button's outline around its rectangle in the focus color, from one pixel left of
-                // and above the rectangle to its inclusive right and bottom edges (as measured on the native game menu).
+                // and above the rectangle to its inclusive right and bottom edges.
                 if (dialog.isButtonFocused(control)) {
                     drawRing(painter, left - 1, top - 1, control.getWidth() + 1, control.getHeight() + 1, FOCUS);
                 }

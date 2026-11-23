@@ -349,9 +349,10 @@ public final class ListBox extends ScrControl {
 
 
     /**
+     * Tests whether the list has a scroll bar control, shown or not: the list, cut to whole rows, is taller than a track tile and two arrows.
+     *
      * @param canvas the glue canvas
-     * @return {@code true} if the list has a scroll bar control (the list, cut to whole rows, is taller than a track tile and two arrows), shown or
-     * not, {@code false} otherwise
+     * @return {@code true} if the list has a scroll bar control, {@code false} otherwise
      */
     private boolean hasScrollBar(@NotNull DialogPainter canvas) {
         ScrollMetrics metrics = this.getScrollMetrics(canvas);
@@ -569,12 +570,12 @@ public final class ListBox extends ScrControl {
     }
 
     /**
-     * Moves the selection for a navigation key and keeps it visible ({@link ListModel#moveSelection}). Without a selection, only Home and
-     * End choose a row.
+     * Moves the selection for a navigation key ({@link DialogKey#UP}, {@link DialogKey#DOWN}, {@link DialogKey#HOME}, {@link DialogKey#END},
+     * {@link DialogKey#PAGE_UP} or {@link DialogKey#PAGE_DOWN}) and keeps it visible ({@link ListModel#moveSelection}). Without a selection, only
+     * Home and End choose a row.
      *
      * @param canvas the glue canvas
-     * @param key    {@link DialogKey#UP}, {@link DialogKey#DOWN}, {@link DialogKey#HOME}, {@link DialogKey#END}, {@link DialogKey#PAGE_UP}
-     *               or {@link DialogKey#PAGE_DOWN}
+     * @param key    the navigation key
      * @throws IllegalArgumentException if the key is not a navigation key
      */
     public void pressKey(@NotNull DialogPainter canvas, @NotNull DialogKey key) {

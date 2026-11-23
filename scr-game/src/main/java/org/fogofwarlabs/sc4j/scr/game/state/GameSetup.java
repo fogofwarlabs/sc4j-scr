@@ -395,32 +395,28 @@ public final class GameSetup {
     }
 
     /**
-     * @return the random generator in the state the caller established (state, enabled scope and call counts); the game
-     * continues from it and advances this same instance
+     * @return the random generator in the state the caller established (state, enabled scope and call counts); the game continues from it and advances this same instance
      */
     public @NotNull LcgRandom getRandom() {
         return this.random;
     }
 
     /**
-     * @return the C runtime generator in the state the game start established; the game continues from it and advances
-     * this same instance
+     * @return the C runtime generator in the state the game start established; the game continues from it and advances this same instance
      */
     public @NotNull RuntimeRandom getRuntimeRandom() {
         return this.runtimeRandom;
     }
 
     /**
-     * @return the setup seed of the replay header or lobby, independent of the random generator's state (foliage and map
-     * object initialization read it)
+     * @return the setup seed of the replay header or lobby, independent of the random generator's state (foliage and map object initialization read it)
      */
     public int getSeed() {
         return this.seed;
     }
 
     /**
-     * @return the game options recorded for the world initialization, or {@code null} when the game has none (tests and
-     * previews); the game constructor does not read them
+     * @return the game options recorded for the world initialization, or {@code null} when the game has none (tests and previews); the game constructor does not read them
      */
     public @Nullable GameSettings getSettings() {
         return this.settings;

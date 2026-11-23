@@ -25,8 +25,7 @@ final class ClassicTriggerWalkUtils {
      * Returns the classic trigger lists of the context's EUD address space.
      *
      * @param context the trigger context
-     * @return the classic trigger lists, or {@code null} when the extended Deaths operations are not that address space (a
-     * supplied memory model walks the running-trigger lists instead)
+     * @return the classic trigger lists, or {@code null} when the extended Deaths operations are not that address space (a supplied memory model walks the running-trigger lists instead)
      */
     static @Nullable ClassicTriggerMirror getMirror(@NotNull TriggerContext context) {
         return ExtendedDeathsUtils.getExtendedDeathsOperations(context) instanceof ClassicAddressSpace ? context.triggerMirror : null;

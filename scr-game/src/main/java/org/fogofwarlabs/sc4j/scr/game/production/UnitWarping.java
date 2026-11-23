@@ -65,7 +65,7 @@ public final class UnitWarping {
         if (phase == WARPING_STATE_COUNTDOWN) {
             if (unit.getRemainingBuildTime() == 0) {
                 this.game.getIscriptExecutor().runSpriteAnimation(sprite, unit, IscriptExecutor.ANIMATION_SPECIAL_STATE_1, 1, instructionLimit);
-                this.game.getInterfaceLink().getSoundEvents().add(SoundIds.PROTOSS_BUILDING_WARP_END, sprite.getX(), sprite.getY(), unit.getUnitId());
+                this.game.getUnitSounds().play(SoundIds.PROTOSS_BUILDING_WARP_END, unit);
                 unit.setPrimaryOrderState(WARPING_STATE_TEXTURE);
             }
         } else if (phase == WARPING_STATE_TEXTURE || phase == WARPING_STATE_WARP_IN) {

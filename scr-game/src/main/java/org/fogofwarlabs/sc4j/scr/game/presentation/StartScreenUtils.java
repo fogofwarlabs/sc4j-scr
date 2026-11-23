@@ -37,12 +37,10 @@ public final class StartScreenUtils {
      * Places the game start's screen of a player in the game's local view.
      *
      * @param game         the game state
-     * @param player       the player whose start location the screen starts on: in a replay or observer view the first human,
-     *                     in a live player's view the local player
+     * @param player       the player whose start location the screen starts on: in a replay or observer view the first human, in a live player's view the local player
      * @param screenWidth  the game screen width in map pixels
      * @param screenHeight the game screen height in map pixels
-     * @return {@code true} if the screen was placed, {@code false} otherwise (a replay or observer view has no human
-     * player or the live player has no start location)
+     * @return {@code true} if the screen was placed, {@code false} otherwise (a replay or observer view has no human player or the live player has no start location)
      */
     public static boolean placeStartScreen(@NotNull Game game, int player, int screenWidth, int screenHeight) {
         StartLocation start = findStartLocation(game, player);

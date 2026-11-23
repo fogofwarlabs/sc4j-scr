@@ -63,8 +63,7 @@ public interface InterfaceTransform {
     float getScale();
 
     /**
-     * @return the logical width {@code W} of the interface pixels the transform maps ({@link AspectRange#getLogicalWidth}): {@code 640}, or wider
-     * for the widescreen interface
+     * @return the logical width {@code W} of the interface pixels the transform maps ({@link AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
      */
     float getLogicalWidth();
 

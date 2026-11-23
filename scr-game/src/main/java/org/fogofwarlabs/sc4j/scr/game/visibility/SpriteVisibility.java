@@ -47,8 +47,7 @@ public final class SpriteVisibility {
      * @param boxHeight      the signed placement-box height in pixels
      * @param map            the established tile DWORDs
      * @param comparisonMask the visibility comparison mask
-     * @return {@code true} if no player of the comparison mask sees the sprite any more after one did, or if the box lies outside the map while a
-     * player sees the sprite, {@code false} otherwise
+     * @return {@code true} if no player of the comparison mask sees the sprite any more after one did, or if the box lies outside the map while a player sees the sprite, {@code false} otherwise
      * @throws UnsupportedOperationException if the placement or map dimensions or the tile storage are not established
      */
     public static boolean updatePlacementBox(@NotNull Unit unit, int boxWidth, int boxHeight, @NotNull GameMap map, int comparisonMask) {
@@ -67,8 +66,7 @@ public final class SpriteVisibility {
      * @param boxHeight      the signed height in pixels
      * @param map            the established tile DWORDs
      * @param comparisonMask the visibility comparison mask
-     * @return {@code true} if no player of the comparison mask sees the sprite any more after one did, or if the box lies outside the map while a
-     * player sees the sprite, {@code false} otherwise
+     * @return {@code true} if no player of the comparison mask sees the sprite any more after one did, or if the box lies outside the map while a player sees the sprite, {@code false} otherwise
      * @throws UnsupportedOperationException if the placement or map dimensions or the tile storage are not established
      */
     public static boolean updateSpritePlacementBox(@NotNull Sprite sprite, int boxWidth, int boxHeight, @NotNull GameMap map, int comparisonMask) {

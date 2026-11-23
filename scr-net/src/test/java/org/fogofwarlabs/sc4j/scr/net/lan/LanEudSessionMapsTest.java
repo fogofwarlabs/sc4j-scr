@@ -51,7 +51,7 @@ import java.util.*;
 final class LanEudSessionMapsTest {
     private static final @NotNull InetSocketAddress HOST = new InetSocketAddress("192.168.0.88", GameProxySocket.GAME_PORT);
     /**
-     * The options of the user's Use Map Settings LAN games.
+     * The options of a Use Map Settings LAN game.
      */
     private static final @NotNull String OPTIONS = "0a00010000000000000000020001030100010000000000000000000000000000";
     private static final int FRAMES = 3000;

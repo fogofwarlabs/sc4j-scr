@@ -474,8 +474,7 @@ public final class RecorderCli {
      * exact payload consumption), the {@code END} summary and physical end of file.
      *
      * @param path the recording file
-     * @return {@code 0} if the file is valid and satisfies its coverage requirements, {@code 3} if it is valid but
-     * partial, {@code 1} if it is invalid
+     * @return {@code 0} if the file is valid and satisfies its coverage requirements, {@code 3} if it is valid but partial, {@code 1} if it is invalid
      */
     public static int validate(@NotNull Path path) {
         try (RecordReader reader = RecordReader.open(path)) {

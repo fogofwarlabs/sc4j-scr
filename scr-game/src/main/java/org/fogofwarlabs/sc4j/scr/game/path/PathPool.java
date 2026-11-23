@@ -441,7 +441,7 @@ public final class PathPool {
     /**
      * Reads a region WORD of the region route that follows the waypoints of a path record.
      * <p>
-     * The first region may intentionally retain the previous route's second waypoint coordinate when a one-step path reuses the record.
+     * The first region may retain the previous route's second waypoint coordinate when a one-step path reuses the record.
      *
      * @param recordIndex   the record index
      * @param waypointCount the waypoint count of the record

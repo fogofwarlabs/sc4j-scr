@@ -514,8 +514,7 @@ public final class TriggerUnitActions {
      * @param positionY        the center Y
      * @param owner            the owner
      * @param instructionLimit the iscript budget
-     * @return the created {@link Unit} instance, or {@code null} if the type is not listed, the building site fails, the
-     * creation fails or the unit cannot be placed
+     * @return the created {@link Unit} instance, or {@code null} if the type is not listed, the building site fails, the creation fails or the unit cannot be placed
      * @throws NullPointerException          if the world was built without game data
      * @throws UnsupportedOperationException if the creation context, the accounting, the owner or the creep field is missing
      */

@@ -840,8 +840,7 @@ public final class Unit extends org.fogofwarlabs.sc4j.engine.entity.Unit {
     }
 
     /**
-     * @return the shield points DWORD in units of {@code 1/256}, the points of the shield damage layer
-     * ({@link org.fogofwarlabs.sc4j.scr.game.combat.ScrShieldLayer})
+     * @return the shield points DWORD in units of {@code 1/256}, the points of the shield damage layer ({@link org.fogofwarlabs.sc4j.scr.game.combat.ScrShieldLayer})
      */
     public int getShieldPoints() {
         return this.shieldPoints;
@@ -875,8 +874,10 @@ public final class Unit extends org.fogofwarlabs.sc4j.engine.entity.Unit {
     }
 
     /**
-     * @return the previous hit points WORD: {@code 1} from the storage initializer, the previous hit points (at least {@code 1}) once the unit
-     * morphs, which a canceled Zerg building restores to its Drone
+     * Returns the previous hit points WORD: {@code 1} from the storage initializer, the previous hit points (at least {@code 1}) once the unit
+     * morphs, which a canceled Zerg building restores to its Drone.
+     *
+     * @return the previous hit points
      */
     public int getPreviousVisibleHitPoints() {
         return this.previousVisibleHitPoints;
@@ -1348,8 +1349,7 @@ public final class Unit extends org.fogofwarlabs.sc4j.engine.entity.Unit {
 
 
     /**
-     * @return the flyer repulsion flags: the countdown to the next turn (bits {@code 0-2}), bit {@code 3} and the adjustment index
-     * (bits {@code 4-7})
+     * @return the flyer repulsion flags: the countdown to the next turn (bits {@code 0-2}), bit {@code 3} and the adjustment index (bits {@code 4-7})
      */
     public int getRepulsionFlags() {
         return this.repulsionFlags;
@@ -1522,8 +1522,10 @@ public final class Unit extends org.fogofwarlabs.sc4j.engine.entity.Unit {
     }
 
     /**
-     * @return the four classic event bytes; the unit initializer clears them, so they hold {@code 0} unless an EUD write stored a value; the third
-     * byte is the rank increase ({@link #getRankIncrease()})
+     * Returns the four classic event bytes. The unit initializer clears them, so they hold {@code 0} unless an EUD write stored a value; the
+     * third byte is the rank increase ({@link #getRankIncrease()}).
+     *
+     * @return the classic event bytes
      */
     public int getClassicEventBytes() {
         return this.classicEventBytes;

@@ -119,8 +119,7 @@ public final class ReplaySession {
         }
 
         /**
-         * @return where the commands of this controller come from: the source a session set, else {@link ControllerSource#REPLAY}
-         * in replay playback and {@link ControllerSource#HUMAN} in a live game
+         * @return where the commands of this controller come from: the source a session set, else {@link ControllerSource#REPLAY} in replay playback and {@link ControllerSource#HUMAN} in a live game
          */
         @Override
         public @NotNull ControllerSource getSource() {
@@ -335,8 +334,9 @@ public final class ReplaySession {
 
         // A live game's session supplies its own outgoing turn and turn limits; replay playback starts single-player ones.
         OutgoingTurnBuffer outgoingTurn = game.isReplayPlayback() ? new OutgoingTurnBuffer(LiveGame.MAXIMUM_TURN_BYTES) : null;
+        LoopbackTurns loopbackTurns = outgoingTurn == null ? null : new LoopbackTurns(outgoingTurn);
 
-        this.loopbackTurns    = outgoingTurn == null ? null : new LoopbackTurns(outgoingTurn);
+        this.loopbackTurns    = loopbackTurns;
         this.loopbackPlayerId = ReplayInitialization.findNativeReplayLocalPlayer(replay.getHeader());
         this.syncRing         = outgoingTurn == null ? null : new SyncRing(this.loopbackPlayerId, false);
         this.latency          = 0;
@@ -345,7 +345,9 @@ public final class ReplaySession {
         // The session start is the game start, which stores the turn-wait budget.
         this.timing.resetTurnBudget();
 
-        if (outgoingTurn != null) {
+        if (outgoingTurn != null && loopbackTurns != null) {
+            outgoingTurn.setTurnSender(loopbackTurns, LiveGame.LATENCY_TURNS);
+
             this.game.getInterfaceLink().setOutgoingTurn(outgoingTurn);
             this.game.getInterfaceLink().setSessionTurnLimits(LiveGame.LATENCY_TURNS, LiveGame.MAXIMUM_TURN_BYTES);
 
@@ -452,16 +454,14 @@ public final class ReplaySession {
     }
 
     /**
-     * @return the recorded command stream as the engine controller of its commands: the due records, collected by each run of
-     * due commands into one command dispatch
+     * @return the recorded command stream as the engine controller of its commands: the due records, collected by each run of due commands into one command dispatch
      */
     public @NotNull PlayerController getController() {
         return this.stream;
     }
 
     /**
-     * @return the command source each run of due commands applies: the session's own over the recorded stream, or the one set
-     * ({@link #setCommandSource})
+     * @return the command source each run of due commands applies: the session's own over the recorded stream, or the one set ({@link #setCommandSource})
      */
     public @NotNull ControllerCommandSource getCommandSource() {
         return this.commandSource;
@@ -644,8 +644,7 @@ public final class ReplaySession {
      *
      * @param elapsedHostTicks the measured DWORD difference for the unit phase
      * @param frameRuns        whether the loop runs a frame
-     * @return {@code true} if the loop ran, {@code false} otherwise (the game ended before or in the loop or a frame
-     * would run past the finished replay)
+     * @return {@code true} if the loop ran, {@code false} otherwise (the game ended before or in the loop or a frame would run past the finished replay)
      */
     private boolean runGameLoop(int elapsedHostTicks, boolean frameRuns) {
         this.executedCount = 0;

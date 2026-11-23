@@ -129,13 +129,11 @@ public final class StatusOverlay {
      * every table, Ctrl+Alt+T turns {@code ShowTurnRate} over in the play and chat tables (the popup table has no entry
      * for it). Neither repeats.
      *
-     * @param mode      the active accelerator mode: the game's mode while a session runs, else
-     *                  {@link GameAccelerators.Mode#PLAY}
+     * @param mode      the active accelerator mode: the game's mode while a session runs, else {@link GameAccelerators.Mode#PLAY}
      * @param key       the key
      * @param modifiers the modifier mask ({@link KeyModifier#getMask()} bits)
      * @param repeat    whether the event is a key repeat
-     * @return {@link GameAccelerators#SHOW_FPS}, {@link GameAccelerators#SHOW_TURN_RATE}, or {@link GameAccelerators#NONE}
-     * when the key turns neither over
+     * @return {@link GameAccelerators#SHOW_FPS}, {@link GameAccelerators#SHOW_TURN_RATE}, or {@link GameAccelerators#NONE} when the key turns neither over
      */
     public static int findToggle(@NotNull GameAccelerators.Mode mode, @NotNull Key key, int modifiers, boolean repeat) {
         GameAccelerators.Entry entry = GameAccelerators.find(mode, key, modifiers, repeat);

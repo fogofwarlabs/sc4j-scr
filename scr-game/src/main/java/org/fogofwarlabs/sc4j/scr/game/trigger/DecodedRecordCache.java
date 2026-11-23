@@ -156,8 +156,7 @@ final class DecodedRecordCache {
          * Sets the definition of a run that wrote the record's {@link #bytes} and takes the execution state from them.
          *
          * @param definition     the definition
-         * @param changedActions bit {@code index} set for every action that may have been decoded again; the others are
-         *                       unchanged
+         * @param changedActions bit {@code index} set for every action that may have been decoded again; the others are unchanged
          */
         void update(@NotNull TriggerDefinition definition, long changedActions) {
             this.getDefinition();

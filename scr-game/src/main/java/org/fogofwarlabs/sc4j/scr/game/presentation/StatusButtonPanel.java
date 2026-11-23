@@ -445,8 +445,7 @@ public final class StatusButtonPanel {
      * @param buttonData    the button data identities
      * @param references    the retained global node identities
      * @param tooltipValues the retained tooltip values
-     * @throws IllegalArgumentException      if an array has the wrong length, {@code childOrder} does not start with the first button or does not
-     *                                       hold each button once, or {@code focusedChild} lies outside {@code 0} through {@code 9}
+     * @throws IllegalArgumentException      if an array has the wrong length, {@code childOrder} is not a button order or {@code focusedChild} is outside {@code 0..9}
      * @throws UnsupportedOperationException if {@code definition} is not an audited installed status-button resource
      */
     public StatusButtonPanel(byte @NotNull [] definition,
@@ -574,6 +573,9 @@ public final class StatusButtonPanel {
 
     /**
      * Refreshes replay buttons with represented focus, pointer and command state.
+     * <p>
+     * No child may have the focus, the pointer must be outside the panel, the buttons in ascending order and each button style the disabled one
+     * or one with a retained hover state.
      *
      * @param paused                  the pause state
      * @param hideButtons             the button visibility control
@@ -586,9 +588,7 @@ public final class StatusButtonPanel {
      * @param visibilityCounters      the button visibility counters
      * @param pointerX                the signed pointer horizontal coordinate
      * @param pointerY                the signed pointer vertical coordinate
-     * @throws UnsupportedOperationException if {@code visibilityCounters} does not hold {@code 10} values, a child has the focus, the command state
-     *                                       is not represented, the pointer is inside the panel, the buttons are not in ascending order, or a button
-     *                                       has a style other than the disabled one or a style without a retained hover state
+     * @throws UnsupportedOperationException if {@code visibilityCounters} does not hold {@code 10} values or the panel or command state is not represented
      */
     public void refreshReplayButtons(int paused,
                                      int hideButtons,
@@ -672,8 +672,7 @@ public final class StatusButtonPanel {
      * @param text               the existing node strings; a {@code null} string is rejected
      * @param visibilityCounters the label visibility counters
      * @param hoverChild         the hover child identity, or {@code 0}
-     * @throws IllegalArgumentException if the panel is not the replay panel, {@code text} or {@code visibilityCounters} has the wrong length,
-     *                                  {@code hoverChild} is negative or above the last label or a label has no node string
+     * @throws IllegalArgumentException if the panel is not the replay panel, an array has the wrong length, {@code hoverChild} is no label or a label has no node string
      */
     public void initializeReplayLabels(@NotNull ReplayStatusText labels,
                                        byte @NotNull [] @Nullable [] text,

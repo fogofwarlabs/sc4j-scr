@@ -46,8 +46,7 @@ public final class ScrOrderContext implements OrderContext {
     }
 
     /**
-     * @return the instruction limit of each animation program run the behavior starts, which it also passes to the order system when it
-     * changes an order: the instruction budget of each animation script invocation
+     * @return the instruction limit of each animation program run the behavior starts, which it also passes to the order system when it changes an order
      */
     @Override
     public int getInstructionLimit() {

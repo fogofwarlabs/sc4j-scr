@@ -102,8 +102,7 @@ public final class ScrComputerPlayerSystem implements ComputerPlayerSystem {
      * Runs the computer step ({@link #update}) with the game's current frame.
      *
      * @param game the game
-     * @throws UnsupportedOperationException if the world is initialized without a trigger context or the computer-player phase is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the world is initialized without a trigger context or the computer-player phase is not initialized
      */
     @Override
     public void run(org.fogofwarlabs.sc4j.engine.game.@NotNull Game game) {
@@ -116,8 +115,7 @@ public final class ScrComputerPlayerSystem implements ComputerPlayerSystem {
      * zero.
      *
      * @param frame the frame, with this frame's inputs
-     * @throws UnsupportedOperationException if the world is initialized without a trigger context or the computer-player phase is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the world is initialized without a trigger context or the computer-player phase is not initialized
      */
     public void update(@NotNull GameFrame frame) {
         Game attached = this.requireGame();

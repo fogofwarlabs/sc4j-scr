@@ -20,7 +20,7 @@ public final class WeaponDamageDecision extends SimulationDecision {
     /**
      * Creates a {@link WeaponDamageDecision} instance that is not cancelled.
      *
-     * @param weapon       the weapons.dat entry
+     * @param weapon       the weapons.dat entry, or {@code -1} for damage without a weapon
      * @param source       the attacking unit, or {@code null} for none
      * @param sourcePlayer the attacking player slot
      * @param target       the hit unit
@@ -37,7 +37,7 @@ public final class WeaponDamageDecision extends SimulationDecision {
     }
 
     /**
-     * @return the weapons.dat entry
+     * @return the weapons.dat entry, or {@code -1} for damage without a weapon
      */
     public int getWeapon() {
         return this.weapon;

@@ -17,12 +17,19 @@ import java.util.Locale;
  * length retain earlier turns. Once a game starts its Sync records ({@link #startSync}), the queued Sync command carries
  * the newest record of its ring at the time it is queued, and a sent turn's leading Sync command carries the newest record
  * at the time it is sent. EUD writes that change the Sync command stop explicitly.
+ * <p>
+ * A command that does not fit the turn sends the turn early through the game's turn sender ({@link #setTurnSender}), as an extra turn,
+ * and starts the next turn with it; while too many turns are in transit ({@link #MAXIMUM_TURNS_IN_TRANSIT}) the command is dropped.
  */
 public final class OutgoingTurnBuffer {
     /**
      * The buffer size.
      */
     public static final int SIZE = 0x200;
+    /**
+     * The bound on the turns in transit plus the game's base turns in transit below which a command that does not fit sends the turn early.
+     */
+    public static final int MAXIMUM_TURNS_IN_TRANSIT = 16;
     /**
      * The Sync command type.
      */
@@ -47,8 +54,35 @@ public final class OutgoingTurnBuffer {
      */
     private static final @NotNull HexFormat MESSAGE_HEX_FORMAT = HexFormat.of().withUpperCase();
 
+    /**
+     * Sends the local turns of a game and counts those in transit: the network transport, or the loopback turns of a game without
+     * network players.
+     */
+    public interface TurnSender {
+        /**
+         * @return the local turns sent and not yet received back
+         */
+        int getTurnsInTransit();
+
+        /**
+         * Sends the local player's next turn.
+         *
+         * @param turn the turn bytes
+         */
+        void sendTurn(byte @NotNull [] turn);
+    }
+
     private final byte @NotNull [] bytes;
     private final int maximumBytes;
+
+    /**
+     * The sender of the turns sent early, or {@code null} before the game sets one ({@link #setTurnSender}).
+     */
+    private @Nullable TurnSender turnSender;
+    /**
+     * The game's base turns in transit, without the latency setting's turns.
+     */
+    private int baseTurnsInTransit;
 
     private int length;
     private boolean keepAlive;
@@ -69,6 +103,9 @@ public final class OutgoingTurnBuffer {
     public OutgoingTurnBuffer(int maximumBytes) {
         this.bytes        = new byte[SIZE];
         this.maximumBytes = maximumBytes;
+
+        this.turnSender         = null;
+        this.baseTurnsInTransit = 0;
 
         this.length    = 0;
         this.keepAlive = false;
@@ -92,6 +129,17 @@ public final class OutgoingTurnBuffer {
      */
     public void setLength(int length) {
         this.length = length;
+    }
+
+    /**
+     * Sets the sender of the turns that a command which does not fit sends early ({@link #queue}).
+     *
+     * @param turnSender         the game's turn sender
+     * @param baseTurnsInTransit the game's base turns in transit, without the latency setting's turns
+     */
+    public void setTurnSender(@NotNull TurnSender turnSender, int baseTurnsInTransit) {
+        this.turnSender         = turnSender;
+        this.baseTurnsInTransit = baseTurnsInTransit;
     }
 
 
@@ -132,22 +180,43 @@ public final class OutgoingTurnBuffer {
     }
 
     /**
-     * Queues one command at the current buffer length.
+     * Queues one command at the current buffer length. A command that would pass the maximum turn bytes first sends the queued turn
+     * ({@link #send()}) through the turn sender as an extra turn while fewer than {@link #MAXIMUM_TURNS_IN_TRANSIT} less the base turns in
+     * transit are in transit, and is dropped otherwise.
      *
      * @param command the command bytes, type byte first
-     * @throws UnsupportedOperationException if the turn would exceed the configured maximum
+     * @return {@code true} if queued, {@code false} if dropped because too many turns are in transit
+     * @throws IllegalStateException         if the command does not fit and no turn sender is set
+     * @throws UnsupportedOperationException if the length DWORD of the extra turn lies outside the buffer
+     * @throws IllegalArgumentException      if the command does not fit the buffer after the extra turn
      */
-    public void queue(byte @NotNull [] command) {
+    public boolean queue(byte @NotNull [] command) {
         if (this.length + command.length > this.maximumBytes) {
-            throw Exceptions.newUnsupportedOperationException(
-                    "Queuing {0} command bytes on {1} passes the maximum turn bytes 0x{2}; the extra turn send is not represented.",
-                    command.length, this.length, Integer.toHexString(this.maximumBytes).toUpperCase(Locale.ROOT)
-            );
+            TurnSender sender = this.turnSender;
+
+            if (sender == null) {
+                throw Exceptions.newIllegalStateException("Queuing {0} command bytes on {1} passes the maximum turn bytes 0x{2}, and no turn sender is set.",
+                                                          command.length, this.length,
+                                                          Integer.toHexString(this.maximumBytes).toUpperCase(Locale.ROOT));
+            }
+
+            if (sender.getTurnsInTransit() >= MAXIMUM_TURNS_IN_TRANSIT - this.baseTurnsInTransit) {
+                return false;
+            }
+
+            sender.sendTurn(this.send());
+        }
+
+        if (this.length + command.length > SIZE) {
+            throw Exceptions.newIllegalArgumentException("A command of {0} bytes does not fit the 0x{1}-byte turn buffer after {2} queued bytes.",
+                                                         command.length, Integer.toHexString(SIZE).toUpperCase(Locale.ROOT), this.length);
         }
 
         System.arraycopy(command, 0, this.bytes, this.length, command.length);
 
         this.length += command.length;
+
+        return true;
     }
 
     /**

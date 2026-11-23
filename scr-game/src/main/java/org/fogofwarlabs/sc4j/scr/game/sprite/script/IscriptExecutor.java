@@ -13,6 +13,7 @@ import org.fogofwarlabs.sc4j.scr.data.type.constant.ImageIds;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.SpriteIds;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameExecutionScope;
 import org.fogofwarlabs.sc4j.scr.game.movement.FlingyMotionUtils;
+import org.fogofwarlabs.sc4j.scr.game.presentation.UnitSounds;
 import org.fogofwarlabs.sc4j.scr.game.sprite.*;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.instruction.ScrImageTarget;
 import org.fogofwarlabs.sc4j.scr.game.sprite.script.instruction.ScrPreviewSupport;
@@ -501,11 +502,9 @@ public final class IscriptExecutor {
      * @param sprite the sprite the image belongs to
      * @param unit   the unit context, or {@code null} for unit-free animations
      * @return {@code true} if the image is still alive, {@code false} otherwise
-     * @throws IllegalStateException         if an instruction cannot be decoded or is unhandled, an opcode needs a missing unit context or target
-     *                                       sprite, the gas overlay offsets cannot be read, or an ended image has no owning pool
+     * @throws IllegalStateException         if an instruction cannot be decoded or run, or an ended image has no owning pool
      * @throws NullPointerException          if the world was built without game data
-     * @throws UnsupportedOperationException if an image creation opcode needs a bounded invocation, the opcode is {@code uflunstable}, or a
-     *                                       projectile trail selection lacks player upgrades
+     * @throws UnsupportedOperationException if an image creation opcode needs a bounded invocation, the opcode is {@code uflunstable} or player upgrades are missing
      */
     public boolean execute(@NotNull SpriteImage image, @NotNull Sprite sprite, @Nullable Unit unit) {
         return this.execute(null, image, sprite, unit);
@@ -524,12 +523,9 @@ public final class IscriptExecutor {
      * @param sprite  the sprite the image belongs to
      * @param unit    the unit context, or {@code null}
      * @return {@code true} if the image is still alive, {@code false} otherwise
-     * @throws IllegalStateException         if {@code preview} runs out of instructions, an instruction cannot be decoded or is unhandled, an opcode
-     *                                       needs a missing unit context or target sprite, the gas overlay offsets cannot be read, or an ended image
-     *                                       has no owning pool
+     * @throws IllegalStateException         if {@code preview} runs out of instructions, an instruction cannot be decoded or run, or an ended image has no owning pool
      * @throws NullPointerException          if the world was built without game data
-     * @throws UnsupportedOperationException if {@code preview} does not support an opcode, an image creation opcode runs without {@code preview}, the
-     *                                       opcode is {@code uflunstable}, or a projectile trail selection lacks player upgrades
+     * @throws UnsupportedOperationException if an opcode is not supported in this invocation, the opcode is {@code uflunstable} or player upgrades are missing
      */
     private boolean execute(@Nullable IscriptExecution preview, @NotNull SpriteImage image, @NotNull Sprite sprite, @Nullable Unit unit) {
         SpriteImagePool pool = image.getPool();
@@ -620,8 +616,7 @@ public final class IscriptExecutor {
      * @return {@code true} if the sprite retains an image, {@code false} otherwise
      * @throws IllegalArgumentException      if the limit is not positive
      * @throws UnsupportedOperationException if an image update or opcode is unsupported
-     * @throws IllegalStateException         if the limit runs out, instruction decoding fails or the sprite loses its last image without an owning
-     *                                       sprite pool
+     * @throws IllegalStateException         if the limit runs out, instruction decoding fails or the sprite loses its last image without an owning sprite pool
      */
     public boolean executeSpritePreview(@NotNull Sprite sprite, int instructionLimit) {
         return this.executeSpriteImages(sprite, null, instructionLimit);
@@ -638,8 +633,7 @@ public final class IscriptExecutor {
      * @param instructionLimit the shared limit for this invocation and nested Init calls
      * @return {@code true} if any image remains attached, {@code false} otherwise
      * @throws IllegalArgumentException if the limit is not positive
-     * @throws IllegalStateException    if the limit runs out, instruction decoding fails or the sprite loses its last image without an owning sprite
-     *                                  pool
+     * @throws IllegalStateException    if the limit runs out, instruction decoding fails or the sprite loses its last image without an owning sprite pool
      */
     public boolean executeSprite(@NotNull Sprite sprite, @Nullable Unit unit, int instructionLimit) {
         return this.executeSpriteImages(sprite, unit, instructionLimit);
@@ -742,8 +736,7 @@ public final class IscriptExecutor {
      * @param sprite           the allocated sprite
      * @param unit             the current unit context, or {@code null}
      * @param animationType    the requested animation byte
-     * @param force            nonzero to run the animation also while the sprite's nonbreaking flag ({@link Sprite#FLAG_ISCRIPT_NO_BREAK},
-     *                         {@code 0x80}) is set
+     * @param force            nonzero to run the animation also while the sprite's nonbreaking flag ({@link Sprite#FLAG_ISCRIPT_NO_BREAK}, {@code 0x80}) is set
      * @param instructionLimit the shared instruction limit including child Init calls
      * @throws IllegalArgumentException      if the limit is not positive
      * @throws UnsupportedOperationException if the request would run on a freed image
@@ -799,8 +792,7 @@ public final class IscriptExecutor {
      * @param sprite        the dispatching sprite
      * @param endedImage    the image the call ended and recycled
      * @param animationType the requested animation
-     * @param force         nonzero to run the animation also while the sprite's nonbreaking flag ({@link Sprite#FLAG_ISCRIPT_NO_BREAK}, {@code 0x80})
-     *                      is set
+     * @param force         nonzero to run the animation also while the sprite's nonbreaking flag ({@link Sprite#FLAG_ISCRIPT_NO_BREAK}, {@code 0x80}) is set
      * @throws IllegalStateException         if the image pool is missing or the ended image is still allocated
      * @throws UnsupportedOperationException if the request would run on a freed image
      */
@@ -1061,8 +1053,7 @@ public final class IscriptExecutor {
      * @return the initialized sprite, or {@code null} on allocation or bounds failure
      * @throws IllegalArgumentException if the limit is not positive
      * @throws NullPointerException     if the world was built without game data
-     * @throws IllegalStateException    if the sprite pool is missing, sprite initialization leaves no graphics or the sprite row lies outside the row
-     *                                  lists
+     * @throws IllegalStateException    if the sprite pool is missing, sprite initialization leaves no graphics or the sprite row lies outside the row lists
      */
     public @Nullable Sprite createSprite(int spriteType, int positionX, int positionY, int owner, @Nullable Unit unit, int instructionLimit) {
         checkInstructionLimit(instructionLimit);
@@ -1549,8 +1540,7 @@ public final class IscriptExecutor {
      * @param unit             the unit context, or {@code null}
      * @param inheritDirection whether the image takes the reference image's direction
      * @return the created image, or {@code null} when image storage is exhausted
-     * @throws IllegalStateException if the creation would exceed the nesting depth limit, the reference image is not attached to the sprite, or the
-     *                               image pool is missing or does not own the reference image
+     * @throws IllegalStateException if the creation exceeds the nesting depth limit or the reference image is not attached to the sprite and its pool
      * @throws NullPointerException  if {@code preview} is {@code null} and image storage is not exhausted
      */
     public @Nullable SpriteImage createImagePreview(@Nullable IscriptExecution preview,
@@ -1649,8 +1639,7 @@ public final class IscriptExecutor {
      * @param unit           the unit context, or {@code null}
      * @return the created image, or {@code null} when image storage is exhausted
      * @throws IllegalStateException if the sprite of a cloaked unit has no primary image
-     * @throws NullPointerException  if the world was built without game data, or {@code preview} is {@code null} and image storage is not
-     *                               exhausted
+     * @throws NullPointerException  if the world was built without game data, or {@code preview} is {@code null} and image storage is not exhausted
      */
     public @Nullable SpriteImage createScriptImage(@Nullable IscriptExecution preview,
                                                    @NotNull SpriteImage referenceImage,
@@ -1706,8 +1695,7 @@ public final class IscriptExecutor {
 
     /**
      * @param unit the hallucination
-     * @return {@code true} if the view shows the hallucination as such: a replay or observer view, or a hallucination of the local player,
-     * {@code false} otherwise
+     * @return {@code true} if the view shows the hallucination as such: a replay or observer view, or a hallucination of the local player, {@code false} otherwise
      */
     private boolean isHallucinationShown(@NotNull Unit unit) {
         UnitCreationContext creation = this.game.getUnitSystem().getUnitCreationContext();
@@ -1767,8 +1755,7 @@ public final class IscriptExecutor {
      *
      * @param worker           the carrying worker
      * @param refineryType     the refinery unit type
-     * @param small            whether the depleted resource uses the image id {@code 1} above the refinery's {@link ImageIds#TERRAN_GAS_TANK_TYPE1},
-     *                         {@link ImageIds#ZERG_GAS_SAC_TYPE1} or {@link ImageIds#PROTOSS_GAS_ORB_TYPE1} image
+     * @param small            whether to use the depleted image, one above {@link ImageIds#TERRAN_GAS_TANK_TYPE1}, {@link ImageIds#ZERG_GAS_SAC_TYPE1} or {@link ImageIds#PROTOSS_GAS_ORB_TYPE1}
      * @param instructionLimit the shared creation script budget
      * @throws IllegalArgumentException if the unit type is not a refinery or the instruction limit is not positive
      * @throws IllegalStateException    if the worker has no main image
@@ -2068,13 +2055,13 @@ public final class IscriptExecutor {
     }
 
     /**
-     * Queues a sound event at a position for the interface.
+     * Plays a sound at a map position ({@link UnitSounds#playAt}).
      *
      * @param soundId   the {@code sfxdata.dat} index
      * @param positionX the horizontal map position
      * @param positionY the vertical map position
      */
     public void playSound(int soundId, int positionX, int positionY) {
-        this.game.getInterfaceLink().getSoundEvents().add(soundId, positionX, positionY, ScrUnitIds.NONE);
+        this.game.getUnitSounds().playAt(soundId, positionX, positionY);
     }
 }

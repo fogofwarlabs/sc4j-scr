@@ -22,8 +22,7 @@ import java.util.stream.Stream;
  * A replay is {@link Classification#ERROR} when the run fails (an exception, a runtime that cannot be constructed, a stall), when its game ends
  * before the last frame as the native game ends it (an EUD failure, a Restart Game command), or when it completes fewer frames than its header. It is
  * {@link Classification#SUSPICIOUS} when one player's commands show a {@link Signal} within {@value #SPAN_WINDOWS} consecutive windows of
- * {@value CommandValidityCheck#WINDOW_FRAMES} frames, and {@link Classification#OK} otherwise. The thresholds were calibrated on replays that are
- * known to agree with the native game (no signal in any window) and on known divergences.
+ * {@value CommandValidityCheck#WINDOW_FRAMES} frames, and {@link Classification#OK} otherwise.
  * <p>
  * {@link #run} plays the replay in a run of its own; {@link #of} classifies the shared run of a replay ({@link SharedReplayRunScenario}) that other
  * checks of the same replay read. Both classify the same end values and counts.
@@ -244,8 +243,7 @@ public final class ReplaySurveyCheck {
      * Creates a {@link ReplaySurveyCheck} instance that classifies the end values and the command counts of a run.
      *
      * @param headerFrames       the frame count of the replay header
-     * @param endValues          the end values of the run ({@link ReplayRunScenario#putValues}); only {@code failure} if the runtime could not be
-     *                           constructed
+     * @param endValues          the end values of the run ({@link ReplayRunScenario#putValues}); only {@code failure} if the runtime could not be constructed
      * @param validity           the command counts of the run
      * @param elapsedNanoseconds the nanoseconds the run took
      */
@@ -412,8 +410,7 @@ public final class ReplaySurveyCheck {
     /**
      * Describes the per-window counts of every player that sent commands.
      *
-     * @return one {@code p<slot>=<counts>|<counts>|...} group per player with one entry per window, the counts in {@link Counter} order separated by
-     * {@code /}
+     * @return one {@code p<slot>=<counts>|<counts>|...} group per player with one entry per window, the counts in {@link Counter} order separated by {@code /}
      */
     public @NotNull String describeWindows() {
         StringBuilder description = new StringBuilder();

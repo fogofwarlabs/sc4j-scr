@@ -58,8 +58,7 @@ final class LiveReplayWriter {
     }
 
     /**
-     * @return the automatic replay file of the running game: the launch's explicit save file, else {@value #LAST_REPLAY_FILE} in the replay
-     * folder, or {@code null} for a campaign mission
+     * @return the automatic replay file of the running game: the launch's explicit save file, else {@value #LAST_REPLAY_FILE} in the replay folder, or {@code null} for a campaign mission
      */
     private @Nullable Path getAutomaticFile() {
         ClientOptions.Melee melee = this.options.getMelee();

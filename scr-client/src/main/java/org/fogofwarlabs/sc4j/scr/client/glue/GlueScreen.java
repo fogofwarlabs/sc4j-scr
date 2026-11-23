@@ -508,9 +508,11 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
     }
 
     /**
+     * Returns the text of the edit control of the definition's id ({@link #setEditText}) as drawn: with the blinking caret string while it has
+     * the keyboard focus ({@link EditText#getDrawnText}).
+     *
      * @param control a control definition of the dialog
-     * @return the text of the edit control of the definition's id ({@link #setEditText}) as drawn: with the blinking caret string while it has
-     * the keyboard focus ({@link EditText#getDrawnText}), or an empty string for another control
+     * @return the drawn text of the edit control, or an empty string for another control
      * @throws IllegalStateException if the screen is not open
      */
     protected final @NotNull String getDrawnEditText(@NotNull DialogControl control) {
@@ -616,8 +618,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
 
     /**
      * @param control an {@code EDITTEXT} control with {@link #FRAMED_FLAG}
-     * @return the image of the pages' images ({@link GlueCanvas#getWebImage}) the text field shows left of its text, or an empty string for
-     * none
+     * @return the image of the pages' images ({@link GlueCanvas#getWebImage}) the text field shows left of its text, or an empty string for none
      */
     protected @NotNull String getEditIcon(@NotNull DialogControl control) {
         return "";
@@ -655,8 +656,7 @@ public abstract class GlueScreen implements Scene<GlueContext, GlueCanvas> {
     }
 
     /**
-     * @return {@code true} if Shift is held with the press {@link #onPointerPressed} handles, which extends a text selection, {@code false}
-     * otherwise
+     * @return {@code true} if Shift is held with the press {@link #onPointerPressed} handles, which extends a text selection, {@code false} otherwise
      */
     protected final boolean isExtendingPress() {
         return KeyModifier.SHIFT.isIn(this.modifiers);

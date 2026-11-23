@@ -40,8 +40,8 @@ import java.util.Set;
  * menu whispers, adds or removes the friend and blocks or unblocks the player. Channels are shared by every mod.
  * <p>
  * The screen opens the network of the multiplayer screens (the room list, the lobby and the chat use the same one) and enters the chat once a
- * node registered the session; a failed connection shows the network's error box, which returns to the connection choice. The chat of the network stays
- * open while the player is in a room or a game, and the screen shows its recent log again on every visit.
+ * node registered the session; a failed connection shows the network's error box, which returns to the connection choice. The chat of the network
+ * stays open while the player is in a room or a game, and the screen shows its recent log again on every visit.
  */
 public final class ChannelChatScreen extends GlueScreen {
     /**

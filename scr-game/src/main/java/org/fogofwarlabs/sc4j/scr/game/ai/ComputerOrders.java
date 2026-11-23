@@ -287,8 +287,7 @@ public final class ComputerOrders {
 
     /**
      * @param unit the unit
-     * @return {@link #ARRIVAL_AWAY} away from the movement destination, otherwise {@link #ARRIVAL_REACHED}, or
-     * {@link #ARRIVAL_BLOCKED} when immovable
+     * @return {@link #ARRIVAL_AWAY} away from the movement destination, otherwise {@link #ARRIVAL_REACHED}, or {@link #ARRIVAL_BLOCKED} when immovable
      * @throws UnsupportedOperationException if the unit has no sprite
      */
     public static int getArrival(@NotNull Unit unit) {
@@ -616,8 +615,7 @@ public final class ComputerOrders {
      *
      * @param unit             the neutral unit
      * @param instructionLimit the iscript budget for issued orders
-     * @throws UnsupportedOperationException if the switch to computer behavior has no computer-player phase or no player relations, or the unit pool
-     *                                       is not initialized
+     * @throws UnsupportedOperationException if the switch to computer behavior has no computer-player phase or no player relations, or the unit pool is not initialized
      * @throws NullPointerException          if the world was built without game data
      * @throws IllegalStateException         if the automatic target has no sprite
      */
@@ -1085,8 +1083,7 @@ public final class ComputerOrders {
      *
      * @return {@code true} if a special behavior handled the unit, {@code false} otherwise
      * @throws NullPointerException          if the world was built without game data
-     * @throws UnsupportedOperationException if a unit-type case needs the computer-player phase and the game has none or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if a unit-type case needs the computer-player phase and the game has none or the unit pool is not initialized
      * @throws IllegalStateException         if the repairer, the unit or the candidate has no sprite
      */
     private boolean updateSpecialAbility(@NotNull Unit unit) {

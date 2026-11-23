@@ -167,8 +167,7 @@ public final class HdImageSet implements AutoCloseable {
      *
      * @param animations   the anims of the quality and skin
      * @param lighting     whether the lit path's emissive, normal, specular and AO/depth layers are uploaded too
-     * @param uploadWindow a hidden window whose context shares objects with the current one and is current on no thread, used by the upload
-     *                     thread of a load, or {@code null} to upload in {@link #continueLoad(long)}
+     * @param uploadWindow a hidden window whose context shares objects with the current one and is current on no thread, used by the upload thread of a load, or {@code null} to upload in {@link #continueLoad(long)}
      */
     public HdImageSet(@NotNull HdAnimations animations, boolean lighting, @Nullable HostWindow uploadWindow) {
         boolean compressedTextures = GL.getCapabilities().GL_EXT_texture_compression_s3tc;
@@ -555,8 +554,7 @@ public final class HdImageSet implements AutoCloseable {
      * Returns the textures of an image, uploading it if needed.
      *
      * @param image        the image identifier
-     * @param streaming    {@code true} to skip an image that is not prepared yet (it is queued for the loader threads) or when this frame's upload
-     *                     budget is spent, {@code false} to wait for it
+     * @param streaming    {@code true} to skip an image that is not prepared yet (it is queued for the loader threads) or when this frame's upload budget is spent, {@code false} to wait for it
      * @param uploadBudget the upload time per frame while streaming
      * @param frame        the scene frame counter, for least-recently-used eviction
      * @param beforeUpload run before an upload (the scene flushes its batch)

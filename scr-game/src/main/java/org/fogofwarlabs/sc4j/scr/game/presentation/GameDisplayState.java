@@ -430,13 +430,13 @@ public final class GameDisplayState {
 
     /**
      * Refreshes the represented empty-selection or replay panel.
+     * <p>
+     * The display refresh and panel selection must be initialized, the panel present and its identity the selection panel identity. In replay mode
+     * the replay controls and visibility counters must be present and no unit selected; while the panel redraw flag is clear, the current button
+     * set must be empty when the fallback button set is, and otherwise empty or the paused or playing one. Outside replay mode the selection and
+     * the current, fallback and displayed button sets must be empty.
      *
-     * @throws UnsupportedOperationException if the display refresh or panel selection is not initialized, the panel is missing or the refreshed panel
-     *                                       identity differs from the selection panel identity; in replay mode, if the replay controls or visibility
-     *                                       counters are missing or a unit is selected, or, while the panel redraw flag is clear, if the current
-     *                                       button set is empty while the fallback button set is not, or is neither empty nor the paused or playing
-     *                                       one; outside replay mode, if the selection or any of the current, fallback and displayed button sets is
-     *                                       not empty
+     * @throws UnsupportedOperationException if the display state is not represented
      */
     public void refreshDisplayPanel() {
         if (!this.displayRefreshInitialized || !this.panelSelectionInitialized || this.statusButtonPanel == null ||
@@ -595,8 +595,7 @@ public final class GameDisplayState {
      * @param totalFrames the total replay frames
      * @param targetFrame the target replay frame
      * @param framePeriod the selected frame duration
-     * @throws UnsupportedOperationException if the display refresh or panel selection is not initialized, or, with a nonzero refresh panel identity
-     *                                       in replay mode, the replay controls or the panel are missing
+     * @throws UnsupportedOperationException if the display refresh or panel selection is not initialized, or a replay panel refresh lacks its controls or panel
      */
     public void finishReplayDisplayPanelFrame(int frame, int totalFrames, int targetFrame, int framePeriod) {
         if (!this.displayRefreshInitialized || !this.panelSelectionInitialized) {
@@ -644,9 +643,10 @@ public final class GameDisplayState {
 
     /**
      * Refreshes empty-selection statistics when all retained children are hidden.
+     * <p>
+     * While the statistics redraw flag is set, the retained child state must be present and every child hidden.
      *
-     * @throws UnsupportedOperationException if the display refresh or panel selection is not initialized or a unit is selected, or, while the
-     *                                       statistics redraw flag is set, the retained child state is missing or a child is visible
+     * @throws UnsupportedOperationException if the display refresh or panel selection is not initialized, a unit is selected or a child is not represented
      */
     public void refreshEmptySelectionStatistics() {
         if (!this.displayRefreshInitialized || !this.panelSelectionInitialized || this.selectedIdentity != 0) {

@@ -654,8 +654,7 @@ public final class UnitCloaking {
      * @param unit the unit
      * @return the detecting players as a player mask
      * @throws IllegalStateException         if no status effect reveals the unit and it has no sprite
-     * @throws UnsupportedOperationException if no status effect reveals the unit and it carries a powerup, the sight coverage is missing or the game
-     *                                       has no unit finder, or the unit pool is not initialized
+     * @throws UnsupportedOperationException if no status effect reveals the unit and it carries a powerup, or required state is missing
      */
     private int calculateDetectedFlags(@NotNull Unit unit) {
         if (unit.getDefensiveMatrixHealth() != 0 || unit.getLockdownTimer() != 0 || unit.getMaelstromTimer() != 0 ||
@@ -707,8 +706,7 @@ public final class UnitCloaking {
      * @param detector the candidate detector
      * @param coverage the sight coverage with the shared vision masks
      * @return the detector's owner, the players it shares vision with and its parasite flags, or {@code 0} if it does not detect the unit
-     * @throws IllegalStateException if the candidate is a completed, enabled, not blinded and not hallucinated detector other than the unit, and the
-     *                               unit has no sprite
+     * @throws IllegalStateException if the candidate is a completed, enabled, not blinded and not hallucinated detector other than the unit, and the unit has no sprite
      * @throws NullPointerException  if the world was built without game data
      */
     private int calculateDetectorFlags(@NotNull Unit unit, @NotNull Unit detector, @NotNull SightCoverage coverage) {

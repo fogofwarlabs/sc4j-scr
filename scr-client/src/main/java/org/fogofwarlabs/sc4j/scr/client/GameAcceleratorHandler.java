@@ -49,8 +49,7 @@ final class GameAcceleratorHandler {
     }
 
     /**
-     * @return popup mode while a game popup, the menus' popup over the game or a trigger pause is active, chat mode while the prompt is open,
-     * or play mode
+     * @return popup mode while a game popup, the menus' popup over the game or a trigger pause is active, chat mode while the prompt is open, or play mode
      */
     @NotNull GameAccelerators.Mode getMode() {
         ClientSession session = this.main.session;

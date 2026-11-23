@@ -916,8 +916,7 @@ public final class LanLobby implements GameLobby {
          * @param templateOwners the twelve saved template types
          * @param forces         the twelve force bytes of the map (eight force bytes and four more)
          * @param settings       the eight settings bytes (the selectable races)
-         * @param lobbyData      the {@code 0x69} command's {@code 153} bytes after its id: the custom color flag, eight bytes that keep
-         *                       the map colors, the eight color locks, the eight slot colors, {@code 128} more bytes
+         * @param lobbyData      the {@code 0x69} command's {@code 153} bytes after its id: the custom color flag, eight bytes that keep the map colors, the eight color locks, the eight slot colors, {@code 128} more bytes
          * @param records        the host's twelve lobby records, the host in its slot
          * @param mapFileName    the map file name
          * @param mapFileSize    the map file size
@@ -1901,18 +1900,21 @@ public final class LanLobby implements GameLobby {
     }
 
     /**
+     * Returns the saved slot of a record's player. After the game start the host's saved data {@code 0x48} set the eight player bytes on
+     * every client.
+     *
      * @param index the record index, {@code 0..11}
-     * @return the saved slot of the record's player, {@link #NO_SAVED_SLOT} for none; after the game start the host's
-     * saved data {@code 0x48} set the eight player bytes on every client
+     * @return the saved slot of the record's player, {@link #NO_SAVED_SLOT} for none
      */
     public int getSavedSlot(int index) {
         return this.startBytes[index] & BYTE_MASK;
     }
 
     /**
-     * @return the host's refusal code of message {@code 0x4e} (the lobby error table: {@code 0} booted, {@code 1} banned,
-     * {@code 2} slot closed / full, {@code 4} unjoinable, {@code 7} version mismatch, ...), {@link #NO_REFUSAL}
-     * while none arrived
+     * Returns the host's refusal code of message {@code 0x4e} (the lobby error table: {@code 0} booted, {@code 1} banned, {@code 2} slot
+     * closed / full, {@code 4} unjoinable, {@code 7} version mismatch, ...).
+     *
+     * @return the refusal code, {@link #NO_REFUSAL} while none arrived
      */
     public int getRefusal() {
         return this.refusal;
@@ -1959,9 +1961,11 @@ public final class LanLobby implements GameLobby {
     }
 
     /**
+     * Returns a player's map download percent from its {@code 0x3d} commands, kept by player index: the host's command precedes the slot
+     * changes that name it.
+     *
      * @param player the player identifier
-     * @return the player's map download percent from its {@code 0x3d} commands (kept by player index: the host's command
-     * precedes the slot changes that name it), {@code -1} if none arrived
+     * @return the player's map download percent, {@code -1} if none arrived
      */
     public int getDownloadPercent(int player) {
         int index = PlayerSlots.getPlayerIndex(player);
@@ -1979,8 +1983,7 @@ public final class LanLobby implements GameLobby {
 
     /**
      * @param slot the slot, {@code 0..7}
-     * @return {@code true} if the map fixes the slot's color (the lock table that {@code CRGB} sets; the color request
-     * check then refuses every change), {@code false} otherwise
+     * @return {@code true} if the map fixes the slot's color (the lock table that {@code CRGB} sets; the color request check then refuses every change), {@code false} otherwise
      */
     public boolean isColorLocked(int slot) {
         return this.lobbyData[LOBBY_DATA_COLOR_LOCKS + slot] != 0;
@@ -1988,8 +1991,7 @@ public final class LanLobby implements GameLobby {
 
     /**
      * @param slot the slot, {@code 0..7}
-     * @return {@code true} if the map lets the slot's player choose the race ({@code SIDE} {@code 5}, the game settings'
-     * byte of the slot; Use Map Settings allows a race change only then), {@code false} otherwise
+     * @return {@code true} if the map lets the slot's player choose the race ({@code SIDE} {@code 5}, the game settings' byte of the slot; Use Map Settings allows a race change only then), {@code false} otherwise
      */
     public boolean isRaceSelectable(int slot) {
         return this.gameSettings.length == GAME_SETTINGS_SIZE && this.gameSettings[SETTINGS_SELECTABLE_RACES_OFFSET + slot] != 0;
@@ -2014,8 +2016,7 @@ public final class LanLobby implements GameLobby {
 
     /**
      * @param force the force, {@code 0..3}
-     * @return the force name: the host's map {@code FORC} string, a joiner's from message {@code 0x4b}; empty when the map
-     * names none or nothing arrived (the caller then uses {@code strFORCE1..4})
+     * @return the force name: the host's map {@code FORC} string, a joiner's from message {@code 0x4b}; empty when the map names none or nothing arrived (the caller then uses {@code strFORCE1..4})
      */
     public @NotNull String getForceName(int force) {
         return this.forceNames[force];
@@ -2029,8 +2030,7 @@ public final class LanLobby implements GameLobby {
     }
 
     /**
-     * @return the local map file of the game: the host's shared map, or the joiner's copy once its transfer from the
-     * host holds the whole file (found in the map folders or downloaded); {@code null} before
+     * @return the local map file of the game: the host's shared map, or the joiner's copy once its transfer from the host holds the whole file (found in the map folders or downloaded); {@code null} before
      */
     public @Nullable Path getMapFile() {
         LanMapTransfer.SharedFile shared = this.sharedMap;
@@ -2116,7 +2116,7 @@ public final class LanLobby implements GameLobby {
      * from what every client holds alike: the live records, the game settings message {@code 0x4a} (template types and
      * races, saved types, the map forces and flags, the selectable-race bytes, the tileset) and the lobby data
      * {@code 0x69} (colors, locks, kept bytes). The template forces a reset restores are the map forces of {@code 0x4a}
-     * (the host's own template may hold the game type's forces instead; the recorded games do not tell them apart).
+     * (the host's own template may hold the game type's forces instead).
      *
      * @return the created {@link LobbyResolution.Table} instance
      * @throws IllegalStateException if the game settings are not known yet
@@ -3738,8 +3738,7 @@ public final class LanLobby implements GameLobby {
      * closed (type {@code 8}); a slot held by a player (type {@code 2} or {@code 9}) or the host's own slot is left; the
      * slot returns to its template record keeping its race (a computer takes Random) and force. Then the slot change
      * {@code 0x3e} and, while the slot's color is not locked, its color back to the default ({@code 0x68}
-     * {@code {slot, 0x16}}). In a team game the whole force changes (a computer only when no human is in it; not traced
-     * further).
+     * {@code {slot, 0x16}}). In a team game the whole force changes (a computer only when no human is in it).
      *
      * @param slot  the slot byte
      * @param state the slot state

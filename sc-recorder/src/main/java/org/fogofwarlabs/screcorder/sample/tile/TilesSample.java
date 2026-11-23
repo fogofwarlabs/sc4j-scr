@@ -23,8 +23,7 @@ public final class TilesSample implements Sample {
      * @param width  the map width in tiles
      * @param height the map height in tiles
      * @param tiles  the row-major tile identifier words, copied on construction
-     * @throws IllegalArgumentException if a dimension is outside {@code 1} through {@link #MAXIMUM_DIMENSION} or {@code tiles} does not hold
-     *                                  {@code width * height} words
+     * @throws IllegalArgumentException if a dimension is outside {@code 1} through {@link #MAXIMUM_DIMENSION} or {@code tiles} does not hold {@code width * height} words
      */
     public TilesSample(int width, int height, short @NotNull [] tiles) {
         if (width < 1 || width > MAXIMUM_DIMENSION || height < 1 || height > MAXIMUM_DIMENSION || tiles.length != width * height) {

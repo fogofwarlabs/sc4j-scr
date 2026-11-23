@@ -15,8 +15,7 @@ interface ComputerScriptInstruction extends ComputerInstruction<ScrComputerScrip
      * Executes the opcode of the context ({@link #execute(ComputerPlayerPhase, int, int, int, int, boolean, int)}).
      *
      * @param context the context of the running script
-     * @return {@code true} if the script continues with its next instruction, {@code false} if it stops for this frame (a wait, an end
-     * or a retry later)
+     * @return {@code true} if the script continues with its next instruction, {@code false} if it stops for this frame (a wait, an end or a retry later)
      */
     @Override
     default boolean execute(@NotNull ScrComputerScriptContext context) {

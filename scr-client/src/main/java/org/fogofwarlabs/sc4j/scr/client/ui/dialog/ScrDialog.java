@@ -128,8 +128,7 @@ public final class ScrDialog extends Dialog {
      * Finds a control by the id its definition gives: the native dialog data and procedures name controls by id.
      *
      * @param id the id of the control's definition
-     * @return the first top-level control with the id in drawing order, else the first child with it, or {@code null} if no
-     * control has it
+     * @return the first top-level control with the id in drawing order, else the first child with it, or {@code null} if no control has it
      */
     @Override
     public @Nullable ScrControl findControl(int id) {
@@ -235,8 +234,9 @@ public final class ScrDialog extends Dialog {
     }
 
     /**
-     * @return the id of the control with the keyboard focus, or {@link #NONE}: the native form the procedures compare with their
-     * control ids
+     * Returns the id of the focused control, the native form the procedures compare with their control ids.
+     *
+     * @return the id of the control with the keyboard focus, or {@link #NONE}
      */
     public int getFocusedId() {
         return getId(this.getFocused());
@@ -292,9 +292,11 @@ public final class ScrDialog extends Dialog {
     }
 
     /**
+     * Tests whether a push button has the focus: it is enabled and it is the focused control, or the dialog's default push button while no
+     * control has the focus ({@link #setDefaultButtonFocus}).
+     *
      * @param control a push button of this dialog
-     * @return {@code true} if the button has the focus (it is the focused control, or the dialog's default push button while no
-     * control has the focus ({@link #setDefaultButtonFocus}), and it is enabled), {@code false} otherwise
+     * @return {@code true} if the button has the focus, {@code false} otherwise
      * @throws IllegalArgumentException if the dialog has neither the definition nor a control with its id
      */
     public boolean isButtonFocused(@NotNull DialogControl control) {

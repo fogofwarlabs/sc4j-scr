@@ -504,8 +504,7 @@ public final class DoodadOrders {
      *
      * @param unit             the flag beacon
      * @param instructionLimit the creation, completion and order budget
-     * @throws UnsupportedOperationException if accounting, the creation context or the owner's player is unavailable, or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if accounting, the creation context or the owner's player is unavailable, or the unit pool is not initialized
      * @throws IllegalStateException         if the unit has no sprite
      * @throws NullPointerException          if the world was built without game data
      */

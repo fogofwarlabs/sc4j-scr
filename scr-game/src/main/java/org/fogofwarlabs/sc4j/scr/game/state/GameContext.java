@@ -128,8 +128,7 @@ public final class GameContext {
     /**
      * Creates a {@link GameContext} instance for a new game.
      *
-     * @param gameData the game data tables (the code constants of the installed executable), or {@code null} in unit tests
-     *                 that build worlds without game data
+     * @param gameData the game data tables (the code constants of the installed executable), or {@code null} in unit tests that build worlds without game data
      * @param map      the map (the default context tileset)
      */
     public GameContext(@Nullable GameData gameData, @NotNull GameMap map) {
@@ -213,8 +212,7 @@ public final class GameContext {
     }
 
     /**
-     * @return the in-memory replay header section ({@code 0x279} bytes), shared and mutable,
-     * or {@code null} when it is not known
+     * @return the in-memory replay header section ({@code 0x279} bytes), shared and mutable, or {@code null} when it is not known
      */
     public byte @Nullable [] getGameHeaderSection() {
         return this.gameHeaderSection;
@@ -230,8 +228,7 @@ public final class GameContext {
     }
 
     /**
-     * @return the eight player forces and four force flags the game started with, or {@code null} when the start did not
-     * provide them
+     * @return the eight player forces and four force flags the game started with, or {@code null} when the start did not provide them
      */
     public byte @Nullable [] getForceSnapshot() {
         return this.forceSnapshot;
@@ -263,8 +260,7 @@ public final class GameContext {
     }
 
     /**
-     * @return the elapsed seconds at {@link #getElapsedFrameBase()}: {@code 0}, or those of the saved game the game was
-     * loaded from
+     * @return the elapsed seconds at {@link #getElapsedFrameBase()}: {@code 0}, or those of the saved game the game was loaded from
      */
     public int getElapsedSecondsBase() {
         return this.elapsedSecondsBase;
@@ -323,8 +319,7 @@ public final class GameContext {
     }
 
     /**
-     * @return the twelve lobby color bytes of the game context, shared and mutable: the EUD context tail serves and
-     * stores them
+     * @return the twelve lobby color bytes of the game context, shared and mutable: the EUD context tail serves and stores them
      */
     public byte @NotNull [] getContextLobbyColors() {
         return this.contextLobbyColors;
@@ -346,16 +341,14 @@ public final class GameContext {
     }
 
     /**
-     * @return the pauses left of players 0..7 in the game context, shared and mutable: the network pause handling and the
-     * EUD game-data block read and write them
+     * @return the pauses left of players 0..7 in the game context, shared and mutable: the network pause handling and the EUD game-data block read and write them
      */
     public byte @NotNull [] getContextPauses() {
         return this.contextPauses;
     }
 
     /**
-     * @return the game-context bytes no simulation object owns ({@link #CONTEXT_SIZE} bytes indexed by context offset),
-     * shared and mutable: the EUD emulation and the saved game serve them
+     * @return the game-context bytes no simulation object owns ({@link #CONTEXT_SIZE} bytes indexed by context offset), shared and mutable: the EUD emulation and the saved game serve them
      */
     public byte @NotNull [] getContextStorage() {
         return this.contextStorage;
@@ -451,8 +444,7 @@ public final class GameContext {
     }
 
     /**
-     * @return the path bytes of the file the game was loaded from (the replay file of replay playback, the map file of a
-     * live game), or {@code null} when the game has no source file
+     * @return the path bytes of the file the game was loaded from (the replay file of replay playback, the map file of a live game), or {@code null} when the game has no source file
      */
     public byte @Nullable [] getMapArchivePath() {
         return this.mapArchivePath;
@@ -514,8 +506,7 @@ public final class GameContext {
     }
 
     /**
-     * @return the fog level of visible tiles (default {@code 0x1F}): the world fog builder gives visible tiles this level
-     * and explored tiles half of it, so it sets the world's brightness
+     * @return the fog level of visible tiles (default {@code 0x1F}): the world fog builder gives visible tiles this level and explored tiles half of it, so it sets the world's brightness
      */
     public int getVisibleFogLevel() {
         return this.visibleFogLevel;

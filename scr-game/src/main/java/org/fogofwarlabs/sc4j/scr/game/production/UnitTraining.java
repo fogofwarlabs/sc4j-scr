@@ -45,8 +45,7 @@ public final class UnitTraining {
      *
      * @param producer         the unit executing the {@link ScrOrderIds#TRAIN} secondary order
      * @param instructionLimit the creation, animation, hit point image, completion, cancellation and order budget
-     * @throws UnsupportedOperationException if the producer's sprite, the supply accounting, the creation context, the unit pool or the owner is
-     *                                       missing, or a completed unit would be completed again
+     * @throws UnsupportedOperationException if the producer's sprite, the supply accounting, the creation context, the unit pool or the owner is missing, or a completed unit would be completed again
      * @throws NullPointerException          if the world was built without game data
      */
     public void update(@NotNull Unit producer, int instructionLimit) {

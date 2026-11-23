@@ -334,8 +334,7 @@ public final class UnitRegistry {
      *
      * @param game          the game containing the initial player records and created units
      * @param frameDuration the duration of one simulation frame
-     * @throws IllegalStateException if the registry is already initialized, uses a different unit pool, or research, upgrades, construction, repair
-     *                               or training is active
+     * @throws IllegalStateException if the registry is already initialized, uses a different unit pool, or research, upgrades, construction, repair or training is active
      * @throws NullPointerException  if the world was built without game data
      */
     public void populateReplayOwners(@NotNull Game game, int frameDuration) {

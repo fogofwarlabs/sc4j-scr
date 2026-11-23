@@ -15,8 +15,7 @@ import java.util.*;
  * listed class.
  * <p>
  * The list is a UTF-8 resource with one {@code <key> TAB <class> TAB <signals> TAB <note>} line per case that is not {@code ok}; lines starting with
- * {@code #} and blank lines are ignored. A line without a class or with a repeated key fails the read. The failure messages name the list, so that a
- * fixed case is removed from it and a changed one is updated with evidence.
+ * {@code #} and blank lines are ignored. A line without a class or with a repeated key fails the read. The failure messages name the list.
  */
 final class KnownProblemsAssert {
     private static final @NotNull String OK = "ok";

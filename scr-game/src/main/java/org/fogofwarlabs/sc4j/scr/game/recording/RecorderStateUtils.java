@@ -237,8 +237,7 @@ public final class RecorderStateUtils {
      * Finds the unit a unit's union points to.
      *
      * @param unit a unit
-     * @return the worker gather target or the linked unit ({@link UnitQueries#getLinkedUnit}: silo nuke or nydus exit) held by the unit union,
-     * or {@code null} if the union holds no unit
+     * @return the worker gather target or the linked unit ({@link UnitQueries#getLinkedUnit}: silo nuke or nydus exit) held by the unit union, or {@code null} if the union holds no unit
      */
     public static @Nullable Unit getUnionPointerTarget(@NotNull Unit unit) {
         if (unit.getGatherTarget() != null) {

@@ -168,8 +168,7 @@ public final class PlayerUpgrades implements GameContextBytes {
      *
      * @param progress  the progress table of the game, with the SC:R extension columns ({@link PlayerProgressColumns})
      * @param expansion the expansion BYTE of the game context, read live
-     * @param context   supplies the view of the whole game context as the world has it at the access, which serves the bytes outside the upgrade
-     *                  tables, or {@code null} when no game context exists
+     * @param context   supplies the view of the whole game context as the world has it at the access, which serves the bytes outside the upgrade tables, or {@code null} when no game context exists
      */
     public PlayerUpgrades(@NotNull PlayerProgressTable progress, @NotNull ContextExpansion expansion, @Nullable Supplier<GameContextBytes> context) {
         this.expansion     = expansion;
@@ -231,8 +230,7 @@ public final class PlayerUpgrades implements GameContextBytes {
      * @param playerIndex       the original player DWORD, without truncation
      * @param upgradeIdentifier the original upgrade WORD
      * @param level             the new level, truncated to a byte without clamping
-     * @throws UnsupportedOperationException if the expansion gate keeps the write and the addressed byte lies past the game context, or outside the
-     *                                       upgrade tables without a game context
+     * @throws UnsupportedOperationException if the expansion gate keeps the write and the addressed byte lies past the game context, or outside the upgrade tables without a game context
      */
     public void setLevel(int playerIndex, int upgradeIdentifier, int level) {
         upgradeIdentifier &= WORD_MASK;

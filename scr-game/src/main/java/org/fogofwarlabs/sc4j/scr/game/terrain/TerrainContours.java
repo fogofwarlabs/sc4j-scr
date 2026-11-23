@@ -238,8 +238,7 @@ public final class TerrainContours {
      * @param map     the normalized original map tiles
      * @param tileset the original CV5 and VF4 data
      * @return the created {@link TerrainContours} instance
-     * @throws UnsupportedOperationException if the map is too small or too large for the grid, the contour capacity or the tied boundary ordering is
-     *                                       unsupported, or the contour traversal does not terminate
+     * @throws UnsupportedOperationException if the map size, the contour count or the boundary ordering is unsupported, or the contour traversal does not terminate
      */
     public static @NotNull TerrainContours create(@NotNull GameMap map, @NotNull TerrainTileset tileset) {
         int width = map.getWidth() * MINI_TILES_PER_ROW;

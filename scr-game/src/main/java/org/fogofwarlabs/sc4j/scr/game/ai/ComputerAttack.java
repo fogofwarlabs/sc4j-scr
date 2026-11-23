@@ -449,8 +449,7 @@ public final class ComputerAttack {
     /**
      * @param phase the owning phase
      * @param index the region record
-     * @return {@code true} if the region has ground units, the owner has no transports and the first unit cannot reach
-     * the region center, {@code false} otherwise
+     * @return {@code true} if the region has ground units, the owner has no transports and the first unit cannot reach the region center, {@code false} otherwise
      * @throws IllegalStateException if a military record of the region holds no unit
      */
     boolean isUnreachable(@NotNull ComputerPlayerPhase phase, int index) {

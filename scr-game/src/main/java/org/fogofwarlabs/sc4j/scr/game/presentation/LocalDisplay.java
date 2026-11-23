@@ -46,8 +46,7 @@ public final class LocalDisplay {
          * @param dialog    the dialog
          * @param control   the control's identifier in the dialog's definition
          * @param rectangle receives the left, top, width and height
-         * @return {@code true} if the client drew the dialog with the control, {@code false} if the dialog or the control is hidden or unknown,
-         * the rectangle then unchanged
+         * @return {@code true} if the client drew the dialog with the control, {@code false} if the dialog or the control is hidden or unknown, the rectangle then unchanged
          */
         boolean findControlRectangle(ScrConsolePlacement.@NotNull Dialog dialog, int control, float @NotNull [] rectangle);
     }

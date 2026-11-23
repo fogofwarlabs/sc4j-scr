@@ -38,8 +38,7 @@ public final class GlueResume {
          * <p>
          * This saver writes nothing and returns {@code false}.
          *
-         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer,
-         *             without trailing spaces and without terminator
+         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer, without trailing spaces and without terminator
          * @return {@code true} if the save was written or sent, {@code false} otherwise
          */
         @Override
@@ -91,8 +90,7 @@ public final class GlueResume {
          * <p>
          * A replay saver writes the game's replay into {@link #getDirectory()}.
          *
-         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer,
-         *             without trailing spaces and without terminator
+         * @param name the name the dialog read from its name box: the bytes cut to a saved game name buffer, without trailing spaces and without terminator
          * @return {@code true} if the save was written or sent, {@code false} otherwise
          */
         @Override

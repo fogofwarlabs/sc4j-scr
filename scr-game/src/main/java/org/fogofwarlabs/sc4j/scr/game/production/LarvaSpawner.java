@@ -311,12 +311,11 @@ public final class LarvaSpawner {
     /**
      * Runs the Larva primary order: the Larva follows its parent, dies off creep away from its parent and wanders randomly on its parent's side.
      * <p>
-     * The facing call's pickup result is deliberately ignored.
+     * The facing call's pickup result is ignored.
      *
      * @param unit             the persistent Larva
      * @param instructionLimit the order budget
-     * @throws UnsupportedOperationException if the unit's sprite, or when needed its movement target's or its parent's sprite, is missing, or the
-     *                                       order state is not a side
+     * @throws UnsupportedOperationException if the unit's sprite, or when needed its movement target's or its parent's sprite, is missing, or the order state is not a side
      * @throws NullPointerException          if the world was built without game data
      */
     public void updatePrimary(@NotNull Unit unit, int instructionLimit) {
@@ -550,8 +549,7 @@ public final class LarvaSpawner {
      *
      * @param unit             the persistent Hatchery
      * @param instructionLimit the creation, completion and order budget
-     * @throws UnsupportedOperationException if the execution scope is missing or inactive, or the creation inputs, spatial index or owner type BYTE
-     *                                       is missing
+     * @throws UnsupportedOperationException if the execution scope is missing or inactive, or the creation inputs, spatial index or owner type BYTE is missing
      */
     public void updateIdleHatchery(@NotNull Unit unit, int instructionLimit) {
         this.updateIdleHatchery(unit, -1, instructionLimit);
@@ -565,8 +563,7 @@ public final class LarvaSpawner {
      * @param unit             the persistent parent
      * @param ownerPlayerType  the owner type BYTE
      * @param instructionLimit the creation, completion and order budget
-     * @throws UnsupportedOperationException if the execution scope is missing or inactive, or the creation inputs, spatial index or owner type BYTE
-     *                                       is missing
+     * @throws UnsupportedOperationException if the execution scope is missing or inactive, or the creation inputs, spatial index or owner type BYTE is missing
      * @throws NullPointerException          if the world was built without game data
      */
     public void updateIdleHatchery(@NotNull Unit unit, int ownerPlayerType, int instructionLimit) {

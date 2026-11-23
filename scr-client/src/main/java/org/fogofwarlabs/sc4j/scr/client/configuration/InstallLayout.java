@@ -155,8 +155,7 @@ public final class InstallLayout {
      * Checks whether a directory holds a StarCraft: Remastered data pack.
      *
      * @param directory a candidate data directory
-     * @return {@code true} if {@code .build.info} is in it (with its {@code Data} folder) or it is the {@code Data} folder of a data pack,
-     * {@code false} otherwise
+     * @return {@code true} if {@code .build.info} is in it (with its {@code Data} folder) or it is the {@code Data} folder of a data pack, {@code false} otherwise
      */
     public static boolean isDataDirectory(@NotNull Path directory) {
         Path parent = directory.toAbsolutePath().getParent();
@@ -203,11 +202,11 @@ public final class InstallLayout {
     }
 
     /**
-     * Creates a {@link InstallLayout} instance from the client class location.
+     * Creates a {@link InstallLayout} instance from the client class location: rooted at the folder holding {@code lib/} for an installed jar,
+     * otherwise at the working directory.
      *
      * @param codeLocation the location the client classes were loaded from (a jar file or a class folder)
-     * @return the created {@link InstallLayout} instance rooted at the folder holding {@code lib/} for an installed jar, otherwise at the working
-     * directory
+     * @return the created {@link InstallLayout} instance
      */
     static @NotNull InstallLayout fromCodeLocation(@NotNull Path codeLocation) {
         Path location = codeLocation.toAbsolutePath();

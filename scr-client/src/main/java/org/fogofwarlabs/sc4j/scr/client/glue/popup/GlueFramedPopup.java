@@ -80,8 +80,7 @@ abstract class GlueFramedPopup extends GluePopup {
     }
 
     /**
-     * @return the dialog sheet the screen's buttons, lists, combo boxes and sliders draw from: the console race's sheet over
-     * a game, or the glue's {@link #DIALOG_SHEET} over a glue screen
+     * @return the dialog sheet the screen's buttons, lists, combo boxes and sliders draw from: the console race's sheet over a game, or the glue's {@link #DIALOG_SHEET} over a glue screen
      */
     @Override
     protected @NotNull String getDialogSheet() {

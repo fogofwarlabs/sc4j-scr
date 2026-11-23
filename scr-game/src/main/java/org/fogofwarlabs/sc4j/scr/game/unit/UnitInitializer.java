@@ -219,8 +219,7 @@ public final class UnitInitializer implements UnitEnergyLimits {
      * @param instructionLimit the checked interpreter instruction limit
      * @return {@code true} if the unit sprite was created and every initialization effect was applied, {@code false} otherwise
      * @throws UnsupportedOperationException if the unit type is past {@link ScrUnitIds#NONE} or the sprite pool is not initialized
-     * @throws IllegalStateException         if the immediate iscript update removed the sprite, the main image is absent, the player upgrade tables
-     *                                       are missing or the damage overlay count cannot be read
+     * @throws IllegalStateException         if the immediate iscript update removed the sprite or the main image, upgrades or damage overlays are missing
      * @throws NullPointerException          if the world was built without game data
      */
     public boolean initialize(@NotNull Unit unit, int unitType, int positionX, int positionY, int owner, int instructionLimit) {

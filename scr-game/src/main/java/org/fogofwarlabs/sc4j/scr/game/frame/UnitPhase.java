@@ -305,9 +305,7 @@ public final class UnitPhase {
      * @param buildingPowerRefresh   whether the native building power refresh gate DWORD is nonzero
      * @param elapsedHostTicks       the exact DWORD host tick difference of the frame
      * @param instructionLimit       the per-invocation script and movement transition bound
-     * @throws UnsupportedOperationException if the building or status refresh is enabled, the unit accounting is missing, a unit owner has no
-     *                                       retained player type, or the host tick difference lies in the host-timing diagnostic range, or the unit
-     *                                       pool or the building power gate is not initialized
+     * @throws UnsupportedOperationException if a caller refresh is enabled, required state is missing or the host tick difference lies in the host-timing diagnostic range
      */
     public void update(@NotNull Context context,
                        UnitMovement.@NotNull Context movementContext,
@@ -436,9 +434,7 @@ public final class UnitPhase {
      *
      * @param context          the explicitly supplied display controls
      * @param ownerPlayerTypes the normalized player-type BYTE values
-     * @throws UnsupportedOperationException if the building power gate, the active unit list, an owner type or a powered building sprite is
-     *                                       missing, the display refresh is not initialized, or its nonzero panel identity has no matching
-     *                                       represented panel and selection state
+     * @throws UnsupportedOperationException if required state is missing or the display refresh has no matching represented panel and selection state
      */
     public void refreshBuildingPower(@NotNull Context context, int @NotNull [] ownerPlayerTypes) {
         this.refreshBuildingPower(context, ownerPlayerTypes, Integer.MAX_VALUE);
@@ -452,9 +448,7 @@ public final class UnitPhase {
      * @param context          the unit phase and display controls
      * @param ownerPlayerTypes the normalized owner types
      * @param instructionLimit the animation instruction budget
-     * @throws UnsupportedOperationException if the building power gate, the active unit list, an owner type or a powered building sprite is
-     *                                       missing, the display refresh is not initialized, or its nonzero panel identity has no matching
-     *                                       represented panel and selection state
+     * @throws UnsupportedOperationException if required state is missing or the display refresh has no matching represented panel and selection state
      * @throws IllegalStateException         if a completed building enabled again has no sprite
      * @throws NullPointerException          if the world was built without game data
      */

@@ -841,8 +841,7 @@ final class TriggerActionsUtils {
     /**
      * Executes Set Invincibility over the units of the location rectangle ({@link TriggerUnitActions#setInvincibility}).
      *
-     * @throws UnsupportedOperationException if the evaluation runs without a world, or the world has no unit spatial index, or the unit pool is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the evaluation runs without a world, or the world has no unit spatial index, or the unit pool is not initialized
      * @throws IllegalStateException         if the terrain miniature flags cannot be loaded
      * @throws NullPointerException          if the world was built without game data
      */

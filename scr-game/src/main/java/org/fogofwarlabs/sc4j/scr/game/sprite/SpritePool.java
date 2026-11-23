@@ -667,8 +667,7 @@ public final class SpritePool {
      * @param sprite    the sprite whose final image just ended
      * @param mapHeight the established height in tiles
      * @return {@code true} if the row was valid and storage was returned, {@code false} otherwise
-     * @throws IllegalStateException if the sprite is not allocated storage of this pool, still has images or is not linked in its decoded row, or the
-     *                               map height is not positive
+     * @throws IllegalStateException if the sprite is not allocated storage of this pool, still has images or is not linked in its decoded row, or the map height is not positive
      */
     public boolean recycleEmptySprite(@NotNull Sprite sprite, int mapHeight) {
         int poolIndex = this.requireAllocated(sprite);

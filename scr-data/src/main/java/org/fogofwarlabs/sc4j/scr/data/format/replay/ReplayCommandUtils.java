@@ -179,13 +179,14 @@ public final class ReplayCommandUtils {
     }
 
     /**
-     * Returns the command length of a command the dispatcher would run from a buffer.
+     * Returns the command length of a command the dispatcher would run from a buffer, type byte included. The length is {@code -1} if the type
+     * has no dispatcher case, the command does not fit in the remaining bytes, or a Save Game or Load Game file name holds a control character
+     * before its terminator.
      *
      * @param data      the command bytes
      * @param offset    the offset of the command's type byte
      * @param remaining the bytes left in the buffer from the type byte on, at most {@code data.length - offset}
-     * @return the length, type byte included, or {@code -1} if the type has no dispatcher case, the command does not fit in
-     * the remaining bytes, or a Save Game or Load Game file name holds a control character before its terminator
+     * @return the length, or {@code -1} if the dispatcher would not run the command
      */
     public static int getCommandLength(byte @NotNull [] data, int offset, int remaining) {
         int typeIdentifier = data[offset] & BYTE_MASK;

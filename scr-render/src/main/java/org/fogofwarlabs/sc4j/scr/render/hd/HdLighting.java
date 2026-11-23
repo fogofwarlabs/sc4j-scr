@@ -465,10 +465,10 @@ final class HdLighting implements AutoCloseable {
     }
 
     /**
-     * Sets a debug view of the resolve.
+     * Sets a debug view of the resolve: {@code 0} normal, {@code 1} point-light overlay, {@code 2} light received by a white surface, {@code 3}
+     * albedo, {@code 4} normals, {@code 5} ambient occlusion, {@code 6} emissive, {@code 7} lighting amount.
      *
-     * @param view {@code 0} normal, {@code 1} point-light overlay, {@code 2} light received by a white surface, {@code 3} albedo, {@code 4} normals,
-     *             {@code 5} ambient occlusion, {@code 6} emissive, {@code 7} lighting amount
+     * @param view the debug view
      */
     void setDebugView(int view) {
         this.debugView = view;
@@ -809,8 +809,8 @@ final class HdLighting implements AutoCloseable {
      * <p>
      * However, implementers of this interface are strongly encouraged
      * to make their {@code close} methods idempotent.
-     * @implSpec Releases the targets, buffers and programs in the reverse order of their creation. A failing constructor closes the lighting too; the objects
-     * of the steps after the failed one are not created then.
+     * @implSpec Releases the targets, buffers and programs in the reverse order of their creation. A failing constructor closes the lighting too; the
+     * objects of the steps after the failed one are not created then.
      */
     @Override
     public void close() {

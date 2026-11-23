@@ -535,8 +535,7 @@ public final class ComputerTowns {
      *
      * @param player   the requesting computer player
      * @param town     the requesting town
-     * @param kind     the town request kind ({@link ComputerTown#REQUEST_UNIT}, {@link ComputerTown#REQUEST_UPGRADE} or
-     *                 {@link ComputerTown#REQUEST_TECHNOLOGY})
+     * @param kind     the town request kind ({@link ComputerTown#REQUEST_UNIT}, {@link ComputerTown#REQUEST_UPGRADE} or {@link ComputerTown#REQUEST_TECHNOLOGY})
      * @param type     the requested type
      * @param priority the priority BYTE
      * @throws NullPointerException if the world was built without game data
@@ -623,8 +622,7 @@ public final class ComputerTowns {
      *
      * @param phase the owning phase
      * @param owner the computer owner
-     * @throws UnsupportedOperationException if the unit accounting, the player upgrade storage, the unit pool or the player technology storage is not
-     *                                       initialized
+     * @throws UnsupportedOperationException if the unit accounting, the player upgrade storage, the unit pool or the player technology storage is not initialized
      */
     void processRequests(@NotNull ComputerPlayerPhase phase, int owner) {
         ComputerPlayer player = phase.getPlayer(owner);

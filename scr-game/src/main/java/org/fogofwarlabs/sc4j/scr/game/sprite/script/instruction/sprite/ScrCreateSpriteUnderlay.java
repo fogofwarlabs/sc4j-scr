@@ -31,8 +31,7 @@ public final class ScrCreateSpriteUnderlay extends ScrInstruction {
      * Creates a {@link ScrCreateSpriteUnderlay} instance.
      *
      * @param decoded        the decoded {@code sprul} or {@code spruluselo} instruction
-     * @param frameElevation {@code true} for {@code spruluselo}, whose elevation depends on the frame direction, {@code false} for
-     *                       {@code sprul}
+     * @param frameElevation {@code true} for {@code spruluselo}, whose elevation depends on the frame direction, {@code false} for {@code sprul}
      */
     public ScrCreateSpriteUnderlay(@NotNull IscriptInstruction decoded, boolean frameElevation) {
         super(decoded);

@@ -169,8 +169,7 @@ public final class GameViewport implements InterfaceTransform {
     }
 
     /**
-     * @return the logical width {@code W} of the interface pixels the transform maps
-     * ({@link org.fogofwarlabs.sc4j.engine.client.host.AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
+     * @return the logical width {@code W} of the interface pixels the transform maps ({@link org.fogofwarlabs.sc4j.engine.client.host.AspectRange#getLogicalWidth}): {@code 640}, or wider for the widescreen interface
      */
     @Override
     public float getLogicalWidth() {

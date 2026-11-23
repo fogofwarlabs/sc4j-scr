@@ -99,11 +99,11 @@ final class LivePacingStatistics {
     }
 
     /**
-     * Takes the report of the period since the previous report once it lasted at least a second, and starts the next period.
+     * Takes the report of the period since the previous report once it lasted at least a second, and starts the next period. A report reads
+     * for example {@code frames 24/s, step avg 3.2 ms max 11.5 ms, render 58 fps, turn waits 140 ms/s longest 62 ms}.
      *
      * @param now the current {@link System#nanoTime()} reading
-     * @return the report, for example {@code frames 24/s, step avg 3.2 ms max 11.5 ms, render 58 fps, turn waits 140 ms/s longest 62 ms},
-     * or {@code null} if the period lasted less than a second
+     * @return the report, or {@code null} if the period lasted less than a second
      */
     @Nullable String takeReport(long now) {
         long period = now - this.periodStart;

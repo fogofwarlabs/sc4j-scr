@@ -319,8 +319,7 @@ public final class LocalInterfaceState {
     }
 
     /**
-     * @return the displayed button set WORD, which an EUD write may have changed (the next refresh then finds the shown
-     * set different and redraws it)
+     * @return the displayed button set WORD, which an EUD write may have changed (the next refresh then finds the shown set different and redraws it)
      * @throws UnsupportedOperationException if the interface did not supply it
      */
     public int getDisplayedButtonSet() {
@@ -349,8 +348,7 @@ public final class LocalInterfaceState {
     }
 
     /**
-     * @return the glue palette DWORD, which an EUD write may have changed (the next glue screen then reloads its palette
-     * when it differs)
+     * @return the glue palette DWORD, which an EUD write may have changed (the next glue screen then reloads its palette when it differs)
      * @throws UnsupportedOperationException if the interface did not supply it
      */
     public int getGluePalette() {
@@ -424,8 +422,7 @@ public final class LocalInterfaceState {
     }
 
     /**
-     * @return the selection refresh BYTE ({@code 0} whenever triggers run: the interface clears it in the same call that
-     * sets it); nonzero asks the interface to re-copy the selection
+     * @return the selection refresh BYTE ({@code 0} whenever triggers run: the interface clears it in the same call that sets it); nonzero asks the interface to re-copy the selection
      */
     public int getSelectionRefresh() {
         return this.selectionRefresh;

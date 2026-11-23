@@ -209,6 +209,8 @@ final class UnitWarpingTest {
         building.setShieldPoints(INITIAL_SHIELD_POINTS);
         building.setConstructionHitPointIncrement(HIT_POINT_INCREMENT);
         building.setConstructionShieldIncrement(SHIELD_INCREMENT);
+        building.requireSprite().setVisibilityFlags(Sprite.VISIBLE_TO_ALL_PLAYERS);
+        game.getLocalVision().setComparisonMask(1 << PLAYER);
 
         game.getUnitOrders().updatePrimary(building, PlayerTypes.HUMAN, INSTRUCTION_LIMIT);
 

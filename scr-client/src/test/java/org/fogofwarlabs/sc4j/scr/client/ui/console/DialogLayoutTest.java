@@ -16,8 +16,8 @@ import java.util.Set;
 
 /**
  * Checks a placed dialog layout: the dialog moves with the controls that keep their place in it, a control placed on its own lies at its place,
- * and the dialog's runtime state built from the placed definition hits the controls where the layout draws them. Checks the minimap dialog grown
- * with its area: at its installed place it keeps its bottom-left corner, and placed at a corner by its grown size it keeps the area on screen.
+ * the dialog's runtime state built from the placed definition hits the controls where the layout draws them, and the minimap dialog grown with
+ * its area keeps its bottom-left corner at its installed place and keeps the area on screen when placed at a corner by its grown size.
  */
 final class DialogLayoutTest {
     private static final int FIRST = 1;

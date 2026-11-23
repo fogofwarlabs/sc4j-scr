@@ -421,8 +421,7 @@ final class GlueState implements InputListener {
         }
 
         /**
-         * @return the game type identifier last chosen on the create screen ({@code 2} Melee, {@code 3} Free For All,
-         * {@code 10} Use Map Settings), or {@link #NONE}
+         * @return the game type identifier last chosen on the create screen ({@code 2} Melee, {@code 3} Free For All, {@code 10} Use Map Settings), or {@link #NONE}
          */
         @Override
         public int getCreateGameType() {

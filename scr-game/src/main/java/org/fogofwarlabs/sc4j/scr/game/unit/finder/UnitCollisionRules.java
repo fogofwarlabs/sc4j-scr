@@ -50,8 +50,7 @@ public final class UnitCollisionRules {
     }
 
     /**
-     * @return the movement blocking rule of ground units as a search test: the other unit blocks the moving unit ({@link #isBlockingMovement})
-     * and has the ground-unit status
+     * @return the movement blocking rule of ground units as a search test: the other unit blocks the moving unit ({@link #isBlockingMovement}) and has the ground-unit status
      */
     public @NotNull BlockingTest<Unit> getGroundMovementTest() {
         return this.groundMovementTest;

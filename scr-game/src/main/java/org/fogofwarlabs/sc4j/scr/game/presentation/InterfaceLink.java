@@ -106,16 +106,17 @@ public final class InterfaceLink {
     }
 
     /**
-     * @return the command error messages raised during the current game-loop iteration, by its commands and its frame (presentation only; cleared
-     * when the next iteration starts, {@link ReplaySession#step})
+     * Returns the command error messages raised by the commands and the frame of the current game-loop iteration. They are presentation only and
+     * cleared when the next iteration starts ({@link ReplaySession#step}).
+     *
+     * @return the command error messages of the current iteration
      */
     public @NotNull CommandErrorEvents getCommandErrorEvents() {
         return this.commandErrorEvents;
     }
 
     /**
-     * @return the unit notifications raised during the current game-loop iteration (presentation only; cleared when the next iteration starts,
-     * {@link ReplaySession#step})
+     * @return the unit notifications raised during the current game-loop iteration (presentation only; cleared when the next iteration starts, {@link ReplaySession#step})
      */
     public @NotNull NotificationEvents getNotificationEvents() {
         return this.notificationEvents;
@@ -171,8 +172,7 @@ public final class InterfaceLink {
     }
 
     /**
-     * @return the local interface's selection the simulation reports to; without a local interface a {@link HeadlessLocalSelection} holding
-     * {@link LocalSelection#CAPACITY} slots
+     * @return the local interface's selection the simulation reports to; without a local interface a {@link HeadlessLocalSelection} holding {@link LocalSelection#CAPACITY} slots
      */
     public @NotNull LocalSelection getLocalSelection() {
         return this.localSelection;

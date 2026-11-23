@@ -145,8 +145,7 @@ public final class NativeRegionLayout {
      * Tells whether an address below the map-dependent range is outside the intervals.
      *
      * @param address a classic address
-     * @return {@code true} if the address is below {@link #MAP_REGION_BASE} and no region serves it, {@code false}
-     * otherwise
+     * @return {@code true} if the address is below {@link #MAP_REGION_BASE} and no region serves it, {@code false} otherwise
      */
     public static boolean isUnmapped(int address) {
         return Integer.compareUnsigned(address, MAP_REGION_BASE) < 0 && !isMapped(address);

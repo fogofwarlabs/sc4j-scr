@@ -220,8 +220,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      *
      * @param progress  the progress table of the game, with the SC:R extension columns ({@link PlayerProgressColumns})
      * @param expansion the expansion BYTE of the game context, read at every gated store
-     * @param context   supplies the view of the whole game context as the world has it at the access, which serves the bytes outside the technology
-     *                  tables, or {@code null} when no game context exists
+     * @param context   supplies the view of the whole game context as the world has it at the access, which serves the bytes outside the technology tables, or {@code null} when no game context exists
      */
     public PlayerTechnology(@NotNull PlayerProgressTable progress, @NotNull ContextExpansion expansion, @Nullable Supplier<GameContextBytes> context) {
         this.expansion     = expansion;
@@ -252,8 +251,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      * @param playerIndex the original player DWORD, without truncation
      * @param technology  the original technology WORD
      * @return {@code true} if the availability byte is nonzero, {@code false} otherwise
-     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game
-     *                                       context
+     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game context
      */
     public boolean isAvailable(int playerIndex, int technology) {
         technology &= WORD_MASK;
@@ -294,8 +292,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      * @param playerIndex the original player DWORD, without truncation
      * @param technology  the original technology WORD
      * @return {@code true} if the researched byte is nonzero, {@code false} otherwise
-     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game
-     *                                       context
+     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game context
      */
     public boolean isResearched(int playerIndex, int technology) {
         technology &= WORD_MASK;
@@ -315,8 +312,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      * @param playerIndex the original player DWORD, without truncation
      * @param technology  the original technology WORD
      * @param researched  whether the research is complete
-     * @throws UnsupportedOperationException if the expansion gate keeps the write and the addressed byte lies past the game context, or outside the
-     *                                       technology tables without a game context
+     * @throws UnsupportedOperationException if the expansion gate keeps the write and the addressed byte lies past the game context, or outside the technology tables without a game context
      */
     public void setResearched(int playerIndex, int technology, boolean researched) {
         this.storeResearched(playerIndex, technology, researched ? RESEARCHED : 0);
@@ -329,8 +325,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      * @param playerIndex the original player DWORD, without truncation
      * @param technology  the technology identifier, truncated to its BYTE
      * @return {@code true} if the researching bit is set, {@code false} otherwise
-     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game
-     *                                       context
+     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game context
      */
     public boolean isResearching(int playerIndex, int technology) {
         technology &= BYTE_MASK;
@@ -351,8 +346,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      * @param playerIndex the original player DWORD, without truncation
      * @param technology  the technology identifier, truncated to its BYTE
      * @param researching whether the research is in progress
-     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game
-     *                                       context
+     * @throws UnsupportedOperationException if the addressed byte lies past the game context, or outside the technology tables without a game context
      */
     public void setResearching(int playerIndex, int technology, boolean researching) {
         technology &= BYTE_MASK;
@@ -491,8 +485,7 @@ public final class PlayerTechnology implements ContextDwordTable, GameContextByt
      * @param playerIndex the original player DWORD, without truncation
      * @param technology  the original technology WORD
      * @param value       the researched byte
-     * @throws UnsupportedOperationException if the expansion gate keeps the write and the addressed byte lies past the game context, or outside the
-     *                                       technology tables without a game context
+     * @throws UnsupportedOperationException if the expansion gate keeps the write and the addressed byte lies past the game context, or outside the technology tables without a game context
      */
     private void storeResearched(int playerIndex, int technology, int value) {
         technology &= WORD_MASK;

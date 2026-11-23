@@ -128,8 +128,7 @@ public final class ScrHooks {
     }
 
     /**
-     * @return the movement and placement blocking rules over the hooks of {@link CollisionSystem#BLOCKING} and
-     * {@link CollisionSystem#PLACEMENT_EXEMPTION}
+     * @return the movement and placement blocking rules over the hooks of {@link CollisionSystem#BLOCKING} and {@link CollisionSystem#PLACEMENT_EXEMPTION}
      */
     public @NotNull UnitCollisionRules getCollisionRules() {
         return this.collisionRules;

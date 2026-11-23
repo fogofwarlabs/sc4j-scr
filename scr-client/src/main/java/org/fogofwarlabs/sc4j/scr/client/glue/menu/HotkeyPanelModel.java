@@ -442,8 +442,7 @@ final class HotkeyPanelModel {
 
         /**
          * @param unit the unit whose card shows the action
-         * @return {@code true} if the action is the rally point on a Hatchery, Lair or Hive card, which moves it to another
-         * cell, {@code false} otherwise
+         * @return {@code true} if the action is the rally point on a Hatchery, Lair or Hive card, which moves it to another cell, {@code false} otherwise
          */
         private boolean isHatcheryRallyPoint(@NotNull Unit unit) {
             return this.identifier == RALLY_POINT && (unit.unitType == HATCHERY || unit.unitType == LAIR || unit.unitType == HIVE);

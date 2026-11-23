@@ -122,8 +122,7 @@ public final class ScrSpatialIndex implements SpatialIndex {
      * @param y               the y coordinate of the point
      * @param maximumDistance the largest distance searched
      * @param filter          selects the candidate units
-     * @return the nearest accepted unit, the first in index order among equally near ones, or {@code null} if none is
-     * within the distance
+     * @return the nearest accepted unit, the first in index order among equally near ones, or {@code null} if none is within the distance
      * @throws IllegalStateException if the system is not attached or the finder does not exist yet
      */
     @Override

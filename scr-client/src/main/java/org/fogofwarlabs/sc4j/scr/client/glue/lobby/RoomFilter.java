@@ -56,8 +56,7 @@ public final class RoomFilter {
         }
 
         /**
-         * @return {@code true} if this run can join the room, {@code false} for a full or started room or one of another version or content of
-         * the mod
+         * @return {@code true} if this run can join the room, {@code false} for a full or started room or one of another version or content of the mod
          */
         boolean isJoinable() {
             return this.room.isJoinable();

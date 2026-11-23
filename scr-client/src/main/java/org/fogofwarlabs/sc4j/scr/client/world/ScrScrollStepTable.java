@@ -32,8 +32,7 @@ public final class ScrScrollStepTable implements ScrollStepTable {
     }
 
     /**
-     * @return the number of steps of every speed row, at least {@code 1}: a scroll raises its step index by one per moving update up to the
-     * last step
+     * @return the number of steps of every speed row, at least {@code 1}: a scroll raises its step index by one per moving update up to the last step
      */
     @Override
     public int getStepCount() {

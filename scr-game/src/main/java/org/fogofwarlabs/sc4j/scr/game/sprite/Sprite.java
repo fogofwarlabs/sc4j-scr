@@ -165,8 +165,7 @@ public final class Sprite {
     }
 
     /**
-     * @return the read-only live images in head-to-tail order, the selection images among them; image execution traverses forward and drawing
-     * traverses backward
+     * @return the read-only live images in head-to-tail order, the selection images among them; image execution traverses forward and drawing traverses backward
      */
     public @NotNull List<SpriteImage> getImages() {
         return this.imageView;

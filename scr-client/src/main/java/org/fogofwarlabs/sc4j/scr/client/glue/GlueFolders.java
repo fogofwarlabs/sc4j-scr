@@ -60,8 +60,7 @@ public final class GlueFolders {
     }
 
     /**
-     * @return the map folders a LAN client searches for a lobby's map: the map folder alone, with downloads in its
-     * {@link LanMapTransfer#DOWNLOAD_FOLDER} subfolder
+     * @return the map folders a LAN client searches for a lobby's map: the map folder alone, with downloads in its {@link LanMapTransfer#DOWNLOAD_FOLDER} subfolder
      */
     public @NotNull MapFolders getLanMapFolders() {
         return MapFolders.of(List.of(this.mapDirectory), LanMapTransfer.DOWNLOAD_FOLDER);

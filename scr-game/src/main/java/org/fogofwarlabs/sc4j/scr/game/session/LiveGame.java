@@ -201,8 +201,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
         }
 
         /**
-         * @return {@code true} if the local player is the present player of the lowest network id below {@code 8}, {@code false}
-         * otherwise
+         * @return {@code true} if the local player is the present player of the lowest network id below {@code 8}, {@code false} otherwise
          */
         @Override
         public boolean isLowestPresentPlayer() {
@@ -217,6 +216,40 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
         @Override
         public void queueCommand(byte @NotNull [] command) {
             LiveGame.this.outgoingTurn.queue(command);
+        }
+    }
+
+    /**
+     * The turn sender of a network game: its transport.
+     */
+    private static final class TransportTurnSender implements OutgoingTurnBuffer.TurnSender {
+        private final @NotNull LockstepTransport transport;
+
+        /**
+         * Creates a {@link TransportTurnSender} instance.
+         *
+         * @param transport the network turn stream
+         */
+        private TransportTurnSender(@NotNull LockstepTransport transport) {
+            this.transport = transport;
+        }
+
+        /**
+         * @return the local turns sent and not yet received back
+         */
+        @Override
+        public int getTurnsInTransit() {
+            return this.transport.getTurnsInTransit();
+        }
+
+        /**
+         * Sends the local player's next turn.
+         *
+         * @param turn the turn bytes
+         */
+        @Override
+        public void sendTurn(byte @NotNull [] turn) {
+            this.transport.sendTurn(turn);
         }
     }
 
@@ -372,8 +405,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
      *
      * @param setup         the lobby
      * @param seed          the game seed
-     * @param localPlayerId the local player's network id in the resolved records, or an observer's network id in the lobby
-     *                      table's observer records ({@link MeleeGameSetup#getObserverSlot})
+     * @param localPlayerId the local player's network id in the resolved records, or an observer's network id in the lobby table's observer records ({@link MeleeGameSetup#getObserverSlot})
      * @throws IOException if the header cannot be decoded
      */
     public LiveGame(@NotNull MeleeGameSetup setup, int seed, int localPlayerId) throws IOException {
@@ -385,8 +417,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
      *
      * @param setup         the lobby
      * @param seed          the game seed
-     * @param localPlayerId the local player's network id in the resolved (and restored) records, or an observer's network id in
-     *                      the lobby table's observer records ({@link MeleeGameSetup#getObserverSlot})
+     * @param localPlayerId the local player's network id in the resolved records, or an observer's id ({@link MeleeGameSetup#getObserverSlot})
      * @param players       the new game's players of the saved slots, or {@code null} to keep the resolved ids
      * @throws IOException           if the header cannot be decoded
      * @throws IllegalStateException if neither a resolved record nor an observer record holds {@code localPlayerId}
@@ -431,6 +462,8 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
         this.chatRecords   = new ArrayList<>();
         this.outgoingTurn  = new OutgoingTurnBuffer(MAXIMUM_TURN_BYTES);
         this.loopbackTurns = new LoopbackTurns(this.outgoingTurn);
+
+        this.outgoingTurn.setTurnSender(this.loopbackTurns, LATENCY_TURNS);
 
         if (this.isLocalObserver()) {
             this.outgoingTurn.useObserverTurns();
@@ -522,16 +555,14 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * @return the local human's record and selection slot, or the observer slot of an observer; a human's command slot may
-     * instead be its force leader
+     * @return the local human's record and selection slot, or the observer slot of an observer; a human's command slot may instead be its force leader
      */
     public int getLocalSlot() {
         return this.localSlot;
     }
 
     /**
-     * @return {@code true} if the local player is an observer, whose local slot is an observer slot ({@link PlayerTable#isObserverSlot}),
-     * {@code false} otherwise
+     * @return {@code true} if the local player is an observer, whose local slot is an observer slot ({@link PlayerTable#isObserverSlot}), {@code false} otherwise
      */
     public boolean isLocalObserver() {
         return PlayerTable.isObserverSlot(this.localSlot);
@@ -592,8 +623,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * @return {@code true} if a human other than the local player takes part (a record of slots 0..7 of type 2 with another
-     * id), {@code false} otherwise
+     * @return {@code true} if a human other than the local player takes part (a record of slots 0..7 of type 2 with another id), {@code false} otherwise
      */
     public boolean hasOtherHuman() {
         for (int slot = 0; slot < PlayerTable.PLAYABLE_PLAYER_SLOTS; slot++) {
@@ -608,8 +638,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * @return the network game's turns per second: the room's, then as the Turn Rate and Dynamic Turn Rate commands set it; {@code 0}
-     * outside a network game
+     * @return the network game's turns per second: the room's, then as the Turn Rate and Dynamic Turn Rate commands set it; {@code 0} outside a network game
      */
     public int getTurnRate() {
         return this.transport == null ? 0 : this.turnRate;
@@ -713,8 +742,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * @return the waiting-for-players countdown in seconds while a network player's turns are overdue, {@code -1} otherwise
-     * ({@link WaitingPeers#getCountdownSeconds()} of the transport's waiting state)
+     * @return the waiting-for-players countdown in seconds ({@link WaitingPeers#getCountdownSeconds()}), or {@code -1} if no turns are overdue
      */
     public int getWaitCountdown() {
         LockstepTransport network = this.transport;
@@ -726,13 +754,12 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     /**
      * Lists the players the waiting-for-players dialog shows. The dialog is shown only while the countdown runs
      * ({@link #getWaitCountdown()} is not negative); only then is the list built, and its shuffle reseeds and advances the
-     * game's C runtime generator.
+     * game's C runtime generator. The list holds the names of the player records ({@link PlayerSlots#isPlayerRecord}) with a player id
+     * {@code 0..7} whose turns the transport awaits ({@link WaitingPeers#getAwaitedPeers()}), at most {@value #WAITING_LIST_LIMIT}, in the order
+     * the game seed shuffles them ({@link ShuffleUtils#shuffle}).
      *
      * @param runtimeRandom the game's C runtime generator
-     * @return the names of the records a player holds ({@link PlayerSlots#isPlayerRecord}) with a player id ({@code 0} to {@code 7})
-     * whose turns the transport awaits ({@link WaitingPeers#getAwaitedPeers()}, each peer a network id), at most
-     * {@value #WAITING_LIST_LIMIT}, in the order the game seed shuffles them ({@link ShuffleUtils#shuffle}); empty while the dialog is
-     * not shown
+     * @return the names of the awaited players, empty while the dialog is not shown
      */
     public @NotNull List<String> getWaitingPlayerNames(@NotNull RuntimeRandom runtimeRandom) {
         if (this.getWaitCountdown() < 0) {
@@ -798,9 +825,10 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * @return the number of commands a network game's startup turn recorded, the first commands of the history that run
-     * as the startup turn step ({@link ReplaySession#setStartupTurnCommandCount}); {@code 0} before the startup turn
-     * and without one
+     * Returns the number of commands a network game's startup turn recorded: the first commands of the history, which run as the startup turn
+     * step ({@link ReplaySession#setStartupTurnCommandCount}).
+     *
+     * @return the startup turn command count, {@code 0} before the startup turn and without one
      */
     public int getStartupTurnCommandCount() {
         return this.startupTurnCommandCount;
@@ -859,12 +887,13 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * Queues a local command into the outgoing turn.
+     * Queues a local command into the outgoing turn ({@link OutgoingTurnBuffer#queue}); a command that does not fit sends the turn early. A
+     * command the replay excludes (pause, resume, keep-alive, save/load, latency and the other excluded types) is handled outside the command
+     * stream and not queued.
      *
      * @param typeId  the command type byte
      * @param payload the command bytes after the type byte
-     * @return {@code true} if queued, {@code false} otherwise (a command the replay excludes: pause, resume, keep-alive,
-     * save/load, latency and the other excluded types, which this session handles outside the command stream)
+     * @return {@code true} if queued, {@code false} for an excluded command or one that does not fit while too many turns are in transit
      */
     public boolean submit(int typeId, byte @NotNull [] payload) {
         if (!ReplayWriter.isRecorded(typeId, payload.length)) {
@@ -875,9 +904,8 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
 
         command[0] = (byte) typeId;
         System.arraycopy(payload, 0, command, 1, payload.length);
-        this.outgoingTurn.queue(command);
 
-        return true;
+        return this.outgoingTurn.queue(command);
     }
 
     /**
@@ -1258,12 +1286,11 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
-     * Attaches a network turn stream and configures the local turns kept in transit.
+     * Attaches a network turn stream and configures the local turns kept in transit; the outgoing turn sends its extra turns over it.
      *
      * @param transport      the turn stream
      * @param turnsInTransit the local turns kept in transit
-     * @param keepAlive      whether turns carry Keep Alive instead of the Sync command
-     *                       ({@link OutgoingTurnBuffer#useKeepAlive()}), so that peers do not drop this player
+     * @param keepAlive      whether turns carry Keep Alive instead of the Sync command ({@link OutgoingTurnBuffer#useKeepAlive()}), so that peers do not drop this player
      */
     public void attachNetwork(@NotNull LockstepTransport transport, int turnsInTransit, boolean keepAlive) {
         this.transport          = transport;
@@ -1271,6 +1298,8 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
         this.baseTurnsInTransit = turnsInTransit;
         this.turnsInTransit     = turnsInTransit + this.latency;
         this.turnRate           = transport.getTurnRate().getTurnsPerSecond();
+
+        this.outgoingTurn.setTurnSender(new TransportTurnSender(transport), turnsInTransit);
 
         if (keepAlive) {
             this.outgoingTurn.useKeepAlive();
@@ -1470,11 +1499,11 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
 
     /**
      * Checks a player's Sync command against the local record it names: the sync check of {@link #syncMonitor}, which
-     * reports a mismatch ({@link #logSyncMismatch}) without dropping the sender.
+     * reports a mismatch ({@link #logSyncMismatch}) without dropping the sender. An observer's turns are not checked, since its records take its
+     * own slot masks ({@link SyncChecksumUtils#calculateSlotMasks}).
      *
      * @param received the player's received turn, the peer its network id
-     * @return the description of the mismatch, or {@code null} if the turn matches, starts with no Sync command, or its
-     * sender holds no record, and always for an observer, whose records take its own slot masks ({@link SyncChecksumUtils#calculateSlotMasks})
+     * @return the description of the mismatch, or {@code null} if the turn matches, has no leading Sync command or comes from no record or an observer
      */
     private @Nullable String checkSyncTurn(@NotNull PeerTurn received) {
         SyncRing ring = this.syncRing;
@@ -1592,8 +1621,7 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
      *
      * @param currentFrame the frame about to execute
      * @return {@code true} if the frame may run, {@code false} otherwise (in a network game while a player's turn is missing)
-     * @throws UnsupportedOperationException if a received turn holds a command this session executes outside the command
-     *                                       stream
+     * @throws UnsupportedOperationException if a received turn holds a command this session executes outside the command stream
      */
     public boolean exchangeTurn(long currentFrame) {
         GameSpeed timing = this.timing;

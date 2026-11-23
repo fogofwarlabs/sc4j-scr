@@ -116,8 +116,7 @@ public final class ButtonConditionEvaluator {
      *
      * @param button    the button whose condition is evaluated
      * @param selection the local selection
-     * @return {@link RequirementEvaluator#ENABLED}, {@link RequirementEvaluator#DISABLED} or
-     * {@link RequirementEvaluator#HIDDEN}
+     * @return {@link RequirementEvaluator#ENABLED}, {@link RequirementEvaluator#DISABLED} or {@link RequirementEvaluator#HIDDEN}
      * @throws UnsupportedOperationException if a requirement reaches state without an established domain meaning
      */
     public int evaluate(@NotNull ButtonDefinition button, @NotNull InterfaceSelection selection) {

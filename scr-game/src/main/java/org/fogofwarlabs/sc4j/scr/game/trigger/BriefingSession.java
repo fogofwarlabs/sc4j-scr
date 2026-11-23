@@ -230,9 +230,10 @@ public final class BriefingSession {
         }
 
         /**
-         * @return a copy of the raw path bytes the action builds: the map string's own (CP949) bytes, prefixed with the
-         * campaign directory and a backslash in a campaign mission, at most 259 bytes; the bytes the archive
-         * lookup hashes; empty for a stop
+         * Returns a copy of the raw path bytes the action builds, which the archive lookup hashes: the map string's own (CP949) bytes, prefixed
+         * with the campaign directory and a backslash in a campaign mission, at most 259 bytes.
+         *
+         * @return the path bytes, empty for a stop
          */
         public byte @NotNull [] getPathBytes() {
             return this.pathBytes.clone();
@@ -295,14 +296,12 @@ public final class BriefingSession {
      * @param players            the first eight players, whose type and force decide Force owners
      * @param localPlayer        the local player DWORD
      * @param campaignMission    the campaign mission WORD, {@code 0} outside campaigns
-     * @param campaignDirectory  the mission directory for the campaign mission, used by sound paths when the mission is
-     *                           not {@code 0}
+     * @param campaignDirectory  the mission directory for the campaign mission, used by sound paths when the mission is not {@code 0}
      * @param multiplayerSession the multiplayer session BYTE
      * @param textLayout         the transmission text geometry, or {@code null} to leave text scrolling unmodeled
      * @param hostMillis         the host millisecond DWORD at the dialog initialization
      * @return the created {@link BriefingSession} instance
-     * @throws UnsupportedOperationException if an {@code MBRF} section is rejected or incomplete, whose load failure path
-     *                                       is not established
+     * @throws UnsupportedOperationException if an {@code MBRF} section is rejected or incomplete, whose load failure path is not established
      * @throws IllegalArgumentException      if fewer than eight players are supplied
      */
     public static @NotNull BriefingSession create(@NotNull ChkFile map,
@@ -331,8 +330,7 @@ public final class BriefingSession {
      * @param hostMillis         the host millisecond DWORD at the dialog initialization
      * @param timers             the client's interface timer list, or {@code null} for a list of the session's own
      * @return the created {@link BriefingSession} instance
-     * @throws UnsupportedOperationException if an {@code MBRF} section is rejected or incomplete, whose load failure path
-     *                                       is not established
+     * @throws UnsupportedOperationException if an {@code MBRF} section is rejected or incomplete, whose load failure path is not established
      * @throws IllegalArgumentException      if fewer than eight players are supplied
      */
     public static @NotNull BriefingSession create(@NotNull ChkFile map,
@@ -627,8 +625,7 @@ public final class BriefingSession {
     }
 
     /**
-     * @return the display duration of the shown text in milliseconds, an unsigned DWORD: the action duration; a
-     * Transmission uses its unmodified duration here
+     * @return the display duration of the shown text in milliseconds, an unsigned DWORD: the action duration; a Transmission uses its unmodified duration here
      * @throws IllegalStateException if no text is shown
      */
     public int getTransmissionTextDuration() {
@@ -656,8 +653,7 @@ public final class BriefingSession {
     }
 
     /**
-     * @return the mission objectives text that control {@code -11} shows (the map string of the objectives WORD stored
-     * for the local player), or {@code null} while the control is hidden
+     * @return the mission objectives text that control {@code -11} shows (the map string of the objectives WORD stored for the local player), or {@code null} while the control is hidden
      */
     public @Nullable String getMissionObjectives() {
         return this.missionObjectivesVisible ? this.missionObjectives : null;
@@ -671,8 +667,7 @@ public final class BriefingSession {
     }
 
     /**
-     * @return {@code true} if Skip Tutorial Enabled showed the Skip Tutorial button {@code 19} and control {@code -13},
-     * {@code false} otherwise
+     * @return {@code true} if Skip Tutorial Enabled showed the Skip Tutorial button {@code 19} and control {@code -13}, {@code false} otherwise
      */
     public boolean isSkipTutorialEnabled() {
         return this.skipTutorialEnabled;
@@ -686,8 +681,7 @@ public final class BriefingSession {
     }
 
     /**
-     * @return {@code true} if no record was registered, so the dialog shows "No briefing data" (control {@code -14}),
-     * {@code false} otherwise
+     * @return {@code true} if no record was registered, so the dialog shows "No briefing data" (control {@code -14}), {@code false} otherwise
      */
     public boolean isEmpty() {
         return this.records.length == 0;
@@ -926,8 +920,7 @@ public final class BriefingSession {
      * @param action the action
      * @param now    the host millisecond DWORD of the pump
      * @return {@code true} if the action completed, {@code false} otherwise
-     * @throws UnsupportedOperationException if the action type has no briefing action handler or the portrait slot is not
-     *                                       a portrait slot
+     * @throws UnsupportedOperationException if the action type has no briefing action handler or the portrait slot is not a portrait slot
      */
     private boolean execute(@NotNull RunningTrigger record, TriggerDefinition.@NotNull Action action, int now) {
         BriefingAction handler = ACTIONS.find(action.getType());

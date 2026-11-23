@@ -49,8 +49,7 @@ public final class ForceNamesUtils {
      *
      * @param network  the {@code network.json} text of a key in the interface locale; the callback returns non-null text for every supplied key
      * @param teamGame whether the game is a team game
-     * @param mapName  the map's name of the force ({@link #getMapForceName}, or a lobby's received name), {@code null} or empty
-     *                 for none
+     * @param mapName  the map's name of the force ({@link #getMapForceName}, or a lobby's received name), {@code null} or empty for none
      * @param force    the force, {@code 1..4}
      * @return the name
      */

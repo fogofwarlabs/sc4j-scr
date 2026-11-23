@@ -230,8 +230,7 @@ final class LanDesyncDumpTest {
      * mismatch.
      *
      * @param folder the desync dump folder of both clients
-     * @param change whether the joiner's simulation gets {@value #CHANGED_MINERALS} more minerals for its own player at
-     *               {@value #CHANGE_FRAME}
+     * @param change whether the joiner's simulation gets {@value #CHANGED_MINERALS} more minerals for its own player at {@value #CHANGE_FRAME}
      * @return the host's and the joiner's games
      * @throws Exception if the map or the game data cannot be read
      */

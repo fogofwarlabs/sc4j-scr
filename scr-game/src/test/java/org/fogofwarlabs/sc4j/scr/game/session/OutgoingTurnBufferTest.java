@@ -1,10 +1,15 @@
 package org.fogofwarlabs.sc4j.scr.game.session;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Checks command-buffer transmission, retained bytes and the access to the queued Sync command.
+ * Checks command-buffer transmission, retained bytes, the access to the queued Sync command and the turns a command that does not fit sends
+ * early.
  */
 final class OutgoingTurnBufferTest {
     /**
@@ -18,6 +23,47 @@ final class OutgoingTurnBufferTest {
      * The length of the Sync command that starts every turn.
      */
     private static final int SYNC_COMMAND_LENGTH = 7;
+    /**
+     * The Stop command, and the Stop commands that fill a turn after its Sync command.
+     */
+    private static final byte @NotNull [] STOP_COMMAND = {0x1A, 0x00};
+    private static final int STOPS_PER_TURN = (LiveGame.MAXIMUM_TURN_BYTES - SYNC_COMMAND_LENGTH) / STOP_COMMAND.length;
+    /**
+     * The base turns in transit of a network game.
+     */
+    private static final int NETWORK_TURNS_IN_TRANSIT = 2;
+
+    /**
+     * A turn sender whose sent turns stay in transit.
+     */
+    private static final class StalledTurnSender implements OutgoingTurnBuffer.TurnSender {
+        private final @NotNull List<byte[]> sent;
+
+        /**
+         * Creates a {@link StalledTurnSender} instance without sent turns.
+         */
+        private StalledTurnSender() {
+            this.sent = new ArrayList<>();
+        }
+
+        /**
+         * @return the local turns sent and not yet received back
+         */
+        @Override
+        public int getTurnsInTransit() {
+            return this.sent.size();
+        }
+
+        /**
+         * Sends the local player's next turn.
+         *
+         * @param turn the turn bytes
+         */
+        @Override
+        public void sendTurn(byte @NotNull [] turn) {
+            this.sent.add(turn);
+        }
+    }
 
     @Test
     void send_should_include_commands_written_at_the_length_and_reset_to_sync() {
@@ -70,9 +116,53 @@ final class OutgoingTurnBufferTest {
     }
 
     @Test
-    void queue_should_reject_commands_that_overflow_the_turn() {
+    void queue_should_send_the_turn_early_when_the_command_does_not_fit() {
+        OutgoingTurnBuffer buffer = new OutgoingTurnBuffer(LiveGame.MAXIMUM_TURN_BYTES);
+        StalledTurnSender sender = new StalledTurnSender();
+
+        buffer.setTurnSender(sender, LiveGame.LATENCY_TURNS);
+
+        for (int index = 0; index < STOPS_PER_TURN; index++) {
+            Assertions.assertTrue(buffer.queue(STOP_COMMAND));
+        }
+
+        Assertions.assertTrue(sender.sent.isEmpty(), "The commands fit the turn.");
+        Assertions.assertTrue(buffer.queue(STOP_COMMAND));
+        Assertions.assertEquals(1, sender.sent.size());
+
+        byte[] extraTurn = sender.sent.getFirst();
+
+        Assertions.assertEquals(SYNC_COMMAND_LENGTH + STOPS_PER_TURN * STOP_COMMAND.length, extraTurn.length);
+        Assertions.assertEquals(SYNC_COMMAND_TYPE, extraTurn[0]);
+        Assertions.assertEquals(SYNC_COMMAND_LENGTH + STOP_COMMAND.length, buffer.getLength(), "The command starts the next turn.");
+        Assertions.assertEquals(SYNC_COMMAND_TYPE, buffer.readByte(0));
+        Assertions.assertEquals(STOP_COMMAND_TYPE, buffer.readByte(SYNC_COMMAND_LENGTH));
+    }
+
+    @Test
+    void queue_should_drop_the_command_while_too_many_turns_are_in_transit() {
+        OutgoingTurnBuffer buffer = new OutgoingTurnBuffer(LiveGame.MAXIMUM_TURN_BYTES);
+        StalledTurnSender sender = new StalledTurnSender();
+        int queued = 0;
+
+        buffer.setTurnSender(sender, NETWORK_TURNS_IN_TRANSIT);
+
+        while (buffer.queue(STOP_COMMAND)) {
+            queued++;
+        }
+
+        int length = buffer.getLength();
+
+        Assertions.assertEquals(OutgoingTurnBuffer.MAXIMUM_TURNS_IN_TRANSIT - NETWORK_TURNS_IN_TRANSIT, sender.sent.size());
+        Assertions.assertEquals(sender.sent.size() * STOPS_PER_TURN + STOPS_PER_TURN, queued);
+        Assertions.assertFalse(buffer.queue(STOP_COMMAND));
+        Assertions.assertEquals(length, buffer.getLength(), "The dropped command leaves the turn unchanged.");
+    }
+
+    @Test
+    void queue_should_fail_for_a_command_that_does_not_fit_without_a_turn_sender() {
         OutgoingTurnBuffer buffer = new OutgoingTurnBuffer(LiveGame.MAXIMUM_TURN_BYTES);
 
-        Assertions.assertThrows(UnsupportedOperationException.class, () -> buffer.queue(new byte[LiveGame.MAXIMUM_TURN_BYTES]));
+        Assertions.assertThrows(IllegalStateException.class, () -> buffer.queue(new byte[LiveGame.MAXIMUM_TURN_BYTES]));
     }
 }

@@ -325,8 +325,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
-     * @return the Beacon.Link session the network runs on, whose community part (presence, channels, whispers) the multiplayer screens show,
-     * or {@code null} for a network without one
+     * @return the Beacon.Link session the network runs on, whose community part (presence, channels, whispers) the multiplayer screens show, or {@code null} for a network without one
      * @implSpec Returns the provider's session.
      */
     @Override
@@ -378,9 +377,10 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
-     * @return the rooms found on a network of rooms, except the one this client hosts: first the joinable ones, which {@link #getGames()}
-     * lists as games, then those of another version or content of the mod, each with the refusal its host gives this run; empty for a
-     * network without rooms
+     * Lists the rooms found on a network of rooms, except the one this client hosts: first the joinable ones, which {@link #getGames()} lists
+     * as games, then those of another version or content of the mod, each with the refusal its host gives this run.
+     *
+     * @return the rooms, empty for a network without rooms
      * @implSpec Returns the rooms of the last complete search by the SC:R mod's identity; each room's settings carry its {@link ScrRoomData} as the mod
      * data, and {@link #getGames()} lists the joinable ones at the hosts' addresses ({@link #getAddress}).
      */
@@ -395,8 +395,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
-     * @return the game whose host {@link #connect} made reachable, with the host's own game attributes, or {@code null} while the connection
-     * is pending, has failed or was never started
+     * @return the game whose host {@link #connect} made reachable, with the host's own game attributes, or {@code null} while the connection is pending, has failed or was never started
      */
     @Override
     public synchronized LanDiscovery.@Nullable Game getConnectedGame() {
@@ -404,8 +403,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
-     * @return why the connection {@link #connect} started failed ({@link ProviderSession.JoinState#REJECTED} or
-     * {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} while it is pending or reached the host
+     * @return why the connection {@link #connect} started failed ({@link ProviderSession.JoinState#REJECTED} or {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} while it is pending or reached the host
      */
     @Override
     public synchronized ProviderSession.@Nullable JoinState getConnectionFailure() {
@@ -413,8 +411,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
     }
 
     /**
-     * @return why the host refused the connection {@link #connect} started, when {@link #getConnectionFailure()} is
-     * {@link ProviderSession.JoinState#REJECTED} and the network names a reason, otherwise {@code null}
+     * @return why the host refused the connection {@link #connect} started, when {@link #getConnectionFailure()} is {@link ProviderSession.JoinState#REJECTED} and the network names a reason, otherwise {@code null}
      * @implSpec Returns the refusal of the channel to the joined room's host, for example a wrong password of a private room.
      */
     @Override
@@ -439,8 +436,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
 
 
     /**
-     * @return {@code true} if the hosted game may start as far as the network goes (every pair of its players can reach each other) or this
-     * client hosts no game, {@code false} otherwise (a pair of players is not connected yet)
+     * @return {@code true} if the hosted game may start as far as the network goes (every pair of its players can reach each other) or this client hosts no game, {@code false} otherwise
      * @implSpec Hosting, the host's channel to every member must be open and every member must have reported a channel open to every other member.
      */
     @Override
@@ -963,8 +959,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
      *
      * @param participant the participant
      * @param address     the participant's address in the game
-     * @return {@code true} if the participant was added, {@code false} otherwise (the address is another participant's or the overlay holds
-     * the most channels it allows)
+     * @return {@code true} if the participant was added, {@code false} otherwise (the address is another participant's or the overlay holds the most channels it allows)
      */
     private boolean addParticipant(@NotNull LinkParticipant participant, @NotNull InetSocketAddress address) {
         LinkParticipant holder = this.book.findParticipant(address);

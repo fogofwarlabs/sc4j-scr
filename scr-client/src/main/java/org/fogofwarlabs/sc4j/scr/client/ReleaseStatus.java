@@ -51,8 +51,7 @@ public final class ReleaseStatus {
      * @param state          the state
      * @param latestVersion  the latest release version, such as {@code 0.1.4}, or {@code null} if the state does not know it
      * @return the created {@link ReleaseStatus} instance
-     * @throws IllegalArgumentException if the state is {@link ReleaseState#CHECKING}, or the latest version is given in a state that does not
-     *                                  know it or missing in a state that does
+     * @throws IllegalArgumentException if the state is {@link ReleaseState#CHECKING}, or the latest version is given in a state that does not know it or missing in a state that does
      */
     public static @NotNull ReleaseStatus of(@NotNull ReleaseVersion runningVersion,
                                             @NotNull ReleaseState state, @Nullable ReleaseVersion latestVersion) {

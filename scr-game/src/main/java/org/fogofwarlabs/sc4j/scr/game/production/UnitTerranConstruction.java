@@ -175,13 +175,13 @@ public final class UnitTerranConstruction {
     }
 
     /**
-     * Selects construction resumption, repair or transport entry for an SCV right-click target.
+     * Selects construction resumption, repair or transport entry for an SCV right-click target: {@link ScrOrderIds#CONSTRUCTING_BUILDING} for an
+     * own incomplete Terran building without an active builder, {@link ScrOrderIds#REPAIR} for a damaged completed allied Terran mechanical unit,
+     * {@code 0} for a transport the SCV may enter, or {@code -1} for the ordinary movement action.
      *
      * @param worker the selected SCV
      * @param target the clicked unit
-     * @return {@link ScrOrderIds#CONSTRUCTING_BUILDING} to resume an own incomplete Terran building without an active builder,
-     * {@link ScrOrderIds#REPAIR} to repair a damaged completed allied Terran mechanical unit, {@code 0} for a transport the SCV may enter,
-     * or {@code -1} to fall back to the ordinary movement action
+     * @return the order, {@code 0} to enter a transport or {@code -1} for the ordinary movement action
      * @throws UnsupportedOperationException if player alliances are missing
      * @throws NullPointerException          if the world was built without game data
      */

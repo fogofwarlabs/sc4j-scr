@@ -48,8 +48,7 @@ public final class LocalNetworkProvider implements NetworkProvider {
     }
 
     /**
-     * @return the game whose host {@link #connect} made reachable, with the host's own game attributes, or {@code null} while the connection
-     * is pending, has failed or was never started
+     * @return the game whose host {@link #connect} made reachable, with the host's own game attributes, or {@code null} while the connection is pending, has failed or was never started
      */
     @Override
     public LanDiscovery.@Nullable Game getConnectedGame() {
@@ -57,8 +56,7 @@ public final class LocalNetworkProvider implements NetworkProvider {
     }
 
     /**
-     * @return why the connection {@link #connect} started failed ({@link ProviderSession.JoinState#REJECTED} or
-     * {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} while it is pending or reached the host
+     * @return why the connection {@link #connect} started failed ({@link ProviderSession.JoinState#REJECTED} or {@link ProviderSession.JoinState#TIMED_OUT}), or {@code null} while it is pending or reached the host
      * @implSpec Returns {@code null}: the host of a LAN game is reachable at once.
      */
     @Override
@@ -68,8 +66,7 @@ public final class LocalNetworkProvider implements NetworkProvider {
 
 
     /**
-     * @return {@code true} if the hosted game may start as far as the network goes (every pair of its players can reach each other) or this
-     * client hosts no game, {@code false} otherwise (a pair of players is not connected yet)
+     * @return {@code true} if the hosted game may start as far as the network goes (every pair of its players can reach each other) or this client hosts no game, {@code false} otherwise
      * @implSpec Returns {@code true}: on the local network every player reaches every other one.
      */
     @Override
