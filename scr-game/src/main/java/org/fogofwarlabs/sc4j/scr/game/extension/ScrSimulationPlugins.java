@@ -5,6 +5,8 @@ import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitTypeFlags;
 import org.fogofwarlabs.sc4j.scr.game.combat.ProjectilePhase;
 import org.fogofwarlabs.sc4j.scr.game.extension.simulation.*;
 import org.fogofwarlabs.sc4j.scr.game.player.Player;
+import org.fogofwarlabs.sc4j.scr.game.sprite.Sprite;
+import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.unit.Unit;
 import org.jetbrains.annotations.NotNull;
@@ -224,6 +226,17 @@ public final class ScrSimulationPlugins {
      */
     public void reportUnitDied(@NotNull Unit unit, @Nullable Unit killer, int killerPlayer, int weapon) {
         this.report(new UnitDiedEvent(this.capture(unit), this.captureNullable(killer), killerPlayer, weapon));
+    }
+
+    /**
+     * Reports a sprite an image's iscript created ({@link SpriteCreatedEvent}).
+     *
+     * @param sprite      the created sprite
+     * @param sourceImage the image whose iscript created it
+     * @param source      the sprite of that image
+     */
+    public void reportSpriteCreated(@NotNull Sprite sprite, @NotNull SpriteImage sourceImage, @NotNull Sprite source) {
+        this.report(new SpriteCreatedEvent(sprite.getPoolIndex(), sprite.getSpriteTypeId(), source.getPoolIndex(), sourceImage.getImageTypeId()));
     }
 
     /**
