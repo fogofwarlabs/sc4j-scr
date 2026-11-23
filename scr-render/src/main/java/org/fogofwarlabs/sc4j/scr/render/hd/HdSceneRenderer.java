@@ -5,6 +5,7 @@ import org.fogofwarlabs.sc4j.base.exception.IgnoreException;
 import org.fogofwarlabs.sc4j.base.log.Logger;
 import org.fogofwarlabs.sc4j.engine.client.render.GraphicsDevice;
 import org.fogofwarlabs.sc4j.engine.client.render.ShaderProgram;
+import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteFrame;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.TextureSheet;
@@ -258,6 +259,12 @@ public final class HdSceneRenderer implements SceneRenderer {
     private static final int BYTE_MASK = 0xFF;
     private static final int WORD_MASK = 0xFFFF;
     private static final long DWORD_MASK = 0xFFFFFFFFL;
+    /**
+     * The shifts of the alpha, red and green bytes in a packed {@code 0xAARRGGBB} color.
+     */
+    private static final int COLOR_ALPHA_SHIFT = 24;
+    private static final int COLOR_RED_SHIFT = 16;
+    private static final int COLOR_GREEN_SHIFT = 8;
     /**
      * The shift of the vertical offset in a packed offset pair (the horizontal offset in the low {@code short}).
      */
@@ -554,15 +561,17 @@ public final class HdSceneRenderer implements SceneRenderer {
     private @Nullable HdImageTextures animationTextures;
     private @Nullable ScrImageSheet animationPlacement;
     /**
-     * The RGBA textures of replaced megatile pictures ({@link #drawTerrain(IntUnaryOperator, IntFunction)}) by megatile index, and the picture
-     * each one holds.
+     * The RGBA textures of replaced megatile pictures ({@link #drawTerrain(IntUnaryOperator, IntFunction, IntFunction)}) by megatile index, and the
+     * classic picture or the picture each one holds.
      */
     private final @NotNull Map<Integer, Integer> megatileTextures;
-    private final @NotNull Map<Integer, byte[]> megatilePictures;
+    private final @NotNull Map<Integer, Object> megatilePictures;
     /**
-     * The megatile pictures of the last terrain draw, which the foliage of the frame leaves out, or {@code null} for none.
+     * The classic megatile pictures and the megatile pictures of the last terrain draw, which the foliage of the frame leaves out, or {@code null}
+     * for none.
      */
     private @Nullable IntFunction<byte @Nullable []> terrainMegatiles;
+    private @Nullable IntFunction<@Nullable Picture> terrainPictures;
     private boolean fogRequested;
     private int fogVisionMask;
     private int fogVisibleLevel;
@@ -702,6 +711,7 @@ public final class HdSceneRenderer implements SceneRenderer {
         this.megatileTextures   = new HashMap<>();
         this.megatilePictures   = new HashMap<>();
         this.terrainMegatiles   = null;
+        this.terrainPictures    = null;
         this.fogRequested       = false;
         this.fogVisionMask      = 0;
         this.fogVisibleLevel    = OverlayPass.DEFAULT_VISIBLE_LEVEL;
@@ -1094,7 +1104,7 @@ public final class HdSceneRenderer implements SceneRenderer {
      */
     @Override
     public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers) throws IOException {
-        this.drawTerrainTiles(tileIdentifiers, null);
+        this.drawTerrainTiles(tileIdentifiers, null, null);
     }
 
     /**
@@ -1107,13 +1117,31 @@ public final class HdSceneRenderer implements SceneRenderer {
      */
     @Override
     public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles) throws IOException {
-        this.drawTerrainTiles(tileIdentifiers, megatiles);
+        this.drawTerrainTiles(tileIdentifiers, megatiles, null);
     }
 
-    private void drawTerrainTiles(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles) throws IOException {
+    /**
+     * Draws the visible terrain from the current game tile identifiers, including creep edges, with megatile pictures that replace installed ones:
+     * a megatile with a picture draws the picture stretched over the tile with linear filtering and its alpha, over the HD tile; another replaced
+     * megatile draws its classic picture in the classic palette at world size, opaque, with nearest filtering, over the HD tile.
+     *
+     * @param tileIdentifiers  the current row-major tile identifier for each tile index of the loaded map extent
+     * @param megatiles        the classic picture of a megatile index, the same array while it is unchanged, or {@code null} for the installed one
+     * @param megatilePictures the picture of a megatile index, the same instance while it is unchanged, or {@code null} for none
+     * @throws IOException if a tile identifier is outside the installed assets
+     */
+    @Override
+    public void drawTerrain(@NotNull IntUnaryOperator tileIdentifiers, @NotNull IntFunction<byte @Nullable []> megatiles,
+                            @NotNull IntFunction<@Nullable Picture> megatilePictures) throws IOException {
+        this.drawTerrainTiles(tileIdentifiers, megatiles, megatilePictures);
+    }
+
+    private void drawTerrainTiles(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles,
+                                  @Nullable IntFunction<@Nullable Picture> megatilePictures) throws IOException {
         this.beginScene();
 
         this.terrainMegatiles = megatiles;
+        this.terrainPictures  = megatilePictures;
 
         boolean visibleWater = false;
         int mapWidth = this.world.getMapWidth();
@@ -1142,7 +1170,7 @@ public final class HdSceneRenderer implements SceneRenderer {
                 this.tileCreep[visibleIndex] = TerrainTileset.isCreepTile(tileIdentifier);
                 this.tileSlots[visibleIndex] = this.getMegatileSlot(megatile);
                 // A replaced megatile draws as land: its picture is drawn over the tile, without the water effect.
-                boolean replaced = megatiles != null && megatiles.apply(megatile) != null;
+                boolean replaced = this.isMegatileReplaced(megatile);
 
                 this.tileWaterFrames[visibleIndex] = this.water != null && !replaced ? this.assets.getWaterMaskFrame(megatile) + 1 : 0;
                 visibleWater |= this.tileWaterFrames[visibleIndex] > 0;
@@ -1154,7 +1182,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         if (!effectTerrain) {
             this.drawTiles(firstColumn, firstRow, visibleColumns, visibleTiles, TILES_ALL);
-            this.drawMegatilePictures(tileIdentifiers, megatiles, firstColumn, firstRow, lastColumn, lastRow);
+            this.drawMegatilePictures(tileIdentifiers, firstColumn, firstRow, lastColumn, lastRow);
             this.drawCreepEdges(tileIdentifiers, mapWidth, mapHeight, firstColumn, firstRow, lastColumn, lastRow, MODE_EDGE);
 
             return;
@@ -1164,7 +1192,7 @@ public final class HdSceneRenderer implements SceneRenderer {
 
         int maskedTiles = this.drawTiles(firstColumn, firstRow, visibleColumns, visibleTiles, TILES_MASKED);
 
-        this.drawMegatilePictures(tileIdentifiers, megatiles, firstColumn, firstRow, lastColumn, lastRow);
+        this.drawMegatilePictures(tileIdentifiers, firstColumn, firstRow, lastColumn, lastRow);
 
         this.drawCreepEdges(tileIdentifiers, mapWidth, mapHeight, firstColumn, firstRow, lastColumn, lastRow, MODE_EDGE_EFFECT);
         this.flush();
@@ -1251,19 +1279,31 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     /**
-     * Draws the replacing pictures of the visible tiles whose megatile has one.
+     * Checks whether the last terrain draw replaced the picture of a megatile: by a picture or by a classic picture.
+     *
+     * @param megatile the megatile index
+     * @return {@code true} if the megatile's picture is replaced, {@code false} otherwise
+     */
+    private boolean isMegatileReplaced(int megatile) {
+        return this.terrainPictures != null && this.terrainPictures.apply(megatile) != null ||
+               this.terrainMegatiles != null && this.terrainMegatiles.apply(megatile) != null;
+    }
+
+    /**
+     * Draws the replacing pictures of the visible tiles whose megatile has one ({@link #terrainPictures}, else {@link #terrainMegatiles}).
      *
      * @param tileIdentifiers the current row-major tile identifier for each tile index of the loaded map extent
-     * @param megatiles       the picture of a megatile index, or {@code null} for the installed picture; {@code null} for no replacements
      * @param firstColumn     the first visible tile column
      * @param firstRow        the first visible tile row
      * @param lastColumn      the column after the last visible one
      * @param lastRow         the row after the last visible one
-     * @throws IOException if no map is loaded or a picture is not {@code 32x32} palette indices
+     * @throws IOException if no map is loaded or a classic picture is not {@code 32x32} palette indices
      */
-    private void drawMegatilePictures(@NotNull IntUnaryOperator tileIdentifiers, @Nullable IntFunction<byte @Nullable []> megatiles,
-                                      int firstColumn, int firstRow, int lastColumn, int lastRow) throws IOException {
-        if (megatiles == null) {
+    private void drawMegatilePictures(@NotNull IntUnaryOperator tileIdentifiers, int firstColumn, int firstRow, int lastColumn, int lastRow) throws IOException {
+        IntFunction<byte @Nullable []> megatiles = this.terrainMegatiles;
+        IntFunction<@Nullable Picture> pictures = this.terrainPictures;
+
+        if (megatiles == null && pictures == null) {
             return;
         }
 
@@ -1273,13 +1313,21 @@ public final class HdSceneRenderer implements SceneRenderer {
         for (int row = firstRow; row < lastRow; row++) {
             for (int column = firstColumn; column < lastColumn; column++) {
                 int megatile = this.assets.getMegatile(tileIdentifiers.applyAsInt(row * mapWidth + column));
-                byte[] picture = megatiles.apply(megatile);
+                Picture picture = pictures != null ? pictures.apply(megatile) : null;
+                int texture;
 
-                if (picture == null) {
-                    continue;
+                if (picture != null) {
+                    texture = this.acquireMegatileTexture(megatile, picture);
+                } else {
+                    byte[] classicPicture = megatiles != null ? megatiles.apply(megatile) : null;
+
+                    if (classicPicture == null) {
+                        continue;
+                    }
+
+                    texture = this.acquireMegatileTexture(megatile, classicPicture);
                 }
 
-                int texture = this.acquireMegatileTexture(megatile, picture);
                 float left = (column * TerrainTileset.TILE_SIZE - this.cameraX) * this.scale;
                 float top = (row * TerrainTileset.TILE_SIZE - this.cameraY) * this.scale;
 
@@ -1294,8 +1342,8 @@ public final class HdSceneRenderer implements SceneRenderer {
     }
 
     /**
-     * Returns the RGBA texture of a megatile's replacing picture, made on first use and again when the picture array changes: every palette index
-     * in its classic color, opaque, with nearest filtering.
+     * Returns the RGBA texture of a megatile's replacing classic picture, made on first use and again when the picture array changes: every palette
+     * index in its classic color, opaque, with nearest filtering.
      *
      * @param megatile the megatile index
      * @param picture  the {@code 32x32} palette indices
@@ -1327,27 +1375,79 @@ public final class HdSceneRenderer implements SceneRenderer {
             }
 
             upload.flip();
-            this.flush();
 
-            int name = existing != null ? existing : glGenTextures();
-
-            glBindTexture(GL_TEXTURE_2D, name);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TerrainTileset.TILE_SIZE, TerrainTileset.TILE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, upload);
-
-            this.megatileTextures.put(megatile, name);
-            this.megatilePictures.put(megatile, picture);
-            this.batchTexture = 0;
-
-            return name;
+            return this.uploadMegatileTexture(megatile, picture, existing, TerrainTileset.TILE_SIZE, TerrainTileset.TILE_SIZE, GL_NEAREST, upload);
         } finally {
             MemoryUtil.memFree(upload);
         }
+    }
+
+    /**
+     * Returns the RGBA texture of a megatile's replacing picture, made on first use and again when the picture instance changes: the picture's
+     * colors with their alpha, with linear filtering.
+     *
+     * @param megatile the megatile index
+     * @param picture  the picture
+     * @return the texture
+     */
+    private int acquireMegatileTexture(int megatile, @NotNull Picture picture) {
+        Integer existing = this.megatileTextures.get(megatile);
+
+        if (existing != null && this.megatilePictures.get(megatile) == picture) {
+            return existing;
+        }
+
+        int pixels = picture.getWidth() * picture.getHeight();
+        ByteBuffer upload = MemoryUtil.memAlloc(pixels * OverlayPass.RGBA_BYTES);
+
+        try {
+            for (int index = 0; index < pixels; index++) {
+                int color = picture.getColor().getValue(index);
+
+                upload.put((byte) (color >>> COLOR_RED_SHIFT)).put((byte) (color >>> COLOR_GREEN_SHIFT)).put((byte) color)
+                      .put((byte) (color >>> COLOR_ALPHA_SHIFT));
+            }
+
+            upload.flip();
+
+            return this.uploadMegatileTexture(megatile, picture, existing, picture.getWidth(), picture.getHeight(), GL_LINEAR, upload);
+        } finally {
+            MemoryUtil.memFree(upload);
+        }
+    }
+
+    /**
+     * Uploads the RGBA texels of a megatile's replacing picture into its texture, made when the megatile has none yet.
+     *
+     * @param megatile the megatile index
+     * @param source   the classic picture or the picture the texture shows
+     * @param existing the megatile's texture, or {@code null} for none
+     * @param width    the width in texels
+     * @param height   the height in texels
+     * @param filter   the minification and magnification filter
+     * @param texels   the RGBA texels, rows from the top
+     * @return the texture
+     */
+    private int uploadMegatileTexture(int megatile, @NotNull Object source, @Nullable Integer existing, int width, int height, int filter,
+                                      @NotNull ByteBuffer texels) {
+        this.flush();
+
+        int name = existing != null ? existing : glGenTextures();
+
+        glBindTexture(GL_TEXTURE_2D, name);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texels);
+
+        this.megatileTextures.put(megatile, name);
+        this.megatilePictures.put(megatile, source);
+        this.batchTexture = 0;
+
+        return name;
     }
 
     private void deleteMegatileTextures() {
@@ -1510,7 +1610,7 @@ public final class HdSceneRenderer implements SceneRenderer {
                 }
 
                 // A tile whose megatile picture is replaced has no foliage.
-                if (this.terrainMegatiles != null && this.terrainMegatiles.apply(this.assets.getMegatile(tileIdentifiers.applyAsInt(tile))) != null) {
+                if (this.isMegatileReplaced(this.assets.getMegatile(tileIdentifiers.applyAsInt(tile)))) {
                     continue;
                 }
 
@@ -2398,6 +2498,48 @@ public final class HdSceneRenderer implements SceneRenderer {
                                radius,
                                lights.getColor(imageIndex, frameIndex),
                                lights.getIntensity(imageIndex, frameIndex) / LIGHT_INTENSITY_DIVISOR);
+    }
+
+    /**
+     * Lets another renderer draw into the scene between the scene's own draws, such as above the terrain and below the sprites: submits the
+     * pending draws, runs the drawing with the scene's target, then restores the scene's state. The drawing's coordinates are the target's
+     * pixels from its top left corner: a map position is at {@code (x - cameraX) * scale} of the {@link WorldRenderer} the scene draws with, and
+     * the view covers the top left {@link WorldRenderer#getViewWidth} by {@link WorldRenderer#getViewHeight} pixels. The fog of war and the
+     * lighting of the scene apply to what the drawing draws.
+     * <p>
+     * The target is the HD scene's own framebuffer; the drawing writes its color target, the effect and lighting targets keep what was drawn
+     * below.
+     *
+     * @param drawing the drawing
+     */
+    @Override
+    public void drawExternal(@NotNull ExternalDrawing drawing) {
+        this.beginScene();
+        this.flush();
+
+        for (int attachment = WorldRenderer.EFFECT_TARGET; attachment < GraphicsDevice.MAXIMUM_COLOR_TARGETS; attachment++) {
+            glColorMaski(attachment, false, false, false, false);
+        }
+
+        glColorMaski(WorldRenderer.COLOR_TARGET, true, true, true, true);
+
+        try {
+            drawing.draw(this.sceneFramebuffer, this.sceneWidth, this.sceneHeight);
+        } finally {
+            for (int attachment = 0; attachment < GraphicsDevice.MAXIMUM_COLOR_TARGETS; attachment++) {
+                glColorMaski(attachment, true, true, true, true);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, this.sceneFramebuffer);
+            glViewport(0, 0, this.sceneWidth, this.sceneHeight);
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(0, this.sceneHeight - this.world.getViewHeight(), this.world.getViewWidth(), this.world.getViewHeight());
+            this.program.use();
+            glBindVertexArray(this.vertexArray);
+
+            this.batchMode    = -1;
+            this.batchTexture = 0;
+        }
     }
 
     /**

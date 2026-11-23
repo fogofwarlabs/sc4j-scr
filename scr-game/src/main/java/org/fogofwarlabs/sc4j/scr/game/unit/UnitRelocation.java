@@ -76,7 +76,8 @@ public final class UnitRelocation {
 
     /**
      * Moves a ground unit that the terrain under it no longer carries to the nearest free walkable position in any terrain component
-     * ({@link UnitPositioning#findWalkable}), as {@link #relocate} moves a unit. A unit without such a position stays.
+     * ({@link UnitPositioning#findWalkable}) within the default placement rectangle around it, as {@link #relocate} moves a unit. A unit without
+     * such a position stays.
      *
      * @param unit the non-building ground unit
      * @return {@code true} if a free position was found and the unit moved there, {@code false} otherwise
@@ -84,6 +85,32 @@ public final class UnitRelocation {
      * @throws IllegalStateException         if the unit has no sprite
      */
     public boolean displace(@NotNull Unit unit) {
+        Sprite sprite = unit.requireSprite();
+        int horizontal = sprite.getX();
+        int vertical = sprite.getY();
+
+        return this.displace(unit,
+                             (short) (horizontal - UnitPositioning.DEFAULT_SEARCH_HALF_SIZE),
+                             (short) (vertical - UnitPositioning.DEFAULT_SEARCH_HALF_SIZE),
+                             (short) (horizontal + (UnitPositioning.DEFAULT_SEARCH_HALF_SIZE - 1)),
+                             (short) (vertical + (UnitPositioning.DEFAULT_SEARCH_HALF_SIZE - 1)));
+    }
+
+    /**
+     * Moves a ground unit that the terrain under it no longer carries to the nearest free walkable position in any terrain component within a
+     * placement rectangle ({@link UnitPositioning#findWalkable(Unit, int, int, int, int, int, int, int[])}), as {@link #relocate} moves a unit: it is
+     * detached (nothing for a hidden unit), moved there and attached again. A unit without such a position stays.
+     *
+     * @param unit              the non-building ground unit
+     * @param minimumHorizontal the rectangle's left edge
+     * @param minimumVertical   the rectangle's upper edge
+     * @param maximumHorizontal the rectangle's right edge
+     * @param maximumVertical   the rectangle's lower edge
+     * @return {@code true} if a free position was found and the unit moved there, {@code false} otherwise
+     * @throws UnsupportedOperationException if the unit creation context is not established
+     * @throws IllegalStateException         if the unit has no sprite
+     */
+    public boolean displace(@NotNull Unit unit, int minimumHorizontal, int minimumVertical, int maximumHorizontal, int maximumVertical) {
         UnitCreationContext context = this.game.getUnitSystem().getUnitCreationContext();
 
         if (context == null) {
@@ -97,7 +124,11 @@ public final class UnitRelocation {
         }
 
         int[] position = new int[UnitPositioning.POSITION_COORDINATES];
-        boolean found = this.game.getUnitPositioning().findWalkable(unit, sprite.getX(), sprite.getY(), position);
+        boolean found = this.game.getUnitPositioning().findWalkable(unit,
+                                                                    sprite.getX(), sprite.getY(),
+                                                                    minimumHorizontal, minimumVertical,
+                                                                    maximumHorizontal, maximumVertical,
+                                                                    position);
 
         if (found) {
             this.game.getUnitPositioning().move(unit, position[UnitPositioning.X_INDEX], position[UnitPositioning.Y_INDEX]);

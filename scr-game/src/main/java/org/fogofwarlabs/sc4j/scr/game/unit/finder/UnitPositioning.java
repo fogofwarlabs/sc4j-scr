@@ -46,15 +46,15 @@ public final class UnitPositioning {
      * The movement destination countdown a new destination sets.
      */
     public static final int DESTINATION_COUNTDOWN = 15;
+    /**
+     * The half size in pixels of the default placement rectangle around the requested position.
+     */
+    public static final int DEFAULT_SEARCH_HALF_SIZE = 128;
 
     /**
      * The command error message key of a blocked placement.
      */
     private static final byte @NotNull [] EXIT_BLOCKED = "strEXITBLOCKED".getBytes(StandardCharsets.US_ASCII);
-    /**
-     * The half size in pixels of the default placement rectangle around the requested position.
-     */
-    private static final int DEFAULT_SEARCH_HALF_SIZE = 128;
     /**
      * The pixel grid of the placement search: its first step and the alignment of its perimeter walk.
      */
@@ -496,10 +496,41 @@ public final class UnitPositioning {
      * @throws UnsupportedOperationException if required placement storage is unavailable or the search repeats its steps
      */
     public boolean findWalkable(@NotNull Unit unit, int positionX, int positionY, int @NotNull [] result) {
+        return this.findWalkable(unit,
+                                 positionX, positionY,
+                                 (short) (positionX - DEFAULT_SEARCH_HALF_SIZE), (short) (positionY - DEFAULT_SEARCH_HALF_SIZE),
+                                 (short) (positionX + (DEFAULT_SEARCH_HALF_SIZE - 1)), (short) (positionY + (DEFAULT_SEARCH_HALF_SIZE - 1)),
+                                 result);
+    }
+
+    /**
+     * Finds a free position for a ground unit that the terrain under it no longer carries within a supplied placement rectangle: the search of
+     * {@link #find(Unit, int, int, int, int, int, int, boolean, int[])} with terrain blockage starting the surrounding search, without the condition
+     * that the position share the terrain component of the unit's position. The search walks growing rectangles around the requested position
+     * until it finds a position or covers the placement rectangle, clipped to the map.
+     *
+     * @param unit              the unit
+     * @param positionX         the requested horizontal coordinate
+     * @param positionY         the requested vertical coordinate
+     * @param minimumHorizontal the rectangle's left edge
+     * @param minimumVertical   the rectangle's upper edge
+     * @param maximumHorizontal the rectangle's right edge
+     * @param maximumVertical   the rectangle's lower edge
+     * @param result            the two WORD output coordinates, written only on success
+     * @return {@code true} if a free position was found, {@code false} otherwise
+     * @throws IllegalArgumentException      if the result has fewer than two coordinates
+     * @throws NullPointerException          if the world was built without game data
+     * @throws UnsupportedOperationException if required placement storage is unavailable or the search repeats its steps
+     */
+    public boolean findWalkable(@NotNull Unit unit,
+                                int positionX, int positionY,
+                                int minimumHorizontal, int minimumVertical,
+                                int maximumHorizontal, int maximumVertical,
+                                int @NotNull [] result) {
         return this.search(unit,
                            positionX, positionY,
-                           (short) (positionX - DEFAULT_SEARCH_HALF_SIZE), (short) (positionY - DEFAULT_SEARCH_HALF_SIZE),
-                           (short) (positionX + (DEFAULT_SEARCH_HALF_SIZE - 1)), (short) (positionY + (DEFAULT_SEARCH_HALF_SIZE - 1)),
+                           minimumHorizontal, minimumVertical,
+                           maximumHorizontal, maximumVertical,
                            true, false,
                            result);
     }

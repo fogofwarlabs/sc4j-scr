@@ -5,6 +5,7 @@ import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
 import org.fogofwarlabs.sc4j.scr.core.LcgRandom;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
 import org.fogofwarlabs.sc4j.scr.core.test.RequiresInstallation;
+import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplayRuntime;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteScenario;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
@@ -28,7 +29,8 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 /**
- * Verifies the creep fill against the native creep fill captures and the graphics cache read of a retained saved cache.
+ * Verifies the creep fill against the native creep fill captures, the graphics cache read of a retained saved cache and the creep fill of one
+ * tile.
  */
 @RequiresInstallation
 final class CreepFieldTest {
@@ -245,6 +247,46 @@ final class CreepFieldTest {
             Assertions.assertThrows(IndexOutOfBoundsException.class, () -> creep.getGraphicsCache(-1));
             Assertions.assertEquals(SAVED_TAIL_GRAPHICS_WORD, creep.getGraphicsCache(tailIndex));
             Assertions.assertEquals(LIVE_PREFIX_GRAPHICS_WORD, creep.getGraphicsCache(0));
+        }
+    }
+
+    @Test
+    void fill_tile_should_add_creep_once_to_a_tile_that_can_take_it() throws IOException {
+        try (GameData data = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            Game game = RunningGameScenario.start(data).getGame();
+            GameMap map = game.getMap();
+            CreepField creep = game.getCreepField();
+            int open = -1;
+            int occupied = -1;
+
+            Assertions.assertNotNull(creep);
+
+            for (int tileIndex = 0; tileIndex < map.getTileCount() - map.getWidth(); tileIndex++) {
+                int flags = map.getTileFlags(tileIndex);
+                boolean canTake = (flags & (MapTileFlags.UNBUILDABLE | MapTileFlags.PARTIALLY_WALKABLE | MapTileFlags.HAS_CREEP)) == 0 &&
+                                  (map.getTileFlags(tileIndex + map.getWidth()) & MapTileFlags.UNBUILDABLE) == 0;
+
+                if (canTake && (flags & MapTileFlags.OCCUPIED) == 0 && open < 0) {
+                    open = tileIndex;
+                } else if (canTake && (flags & MapTileFlags.OCCUPIED) != 0 && occupied < 0) {
+                    occupied = tileIndex;
+                }
+            }
+
+            Assertions.assertTrue(open >= 0 && occupied >= 0, "the map has an open and an occupied buildable tile");
+
+            int openX = open % map.getWidth();
+            int openY = open / map.getWidth();
+            int terrain = map.getTerrainTileIdentifier(open);
+
+            Assertions.assertTrue(creep.fillTile(game, openX, openY));
+            Assertions.assertTrue(TerrainTileset.isCreepTile(map.getTileIdentifier(open)));
+            Assertions.assertNotEquals(0, map.getTileFlags(open) & MapTileFlags.HAS_CREEP);
+            Assertions.assertEquals(terrain, map.getTerrainTileIdentifier(open), "the terrain stays below the creep");
+            Assertions.assertFalse(creep.fillTile(game, openX, openY), "a creep tile stays");
+            Assertions.assertFalse(creep.fillTile(game, occupied % map.getWidth(), occupied / map.getWidth()), "an occupied tile stays");
+            Assertions.assertEquals(0, map.getTileFlags(occupied) & MapTileFlags.HAS_CREEP);
+            Assertions.assertThrows(IndexOutOfBoundsException.class, () -> creep.fillTile(game, map.getWidth(), 0));
         }
     }
 }
