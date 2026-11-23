@@ -72,6 +72,178 @@ public final class UnitGroupMovement {
      */
     private static final int POSITION_VERTICAL_SHIFT = Short.SIZE;
 
+    /**
+     * Moves a destination off terrain that a ground unit of a type cannot stand on, as a player command for one unit does: a destination where the
+     * terrain accepts the type's footprint ({@link UnitPositioning#isTerrainPlacementWalkable}) stays, any other destination moves as
+     * {@link #adjustDestination} moves it with the type's extents. The destination is not clamped to the map.
+     *
+     * @param game        the initialized world
+     * @param unitType    the unit type whose footprint stands at the destination
+     * @param sourceX     the horizontal coordinate the unit comes from
+     * @param sourceY     the vertical coordinate the unit comes from
+     * @param destination the mutable horizontal and vertical pixel coordinates ({@link UnitPositioning#X_INDEX}, {@link UnitPositioning#Y_INDEX})
+     * @throws UnsupportedOperationException if the terrain contours are not initialized
+     * @throws NullPointerException          if the world was built without game data
+     */
+    public static void adjustUnitDestination(@NotNull Game game, int unitType, int sourceX, int sourceY, int @NotNull [] destination) {
+        int destinationX = destination[UnitPositioning.X_INDEX];
+        int destinationY = destination[UnitPositioning.Y_INDEX];
+
+        if (game.getUnitPositioning().isTerrainPlacementWalkable(unitType, destinationX, destinationY)) {
+            return;
+        }
+
+        ScrUnitTypeView unitTypes = game.requireGameData().getUnitTypes();
+
+        adjustDestination(game,
+                          sourceX, sourceY,
+                          -unitTypes.getDimensionLeft(unitType), -unitTypes.getDimensionUp(unitType),
+                          unitTypes.getDimensionRight(unitType), unitTypes.getDimensionDown(unitType),
+                          destination);
+    }
+
+    /**
+     * Moves a destination to terrain near it that a footprint of the given extents can stand on, on the side of the source position: when the
+     * destination point is unwalkable or lies in another ground component than the source, the region that the region-level path from the source
+     * ends in replaces the destination's region. The destination then moves into that region
+     * ({@link TerrainRegionLookupUtils#adjustDestinationToRegion}) and to the first spot nearby whose footprint covers no blocked tile
+     * ({@link TerrainRegionLookupUtils#adjustDestination}). The destination is not clamped to the map.
+     *
+     * @param game        the initialized world
+     * @param sourceX     the horizontal coordinate the movement comes from
+     * @param sourceY     the vertical coordinate the movement comes from
+     * @param left        the signed left extent of the footprint
+     * @param top         the signed top extent of the footprint
+     * @param right       the signed right extent of the footprint
+     * @param bottom      the signed bottom extent of the footprint
+     * @param destination the mutable horizontal and vertical pixel coordinates ({@link UnitPositioning#X_INDEX}, {@link UnitPositioning#Y_INDEX})
+     * @throws UnsupportedOperationException if the terrain contours are not initialized
+     */
+    public static void adjustDestination(@NotNull Game game,
+                                         int sourceX, int sourceY,
+                                         int left, int top, int right, int bottom,
+                                         int @NotNull [] destination) {
+        TerrainContours terrain = game.getPathSystem().getTerrainContours();
+
+        if (terrain == null) {
+            throw Exceptions.newUnsupportedOperationException("Group destination adjustment requires initialized terrain regions.");
+        }
+
+        TerrainRegions regions = terrain.getRegions();
+        int targetX = destination[UnitPositioning.X_INDEX];
+        int targetY = destination[UnitPositioning.Y_INDEX];
+        int sourceRegion = TerrainRegionLookupUtils.lookupPreferWalkable(regions, sourceX, sourceY);
+        int targetRegion = TerrainRegionLookupUtils.lookupPreferWalkable(regions, targetX, targetY);
+
+        if (!game.getUnitPositioning().isTerrainPointWalkable(targetX, targetY) ||
+            regions.getComponent(sourceRegion) != regions.getComponent(targetRegion)) {
+            // Replace the target region with the end of the region-level long path.
+            int longPathSource = TerrainRegionLookupUtils.lookup(regions, sourceX, sourceY);
+
+            if (longPathSource == TerrainRegionLookupUtils.lookup(regions, targetX, targetY)) {
+                targetRegion = longPathSource;
+            } else {
+                RegionPathSearch search = game.getPathSystem().getResourcePathSearch();
+
+                if (search.search(sourceX, sourceY, targetX, targetY)) {
+                    targetRegion = search.getRouteRegion(search.getRouteCount() - 1);
+                }
+            }
+        }
+
+        TerrainRegionLookupUtils.adjustDestinationToRegion(regions, game.getMap().getWidth(), game.getMap().getHeight(), targetRegion, destination);
+        TerrainRegionLookupUtils.adjustDestination(regions,
+                                                   game.getMap().getWidth() * TerrainTileset.TILE_SIZE,
+                                                   game.getMap().getHeight() * TerrainTileset.TILE_SIZE,
+                                                   left, top, right, bottom,
+                                                   destination);
+    }
+
+    /**
+     * Calculates the destination that a player command to a position gives one selected ground unit of a type, which the order then targets: the
+     * target moves off terrain the unit cannot stand on ({@link #adjustUnitDestination}) and is clamped to the map, and the unit goes to the first
+     * point on the way from the target to that destination that the terrain accepts for the unit ({@link #calculatePosition}).
+     *
+     * @param game     the initialized world
+     * @param unitType the unit type
+     * @param sourceX  the horizontal coordinate of the unit
+     * @param sourceY  the vertical coordinate of the unit
+     * @param targetX  the horizontal coordinate of the command
+     * @param targetY  the vertical coordinate of the command
+     * @return horizontal and vertical unsigned WORD coordinates packed into a DWORD
+     * @throws UnsupportedOperationException if the terrain contours are not initialized
+     * @throws NullPointerException          if the world was built without game data
+     */
+    public static int calculateUnitPosition(@NotNull Game game, int unitType, int sourceX, int sourceY, int targetX, int targetY) {
+        int[] destination = {targetX, targetY};
+
+        adjustUnitDestination(game, unitType, sourceX, sourceY, destination);
+
+        int destinationX = Math.clamp(destination[UnitPositioning.X_INDEX], 0, game.getMap().getWidth() * TerrainTileset.TILE_SIZE - 1);
+        int destinationY = Math.clamp(destination[UnitPositioning.Y_INDEX], 0, game.getMap().getHeight() * TerrainTileset.TILE_SIZE - 1);
+
+        return calculateTerrainPosition(game, unitType, true, targetX, targetY, destinationX, destinationY);
+    }
+
+    /**
+     * Calculates the terrain destination of one commanded unit: the unit's position for the command clamped to the map by the type's dimensions;
+     * for a ground unit, the first point on the way from there to the group destination that the terrain accepts in the destination's region or a
+     * walkable neighbor of it, else the group destination.
+     *
+     * @return horizontal and vertical unsigned WORD coordinates packed into a DWORD
+     */
+    private static int calculateTerrainPosition(@NotNull Game game,
+                                                int unitType,
+                                                boolean collisionEnabled,
+                                                int positionX, int positionY,
+                                                int destinationX, int destinationY) {
+        ScrUnitTypeView unitTypes = game.requireGameData().getUnitTypes();
+
+        positionX = UnitPositioning.clampCoordinate(positionX,
+                                                    unitTypes.getDimensionLeft(unitType), unitTypes.getDimensionRight(unitType),
+                                                    game.getMap().getWidth() * TerrainTileset.TILE_SIZE,
+                                                    0);
+        positionY = UnitPositioning.clampCoordinate(positionY,
+                                                    unitTypes.getDimensionUp(unitType), unitTypes.getDimensionDown(unitType),
+                                                    game.getMap().getHeight() * TerrainTileset.TILE_SIZE,
+                                                    UnitPositioning.MAP_BOTTOM_MARGIN);
+
+        if (!collisionEnabled) {
+            return packPosition(positionX, positionY);
+        }
+
+        TerrainContours terrain = game.getPathSystem().getTerrainContours();
+
+        if (terrain == null) {
+            throw Exceptions.newUnsupportedOperationException("Group movement requires initialized terrain regions.");
+        }
+
+        TerrainRegions regions = terrain.getRegions();
+        int sourceRegion = TerrainRegionLookupUtils.lookup(regions, destinationX, destinationY);
+
+        if (isAcceptedPosition(game, unitType, regions, sourceRegion, positionX, positionY)) {
+            return packPosition(positionX, positionY);
+        }
+
+        int distanceToTarget = Math.max(MINIMUM_DISTANCE, RegionPathSearch.calculateDistance(positionX, destinationX, positionY, destinationY));
+        int step = Math.min(distanceToTarget / STEP_DIVISOR, MAXIMUM_STEP);
+
+        if (step < MINIMUM_STEP) {
+            step = distanceToTarget;
+        }
+
+        for (int distance = step; distance <= distanceToTarget; distance += step) {
+            int horizontal = positionX + (destinationX - positionX) * distance / distanceToTarget;
+            int vertical = positionY + (destinationY - positionY) * distance / distanceToTarget;
+
+            if (isAcceptedPosition(game, unitType, regions, sourceRegion, horizontal, vertical)) {
+                return packPosition(horizontal, vertical);
+            }
+        }
+
+        return packPosition(destinationX, destinationY);
+    }
+
     private static boolean isAcceptedPosition(@NotNull Game game,
                                               int unitType,
                                               @NotNull TerrainRegions regions, int sourceRegion,
@@ -191,15 +363,10 @@ public final class UnitGroupMovement {
         }
 
         if (collisionEnabled && canBeObstructed) {
-            if (count == SINGLE_UNIT_COUNT) {
-                int unitType = firstUnit.getUnitId();
+            int[] destination = {targetX, targetY};
 
-                if (!game.getUnitPositioning().isTerrainPlacementWalkable(unitType, targetX, targetY)) {
-                    this.adjustTarget(game,
-                                      totalX, totalY,
-                                      -unitTypes.getDimensionLeft(unitType), -unitTypes.getDimensionUp(unitType),
-                                      unitTypes.getDimensionRight(unitType), unitTypes.getDimensionDown(unitType));
-                }
+            if (count == SINGLE_UNIT_COUNT) {
+                adjustUnitDestination(game, firstUnit.getUnitId(), totalX, totalY, destination);
             } else {
                 int width = (int) Math.sqrt(Integer.toUnsignedLong(totalArea * FORMATION_AREA_FACTOR));
                 TerrainContours terrain = game.getPathSystem().getTerrainContours();
@@ -216,15 +383,16 @@ public final class UnitGroupMovement {
                     top + width >= game.getMap().getHeight() * TerrainTileset.TILE_SIZE ||
                     !game.getUnitPositioning().isTerrainPointWalkable(targetX, targetY) ||
                     !terrain.isRectanglePlacementClear(targetX, targetY, width, width)) {
-                    this.adjustTarget(game,
+                    adjustDestination(game,
                                       totalX / count, totalY / count,
                                       -width / FORMATION_CENTER_DIVISOR, -width / FORMATION_CENTER_DIVISOR,
-                                      -width / FORMATION_CENTER_DIVISOR + width, -width / FORMATION_CENTER_DIVISOR + width);
+                                      -width / FORMATION_CENTER_DIVISOR + width, -width / FORMATION_CENTER_DIVISOR + width,
+                                      destination);
                 }
             }
 
-            this.targetX = Math.clamp(this.targetX, 0, game.getMap().getWidth() * TerrainTileset.TILE_SIZE - 1);
-            this.targetY = Math.clamp(this.targetY, 0, game.getMap().getHeight() * TerrainTileset.TILE_SIZE - 1);
+            this.targetX = Math.clamp(destination[UnitPositioning.X_INDEX], 0, game.getMap().getWidth() * TerrainTileset.TILE_SIZE - 1);
+            this.targetY = Math.clamp(destination[UnitPositioning.Y_INDEX], 0, game.getMap().getHeight() * TerrainTileset.TILE_SIZE - 1);
         }
 
         if (count >= MINIMUM_FORMATION_COUNT) {
@@ -268,92 +436,6 @@ public final class UnitGroupMovement {
             positionY = sprite.getY() + this.offsetY;
         }
 
-        ScrUnitTypeView unitTypes = game.requireGameData().getUnitTypes();
-        int unitType = unit.getUnitId();
-
-        positionX = UnitPositioning.clampCoordinate(positionX,
-                                                    unitTypes.getDimensionLeft(unitType), unitTypes.getDimensionRight(unitType),
-                                                    game.getMap().getWidth() * TerrainTileset.TILE_SIZE,
-                                                    0);
-        positionY = UnitPositioning.clampCoordinate(positionY,
-                                                    unitTypes.getDimensionUp(unitType), unitTypes.getDimensionDown(unitType),
-                                                    game.getMap().getHeight() * TerrainTileset.TILE_SIZE,
-                                                    UnitPositioning.MAP_BOTTOM_MARGIN);
-
-        if (!collisionEnabled) {
-            return packPosition(positionX, positionY);
-        }
-
-        TerrainContours terrain = game.getPathSystem().getTerrainContours();
-
-        if (terrain == null) {
-            throw Exceptions.newUnsupportedOperationException("Group movement requires initialized terrain regions.");
-        }
-
-        TerrainRegions regions = terrain.getRegions();
-        int sourceRegion = TerrainRegionLookupUtils.lookup(regions, destinationX, destinationY);
-
-        if (isAcceptedPosition(game, unitType, regions, sourceRegion, positionX, positionY)) {
-            return packPosition(positionX, positionY);
-        }
-
-        int distanceToTarget = Math.max(MINIMUM_DISTANCE, RegionPathSearch.calculateDistance(positionX, destinationX, positionY, destinationY));
-        int step = Math.min(distanceToTarget / STEP_DIVISOR, MAXIMUM_STEP);
-
-        if (step < MINIMUM_STEP) {
-            step = distanceToTarget;
-        }
-
-        for (int distance = step; distance <= distanceToTarget; distance += step) {
-            int horizontal = positionX + (destinationX - positionX) * distance / distanceToTarget;
-            int vertical = positionY + (destinationY - positionY) * distance / distanceToTarget;
-
-            if (isAcceptedPosition(game, unitType, regions, sourceRegion, horizontal, vertical)) {
-                return packPosition(horizontal, vertical);
-            }
-        }
-
-        return packPosition(destinationX, destinationY);
-    }
-
-
-    private void adjustTarget(@NotNull Game game, int sourceX, int sourceY, int left, int top, int right, int bottom) {
-        TerrainContours terrain = game.getPathSystem().getTerrainContours();
-
-        if (terrain == null) {
-            throw Exceptions.newUnsupportedOperationException("Group destination adjustment requires initialized terrain regions.");
-        }
-
-        TerrainRegions regions = terrain.getRegions();
-        int sourceRegion = TerrainRegionLookupUtils.lookupPreferWalkable(regions, sourceX, sourceY);
-        int targetRegion = TerrainRegionLookupUtils.lookupPreferWalkable(regions, this.targetX, this.targetY);
-
-        if (!game.getUnitPositioning().isTerrainPointWalkable(this.targetX, this.targetY) ||
-            regions.getComponent(sourceRegion) != regions.getComponent(targetRegion)) {
-            // Replace the target region with the end of the region-level long path.
-            int longPathSource = TerrainRegionLookupUtils.lookup(regions, sourceX, sourceY);
-
-            if (longPathSource == TerrainRegionLookupUtils.lookup(regions, this.targetX, this.targetY)) {
-                targetRegion = longPathSource;
-            } else {
-                RegionPathSearch search = game.getPathSystem().getResourcePathSearch();
-
-                if (search.search(sourceX, sourceY, this.targetX, this.targetY)) {
-                    targetRegion = search.getRouteRegion(search.getRouteCount() - 1);
-                }
-            }
-        }
-
-        int[] destination = {this.targetX, this.targetY};
-
-        TerrainRegionLookupUtils.adjustDestinationToRegion(regions, game.getMap().getWidth(), game.getMap().getHeight(), targetRegion, destination);
-        TerrainRegionLookupUtils.adjustDestination(regions,
-                                                   game.getMap().getWidth() * TerrainTileset.TILE_SIZE,
-                                                   game.getMap().getHeight() * TerrainTileset.TILE_SIZE,
-                                                   left, top, right, bottom,
-                                                   destination);
-
-        this.targetX = destination[UnitPositioning.X_INDEX];
-        this.targetY = destination[UnitPositioning.Y_INDEX];
+        return calculateTerrainPosition(game, unit.getUnitId(), collisionEnabled, positionX, positionY, destinationX, destinationY);
     }
 }

@@ -175,10 +175,7 @@ public final class ScrOrderSystem implements OrderSystem {
     }
 
     /**
-     * Issues a runtime order using the pooled queue. A queued order is appended unless the queue or the order pool is full, which only shows a status
-     * text. Any other order records the user action, then, unless the unit is dying, removes the interruptible trailing orders and appends the order
-     * when the capacity test allows it; the queue head activates in every case, also for a dying unit. The simulation plugins decide the order
-     * first ({@link ScrSimulationPlugins#decideOrder}): a rejected order changes nothing, and the order continues with the decided values.
+     * Issues a runtime order ({@link #issue(Unit, int, Unit, int, int, int, int, int, boolean, int)}) that requests its target position.
      *
      * @param unit             the receiving unit
      * @param orderId          the requested order BYTE
@@ -199,6 +196,39 @@ public final class ScrOrderSystem implements OrderSystem {
                       int targetUnitType,
                       boolean queue,
                       int instructionLimit) {
+        this.issue(unit, orderId, targetUnit, positionX, positionY, positionX, positionY, targetUnitType, queue, instructionLimit);
+    }
+
+    /**
+     * Issues a runtime order using the pooled queue. A queued order is appended unless the queue or the order pool is full, which only shows a status
+     * text. Any other order records the user action, then, unless the unit is dying, removes the interruptible trailing orders and appends the order
+     * when the capacity test allows it; the queue head activates in every case, also for a dying unit. The simulation plugins decide the order
+     * first ({@link ScrSimulationPlugins#decideOrder}): a rejected order changes nothing, and the order continues with the decided values. The
+     * requested position is the position the order was asked for, which a player command keeps when it moves the target position; the order
+     * itself only goes to the target position.
+     *
+     * @param unit               the receiving unit
+     * @param orderId            the requested order BYTE
+     * @param targetUnit         the target unit, or {@code null} for a position target
+     * @param positionX          the target X coordinate
+     * @param positionY          the target Y coordinate
+     * @param requestedPositionX the X coordinate the order was asked for
+     * @param requestedPositionY the Y coordinate the order was asked for
+     * @param targetUnitType     the target type, or {@link ScrUnitIds#NONE} for none
+     * @param queue              whether to append a queueable order
+     * @param instructionLimit   the script limit for cleanup animations
+     * @throws NullPointerException          if the world was built without game data
+     * @throws IllegalStateException         if the target unit has no sprite
+     * @throws UnsupportedOperationException if the order is unrepresented or the order pool is not initialized
+     */
+    public void issue(@NotNull Unit unit,
+                      int orderId,
+                      @Nullable Unit targetUnit,
+                      int positionX, int positionY,
+                      int requestedPositionX, int requestedPositionY,
+                      int targetUnitType,
+                      boolean queue,
+                      int instructionLimit) {
         OrderPool pool = this.requireGame().requireOrderPool();
 
         orderId &= BYTE_MASK;
@@ -206,7 +236,13 @@ public final class ScrOrderSystem implements OrderSystem {
         ScrSimulationPlugins simulation = this.requireGame().getSimulationPlugins();
 
         if (simulation != null) {
-            OrderDecision decision = simulation.decideOrder(unit, orderId, targetUnit, positionX, positionY, targetUnitType, queue);
+            OrderDecision decision = simulation.decideOrder(unit,
+                                                            orderId,
+                                                            targetUnit,
+                                                            positionX, positionY,
+                                                            requestedPositionX, requestedPositionY,
+                                                            targetUnitType,
+                                                            queue);
 
             if (decision.isRejected()) {
                 return;
@@ -259,13 +295,13 @@ public final class ScrOrderSystem implements OrderSystem {
                 return;
             }
 
-            this.queueBack(unit, orderId, targetUnit, positionX, positionY, targetUnitType);
+            this.queueAfter(unit, orderId, targetUnit, positionX, positionY, targetUnitType, null, true);
         } else {
             unit.setUserActionFlags(unit.getUserActionFlags() | Unit.USER_ACTION_ORDER_DONE);
 
             // A dying unit keeps its queue. An exhausted pool reports the allocation failure text and appends nothing.
             if (unit.getPrimaryOrder() != ScrOrderIds.DIE) {
-                this.queueReplacingOrders(unit, orderId, targetUnit, positionX, positionY, targetUnitType, true);
+                this.queueReplacingOrders(unit, orderId, targetUnit, positionX, positionY, targetUnitType, true, true);
             }
 
             this.activateNext(unit, instructionLimit);
@@ -407,7 +443,8 @@ public final class ScrOrderSystem implements OrderSystem {
 
     /**
      * Adds an internal order before the pending queue head, or appends it when the queue is empty. A unit with a computer record and more than eight
-     * highlighted orders keeps a nonempty queue; an exhausted pool only shows the allocation failure text.
+     * highlighted orders keeps a nonempty queue; an exhausted pool only shows the allocation failure text. The simulation plugins decide the order
+     * first ({@link ScrSimulationPlugins#decideInsertedOrder}): a rejected order is not inserted.
      *
      * @param unit           the receiving unit
      * @param orderId        the order BYTE
@@ -429,7 +466,8 @@ public final class ScrOrderSystem implements OrderSystem {
     }
 
     /**
-     * Appends an internal order after the pending queue without activating it; an exhausted pool only shows the allocation failure text.
+     * Appends an internal order after the pending queue without activating it; an exhausted pool only shows the allocation failure text. The
+     * simulation plugins decide the order first ({@link ScrSimulationPlugins#decideInsertedOrder}): a rejected order is not appended.
      *
      * @param unit           the receiving unit
      * @param orderId        the order BYTE
@@ -446,7 +484,8 @@ public final class ScrOrderSystem implements OrderSystem {
 
     /**
      * Appends an internal order or inserts it after a queued predecessor without activating it. No computer queue-count guard is applied; an
-     * exhausted pool only shows the allocation failure text.
+     * exhausted pool only shows the allocation failure text. The simulation plugins decide the order first
+     * ({@link ScrSimulationPlugins#decideInsertedOrder}): a rejected order is not inserted.
      *
      * @param unit           the receiving unit
      * @param orderId        the order BYTE
@@ -465,9 +504,23 @@ public final class ScrOrderSystem implements OrderSystem {
                            int positionX, int positionY,
                            int targetUnitType,
                            @Nullable OrderPool.Order after) {
+        this.queueAfter(unit, orderId, targetUnit, positionX, positionY, targetUnitType, after, false);
+    }
+
+    /**
+     * Appends an internal order or inserts it after a queued predecessor ({@link #queueAfter(Unit, int, Unit, int, int, int, OrderPool.Order)});
+     * an order that is already decided offers no decision.
+     */
+    private void queueAfter(@NotNull Unit unit,
+                            int orderId,
+                            @Nullable Unit targetUnit,
+                            int positionX, int positionY,
+                            int targetUnitType,
+                            @Nullable OrderPool.Order after,
+                            boolean decided) {
         OrderPool pool = this.requireGame().requireOrderPool();
 
-        OrderPool.Order order = this.allocateOrder(pool, unit, orderId, targetUnit, positionX, positionY, targetUnitType);
+        OrderPool.Order order = this.allocateOrder(pool, unit, orderId, targetUnit, positionX, positionY, targetUnitType, decided);
 
         if (order == null) {
             return;
@@ -478,7 +531,8 @@ public final class ScrOrderSystem implements OrderSystem {
 
     /**
      * Inserts an internal order before a successor already queued by this unit. A unit with a computer record and more than eight highlighted orders
-     * receives no insertion or status text; otherwise, an exhausted pool only shows the allocation failure text.
+     * receives no insertion or status text; otherwise, an exhausted pool only shows the allocation failure text. The simulation plugins decide the
+     * order first ({@link ScrSimulationPlugins#decideInsertedOrder}): a rejected order is not inserted.
      *
      * @param unit           the receiving unit
      * @param orderId        the order BYTE
@@ -497,13 +551,27 @@ public final class ScrOrderSystem implements OrderSystem {
                             int positionX, int positionY,
                             int targetUnitType,
                             @NotNull OrderPool.Order before) {
+        this.queueBefore(unit, orderId, targetUnit, positionX, positionY, targetUnitType, before, false);
+    }
+
+    /**
+     * Inserts an internal order before a queued successor ({@link #queueBefore(Unit, int, Unit, int, int, int, OrderPool.Order)}); an order that
+     * is already decided offers no decision.
+     */
+    private void queueBefore(@NotNull Unit unit,
+                             int orderId,
+                             @Nullable Unit targetUnit,
+                             int positionX, int positionY,
+                             int targetUnitType,
+                             @NotNull OrderPool.Order before,
+                             boolean decided) {
         if (unit.getComputerRecord() != null && unit.getHighlightedOrderCount() > MAXIMUM_COMPUTER_INSERTION_COUNT) {
             return;
         }
 
         OrderPool pool = this.requireGame().requireOrderPool();
 
-        OrderPool.Order order = this.allocateOrder(pool, unit, orderId, targetUnit, positionX, positionY, targetUnitType);
+        OrderPool.Order order = this.allocateOrder(pool, unit, orderId, targetUnit, positionX, positionY, targetUnitType, decided);
 
         if (order == null) {
             return;
@@ -519,8 +587,9 @@ public final class ScrOrderSystem implements OrderSystem {
     }
 
     /**
-     * Allocates the detached order of an internal queue insertion. An exhausted pool allocates nothing and shows the allocation failure text to the
-     * unit's owner.
+     * Allocates the detached order of an internal queue insertion. Unless the order is already decided, the simulation plugins decide it first: a
+     * rejected order allocates nothing and shows no text, and a changed order is allocated with the decided values. An exhausted pool allocates
+     * nothing and shows the allocation failure text to the unit's owner.
      *
      * @param pool           the order pool
      * @param unit           the receiving unit
@@ -529,14 +598,33 @@ public final class ScrOrderSystem implements OrderSystem {
      * @param positionX      the target X coordinate
      * @param positionY      the target Y coordinate
      * @param targetUnitType the target unit type, or {@link ScrUnitIds#NONE} for none
-     * @return the allocated order, or {@code null} when the pool is exhausted
+     * @param decided        whether the order is already decided, as the order of an issue is
+     * @return the allocated order, or {@code null} when the order is rejected or the pool is exhausted
      */
     private @Nullable OrderPool.Order allocateOrder(@NotNull OrderPool pool,
                                                     @NotNull Unit unit,
                                                     int orderId,
                                                     @Nullable Unit targetUnit,
                                                     int positionX, int positionY,
-                                                    int targetUnitType) {
+                                                    int targetUnitType,
+                                                    boolean decided) {
+        ScrSimulationPlugins simulation = decided ? null : this.requireGame().getSimulationPlugins();
+
+        if (simulation != null) {
+            OrderDecision decision = simulation.decideInsertedOrder(unit, orderId, targetUnit, positionX, positionY, targetUnitType);
+
+            if (decision != null) {
+                if (decision.isRejected()) {
+                    return null;
+                }
+
+                orderId    = decision.getOrderId() & BYTE_MASK;
+                targetUnit = decision.getTargetUnit();
+                positionX  = decision.getPositionX();
+                positionY  = decision.getPositionY();
+            }
+        }
+
         OrderPool.Order order = pool.allocate(orderId, targetUnitType, positionX, positionY, targetUnit);
 
         if (order == null) {
@@ -547,7 +635,8 @@ public final class ScrOrderSystem implements OrderSystem {
     }
 
     /**
-     * Replaces only trailing orders of the same type before appending, without interruption.
+     * Replaces only trailing orders of the same type before appending, without interruption. The simulation plugins decide the appended order
+     * ({@link ScrSimulationPlugins#decideInsertedOrder}).
      *
      * @param unit           the receiving unit
      * @param orderId        the order BYTE
@@ -568,7 +657,8 @@ public final class ScrOrderSystem implements OrderSystem {
 
     /**
      * Replaces matching trailing orders and optionally other interruptible trailing orders, then appends when the capacity test allows it. A dying
-     * unit keeps its queue. The operation neither records user action nor activates the queue.
+     * unit keeps its queue. The operation neither records user action nor activates the queue. The simulation plugins decide the appended order
+     * ({@link ScrSimulationPlugins#decideInsertedOrder}): a rejected order is not appended, and the trailing orders stay removed.
      * <p>
      * Rejected capacity leaves the remaining queue intact and reports no allocation failure.
      *
@@ -588,6 +678,20 @@ public final class ScrOrderSystem implements OrderSystem {
                                      int positionX, int positionY,
                                      int targetUnitType,
                                      boolean removeInterruptible) {
+        this.queueReplacingOrders(unit, orderId, targetUnit, positionX, positionY, targetUnitType, removeInterruptible, false);
+    }
+
+    /**
+     * Replaces trailing orders and appends an order ({@link #queueReplacingOrders(Unit, int, Unit, int, int, int, boolean)}); an order that is
+     * already decided offers no decision.
+     */
+    private void queueReplacingOrders(@NotNull Unit unit,
+                                      int orderId,
+                                      @Nullable Unit targetUnit,
+                                      int positionX, int positionY,
+                                      int targetUnitType,
+                                      boolean removeInterruptible,
+                                      boolean decided) {
         if (unit.getPrimaryOrder() == ScrOrderIds.DIE) {
             return;
         }
@@ -605,8 +709,8 @@ public final class ScrOrderSystem implements OrderSystem {
             pool.remove(unit, last, orderTypes == null ? this.requireGame().requireGameData().getOrderTypes() : orderTypes);
         }
 
-        if (this.applyQueuedOrderCapacity(unit, orderId, targetUnit, positionX, positionY, targetUnitType)) {
-            this.queueBack(unit, orderId, targetUnit, positionX, positionY, targetUnitType);
+        if (this.applyQueuedOrderCapacity(unit, orderId, targetUnit, positionX, positionY, targetUnitType, decided)) {
+            this.queueAfter(unit, orderId, targetUnit, positionX, positionY, targetUnitType, null, decided);
         }
     }
 
@@ -677,7 +781,7 @@ public final class ScrOrderSystem implements OrderSystem {
             // A burrowed computer unit first unburrows at its position, then the activation runs again.
             Sprite sprite = unit.requireSprite();
 
-            this.queueFront(unit, ScrOrderIds.UNBURROWING, null, sprite.getX(), sprite.getY(), ScrUnitIds.NONE);
+            this.queueBefore(unit, ScrOrderIds.UNBURROWING, null, sprite.getX(), sprite.getY(), ScrUnitIds.NONE, order, true);
 
             // Queuing must replace the head before activation reenters; fail if allocation left the head unchanged.
             if (unit.getFirstOrder() == order) {
@@ -782,6 +886,7 @@ public final class ScrOrderSystem implements OrderSystem {
      * @param positionX      the target X coordinate
      * @param positionY      the target Y coordinate
      * @param targetUnitType the target unit type, or {@link ScrUnitIds#NONE} for none
+     * @param decided        whether the order is already decided, as the order of an issue is
      * @return {@code true} if the capacity test allows the order to be appended, {@code false} otherwise
      * @throws UnsupportedOperationException if the order pool is not initialized
      */
@@ -789,7 +894,8 @@ public final class ScrOrderSystem implements OrderSystem {
                                              int orderId,
                                              @Nullable Unit targetUnit,
                                              int positionX, int positionY,
-                                             int targetUnitType) {
+                                             int targetUnitType,
+                                             boolean decided) {
         GameRulesVersion rules = this.requireGame().getRulesVersion();
 
         if (rules.isLegacyReplay()) {
@@ -800,7 +906,7 @@ public final class ScrOrderSystem implements OrderSystem {
 
         if (unit.getPrimaryOrder() == ScrOrderIds.CONSTRUCTING_BUILDING && orderId == ScrOrderIds.RESET_COLLISION &&
             unit.getHighlightedOrderCount() >= GameRulesVersion.HIGHLIGHTED_ORDER_CAPACITY) {
-            this.queueBack(unit, orderId, targetUnit, positionX, positionY, targetUnitType);
+            this.queueAfter(unit, orderId, targetUnit, positionX, positionY, targetUnitType, null, decided);
         }
 
         return rules.appendsOrder(pool.isNearlyFull(), unit.getHighlightedOrderCount(), unit.getPrimaryOrder());
