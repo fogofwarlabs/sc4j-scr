@@ -679,7 +679,7 @@ public final class ScrGameView implements GameView {
     }
 
     /**
-     * @return the local command card state the game plugins set: the script button states and the requested button set
+     * @return the local command card state the game plugins set: the plugin button states and the requested button set
      */
     public @NotNull ScrButtonStates getButtonStates() {
         return this.game.getInterfaceLink().getButtonStates();
@@ -733,6 +733,24 @@ public final class ScrGameView implements GameView {
 
             if (picture != null) {
                 return picture;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds the sound file a played sound event plays: the first file a plugin of the game gives ({@link ScrGamePlugin#findSoundFile}).
+     *
+     * @param soundId the sound id of a played sound event
+     * @return the sound file, or {@code null} for the sound table entry
+     */
+    public byte @Nullable [] findSoundFile(int soundId) {
+        for (ScrGamePlugin plugin : this.game.getPlugins()) {
+            byte[] file = plugin.findSoundFile(soundId);
+
+            if (file != null) {
+                return file;
             }
         }
 

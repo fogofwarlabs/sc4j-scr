@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Holds the local command card state that a game plugin sets: the button states that the script button condition reads by its condition value,
+ * Holds the local command card state that a game plugin sets: the button states that the plugin button condition reads by its condition value,
  * and a button set the local command card shows next, as the Change Buttons action shows one.
  * <p>
  * The states are the values of the native button conditions: {@link #ENABLED}, {@link #HIDDEN} and {@link #DISABLED}. Every state starts

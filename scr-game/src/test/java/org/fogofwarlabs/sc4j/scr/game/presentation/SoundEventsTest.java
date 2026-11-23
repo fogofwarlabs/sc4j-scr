@@ -1,13 +1,11 @@
 package org.fogofwarlabs.sc4j.scr.game.presentation;
 
-import org.fogofwarlabs.sc4j.scr.content.ScrUnitIds;
 import org.fogofwarlabs.sc4j.scr.core.LcgRandom;
 import org.fogofwarlabs.sc4j.scr.core.test.ExternalInput;
 import org.fogofwarlabs.sc4j.scr.core.test.RequiresInstallation;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
 import org.fogofwarlabs.sc4j.scr.game.terrain.GameMap;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -17,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 /**
- * Checks the order and the clearing of the sound events of a game, and the file of a sound file event.
+ * Checks the order and the clearing of the sound events of a game.
  */
 @RequiresInstallation
 final class SoundEventsTest {
@@ -57,13 +55,6 @@ final class SoundEventsTest {
      * The index of the first sound event.
      */
     private static final int FIRST_EVENT = 0;
-    /**
-     * The sound file of the sound file event, its position, and the sound of the table that takes its event slot afterwards.
-     */
-    private static final byte @NotNull [] SOUND_FILE = {'R', 'I', 'F', 'F'};
-    private static final int FILE_POSITION_X = 40;
-    private static final int FILE_POSITION_Y = 72;
-    private static final int TABLE_SOUND = 7;
 
     private static @Nullable GameData gameData;
 
@@ -103,25 +94,5 @@ final class SoundEventsTest {
 
         Assertions.assertEquals(0, events.getCount());
         Assertions.assertThrows(IndexOutOfBoundsException.class, () -> events.getSoundId(FIRST_EVENT));
-    }
-
-    @Test
-    void a_sound_file_event_holds_its_file_until_its_slot_takes_a_sound_of_the_table() {
-        SoundEvents events = new SoundEvents();
-
-        events.addFile(SOUND_FILE, FILE_POSITION_X, FILE_POSITION_Y);
-
-        Assertions.assertEquals(1, events.getCount());
-        Assertions.assertEquals(SoundEvents.FILE_SOUND_ID, events.getSoundId(FIRST_EVENT));
-        Assertions.assertSame(SOUND_FILE, events.getFile(FIRST_EVENT));
-        Assertions.assertEquals(FILE_POSITION_X, events.getPositionX(FIRST_EVENT));
-        Assertions.assertEquals(FILE_POSITION_Y, events.getPositionY(FIRST_EVENT));
-        Assertions.assertEquals(ScrUnitIds.NONE, events.getSourceUnitType(FIRST_EVENT));
-
-        events.clear();
-        events.add(TABLE_SOUND, FILE_POSITION_X, FILE_POSITION_Y, NO_UNIT_TYPE);
-
-        Assertions.assertEquals(TABLE_SOUND, events.getSoundId(FIRST_EVENT));
-        Assertions.assertNull(events.getFile(FIRST_EVENT));
     }
 }

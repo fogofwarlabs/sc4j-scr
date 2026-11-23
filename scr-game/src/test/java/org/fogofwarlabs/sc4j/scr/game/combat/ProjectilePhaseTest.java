@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 /**
- * Checks the projectile list updates, the Halo Rockets creation limit and the cover tile of the miss chance of {@link ProjectilePhase}, and the
- * unsigned halt distance test of a fast bullet.
+ * Checks the projectile list updates, the Halo Rockets creation limit and the cover tile of the miss chance of {@link ProjectilePhase}, the
+ * unsigned halt distance test of a fast bullet, the creation of a bullet with given target, flingy entry and heading, and its detonation.
  */
 final class ProjectilePhaseTest {
     /**
@@ -102,6 +102,13 @@ final class ProjectilePhaseTest {
      * The speed after one braking update: {@link #OVERFLOWING_SPEED} less {@link #OVERFLOWING_ACCELERATION}.
      */
     private static final int BRAKED_SPEED = 49999;
+    /**
+     * The target position and heading a created bullet is given, and the order state of a dying bullet.
+     */
+    private static final int GIVEN_TARGET_X = 300;
+    private static final int GIVEN_TARGET_Y = 260;
+    private static final int GIVEN_HEADING = 96;
+    private static final int DYING_STATE = 5;
 
     @Test
     void bullet_and_flingy_updates_require_established_lists_and_context() {
@@ -262,6 +269,102 @@ final class ProjectilePhaseTest {
             Assertions.assertEquals(NEGATIVE_TARGET_Y, first.getTargetY());
             Assertions.assertEquals(Byte.toUnsignedInt((byte) WRAPPED_REMAINING_TIME), first.getRemainingTime());
             Assertions.assertNotEquals(hash, game.computeStateHash(), "the writes are game state");
+        }
+    }
+
+    @RequiresInstallation
+    @Test
+    void create_with_the_source_inputs_should_create_the_bullet_the_source_gives() throws IOException {
+        try (GameData gameData = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            long[] hashes = new long[2];
+
+            for (int run = 0; run < hashes.length; run++) {
+                Game game = CombatGameScenario.createDuelGame(gameData, ScrUnitIds.TERRAN_WRAITH, ScrUnitIds.TERRAN_MARINE);
+                UnitPool pool = game.getUnitSystem().getUnitPool();
+
+                Assertions.assertNotNull(pool);
+
+                Unit source = pool.getUnit(CombatGameScenario.FIRST_UNIT_INDEX);
+                ProjectilePhase phase = game.getProjectilePhase();
+                ProjectilePhase.Bullet bullet = run == 0
+                                                ? phase.create(source, ScrWeaponIds.GEMINI_MISSILES, CombatGameScenario.FIRST_UNIT_X,
+                                                               CombatGameScenario.FIRST_UNIT_Y, CombatGameScenario.INSTRUCTION_LIMIT)
+                                                : phase.create(source, ScrWeaponIds.GEMINI_MISSILES, CombatGameScenario.FIRST_UNIT_X,
+                                                               CombatGameScenario.FIRST_UNIT_Y, source.getOrderTargetUnit(),
+                                                               (short) source.getOrderTargetX(), (short) source.getOrderTargetY(),
+                                                               ProjectilePhase.WEAPON_FLINGY, source.getHeading(), CombatGameScenario.INSTRUCTION_LIMIT);
+
+                Assertions.assertNotNull(bullet);
+
+                hashes[run] = game.computeStateHash();
+            }
+
+            Assertions.assertEquals(hashes[0], hashes[1]);
+        }
+    }
+
+    @RequiresInstallation
+    @Test
+    void create_should_take_the_given_target_flingy_and_heading() throws IOException {
+        try (GameData gameData = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            Game game = CombatGameScenario.createDuelGame(gameData, ScrUnitIds.TERRAN_WRAITH, ScrUnitIds.TERRAN_MARINE);
+            UnitPool pool = game.getUnitSystem().getUnitPool();
+
+            Assertions.assertNotNull(pool);
+
+            Unit source = pool.getUnit(CombatGameScenario.FIRST_UNIT_INDEX);
+            Unit target = pool.getUnit(CombatGameScenario.SECOND_UNIT_INDEX);
+            int otherFlingy = gameData.getWeaponTypes().getFlingyType(ScrWeaponIds.ARCLITE_SHOCK_CANNON);
+            ProjectilePhase.Bullet atPosition = game.getProjectilePhase().create(source, ScrWeaponIds.GEMINI_MISSILES, CombatGameScenario.FIRST_UNIT_X,
+                                                                                 CombatGameScenario.FIRST_UNIT_Y, null, GIVEN_TARGET_X,
+                                                                                 GIVEN_TARGET_Y, otherFlingy, GIVEN_HEADING,
+                                                                                 CombatGameScenario.INSTRUCTION_LIMIT);
+            ProjectilePhase.Bullet atUnit = game.getProjectilePhase().create(source, ScrWeaponIds.GEMINI_MISSILES, CombatGameScenario.FIRST_UNIT_X,
+                                                                             CombatGameScenario.FIRST_UNIT_Y, target, GIVEN_TARGET_X, GIVEN_TARGET_Y,
+                                                                             ProjectilePhase.WEAPON_FLINGY, GIVEN_HEADING,
+                                                                             CombatGameScenario.INSTRUCTION_LIMIT);
+
+            Assertions.assertNotNull(atPosition);
+            Assertions.assertNotNull(atUnit);
+            Assertions.assertNull(atPosition.getTargetUnit());
+            Assertions.assertEquals(otherFlingy, atPosition.getFlingyType());
+            Assertions.assertEquals(GIVEN_HEADING, atPosition.getHeading());
+            Assertions.assertSame(target, atUnit.getTargetUnit());
+            Assertions.assertEquals(gameData.getWeaponTypes().getFlingyType(ScrWeaponIds.GEMINI_MISSILES), atUnit.getFlingyType());
+            Assertions.assertEquals(CombatGameScenario.SECOND_UNIT_X, atUnit.getTargetX(), "a target unit gives the target position");
+        }
+    }
+
+    @RequiresInstallation
+    @Test
+    void detonate_should_start_the_death_and_apply_the_hit_at_once() throws IOException {
+        try (GameData gameData = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            Game game = CombatGameScenario.createDuelGame(gameData, ScrUnitIds.TERRAN_WRAITH, ScrUnitIds.TERRAN_MARINE);
+            UnitPool pool = game.getUnitSystem().getUnitPool();
+
+            Assertions.assertNotNull(pool);
+
+            Unit source = pool.getUnit(CombatGameScenario.FIRST_UNIT_INDEX);
+            Unit target = pool.getUnit(CombatGameScenario.SECOND_UNIT_INDEX);
+            int hitPoints = target.getHitPoints();
+            boolean active = game.getRandom().setActive(true);
+            ProjectilePhase.Bullet bullet = game.getProjectilePhase().create(source, ScrWeaponIds.GEMINI_MISSILES, CombatGameScenario.FIRST_UNIT_X,
+                                                                             CombatGameScenario.FIRST_UNIT_Y, target, 0, 0, ProjectilePhase.WEAPON_FLINGY,
+                                                                             source.getHeading(), CombatGameScenario.INSTRUCTION_LIMIT);
+
+            game.getRandom().setActive(active);
+            Assertions.assertNotNull(bullet);
+
+            game.getProjectilePhase().detonate(bullet, CombatGameScenario.INSTRUCTION_LIMIT);
+
+            Assertions.assertEquals(DYING_STATE, bullet.getState());
+            Assertions.assertTrue(target.getHitPoints() < hitPoints, "the Death animation's damage command hits at once");
+
+            int damaged = target.getHitPoints();
+
+            game.getProjectilePhase().detonate(bullet, CombatGameScenario.INSTRUCTION_LIMIT);
+
+            Assertions.assertEquals(damaged, target.getHitPoints(), "a dying bullet stays as it is");
         }
     }
 }

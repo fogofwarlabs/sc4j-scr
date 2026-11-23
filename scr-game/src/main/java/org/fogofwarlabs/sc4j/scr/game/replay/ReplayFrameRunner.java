@@ -7,7 +7,6 @@ import org.fogofwarlabs.sc4j.scr.game.frame.GameExecutionScope;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameFrame;
 import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.frame.UnitPhase;
-import org.fogofwarlabs.sc4j.scr.game.map.MapTileChanges;
 import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.trigger.ScrTriggerSystem;
 import org.fogofwarlabs.sc4j.scr.game.trigger.TriggerContext;
@@ -228,8 +227,7 @@ public final class ReplayFrameRunner {
     /**
      * Runs the trigger step, also while paused, for the game's trigger system ({@link ScrTriggerSystem#run}): the trigger evaluation with the
      * phase gate of this frame in the frame phase of the execution scope, with the random generator enabled, which it leaves disabled. The
-     * simulation plugins start the frame first, in the same scope ({@link ScrSimulationPlugins#startFrame()}), then the queued map tile changes
-     * apply ({@link MapTileChanges#applyChanges}).
+     * simulation plugins start the frame first, in the same scope ({@link ScrSimulationPlugins#startFrame()}).
      */
     public void updateTriggers() {
         this.game.getRandom().setEnabled(1);
@@ -244,8 +242,6 @@ public final class ReplayFrameRunner {
             if (simulation != null) {
                 simulation.startFrame();
             }
-
-            this.game.getMapTileChanges().applyChanges(this.instructionLimit);
 
             int requestedSpeed = this.replayFlag ? this.gameSpeedOption : this.game.getRequestedGameSpeed();
             int triggerDuration = requestedSpeed >= 0 ? this.timing.getDuration(requestedSpeed) : this.timing.getFrameDuration();

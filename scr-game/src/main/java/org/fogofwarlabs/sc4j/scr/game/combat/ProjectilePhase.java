@@ -40,6 +40,10 @@ public final class ProjectilePhase {
      * The size of a saved bullet record, the classic {@code 112}-byte bullet ({@link Context#writeSaveRecord}).
      */
     public static final int SAVE_RECORD_SIZE = 0x70;
+    /**
+     * The flingy entry argument of {@link #create(Unit, int, int, int, Unit, int, int, int, int, int)} that takes the weapon's flingy entry.
+     */
+    public static final int WEAPON_FLINGY = -1;
 
     /**
      * The miss chance against a target on higher ground or under cover (out of {@code 256}).
@@ -1351,7 +1355,8 @@ public final class ProjectilePhase {
 
     /**
      * Creates a bullet of a weapon at a position: the flingy and sprite, the launch spin, the miss roll and the behavior's start position, then links
-     * it into the active list. The bullet takes the order target unit of the source, else its order target position, as its target.
+     * it into the active list. The bullet takes the order target unit of the source, else its order target position, as its target, the weapon's
+     * flingy entry and the source's heading ({@link #create(Unit, int, int, int, Unit, int, int, int, int, int)}).
      *
      * @param source           the attacking unit
      * @param weapon           the weapon
@@ -1364,6 +1369,32 @@ public final class ProjectilePhase {
      * @throws NullPointerException          if the world was built without game data
      */
     public @Nullable Bullet create(@NotNull Unit source, int weapon, int positionX, int positionY, int instructionLimit) {
+        return this.create(source, weapon, positionX, positionY, source.getOrderTargetUnit(), (short) source.getOrderTargetX(),
+                           (short) source.getOrderTargetY(), WEAPON_FLINGY, source.getHeading(), instructionLimit);
+    }
+
+    /**
+     * Creates a bullet of a weapon at a position with the inputs the bullet takes from its source given: the flingy and sprite, the launch spin,
+     * the miss roll and the behavior's start position, then links it into the active list.
+     *
+     * @param source           the attacking unit
+     * @param weapon           the weapon
+     * @param positionX        the start position X
+     * @param positionY        the start position Y
+     * @param targetUnit       the target unit, or {@code null} to target the position
+     * @param targetX          the target position X when there is no target unit
+     * @param targetY          the target position Y when there is no target unit
+     * @param flingyType       the flingy entry the bullet moves and is drawn with, or {@link #WEAPON_FLINGY} for the weapon's
+     * @param heading          the heading the bullet starts with, {@code 0} to {@code 255}
+     * @param instructionLimit the image and order instruction budget
+     * @return the created bullet, or {@code null} when none is created (limit reached, no free entry, no sprite, or an attack the source cannot make)
+     * @throws UnsupportedOperationException if the projectile storage is not initialized
+     * @throws IllegalStateException         if the target unit or a source whose position the bullet needs has no sprite
+     * @throws NullPointerException          if the world was built without game data
+     */
+    public @Nullable Bullet create(@NotNull Unit source, int weapon, int positionX, int positionY,
+                                   @Nullable Unit targetUnit, int targetX, int targetY,
+                                   int flingyType, int heading, int instructionLimit) {
         Context context = this.findContext();
 
         if (context == null || !context.emptyListsInitialized) {
@@ -1397,7 +1428,10 @@ public final class ProjectilePhase {
         int behavior = weapons.getBehavior(weapon);
         Bullet bullet = context.bullets[context.firstFree];
         ScrFlingyTypeView flingies = this.game.requireGameData().getFlingyTypes();
-        int flingyType = weapons.getFlingyType(weapon);
+
+        if (flingyType == WEAPON_FLINGY) {
+            flingyType = weapons.getFlingyType(weapon);
+        }
 
         bullet.flingyType = flingyType;
         bullet.setMovementFlags(0);
@@ -1414,8 +1448,8 @@ public final class ProjectilePhase {
 
         bullet.setDirectionTargetX(positionX);
         bullet.setDirectionTargetY(positionY);
-        bullet.setHeading(source.getHeading());
-        bullet.setTargetHeading(source.getHeading());
+        bullet.setHeading(heading);
+        bullet.setTargetHeading(heading);
 
         Sprite sprite = this.game.getIscriptExecutor().createSprite(flingies.getSprite(flingyType),
                                                                     positionX, positionY,
@@ -1429,7 +1463,7 @@ public final class ProjectilePhase {
 
         bullet.sprite = sprite;
 
-        IscriptExecutor.applySpriteDirection(this.game, sprite, source.getHeading());
+        IscriptExecutor.applySpriteDirection(this.game, sprite, heading);
 
         bullet.setMovementFlags(bullet.getMovementFlags() | MovementFlags.STARTING_ATTACK);
         bullet.orderState       = STATE_INIT;
@@ -1469,7 +1503,7 @@ public final class ProjectilePhase {
         }
 
         bullet.previousBounceTarget = null;
-        bullet.targetUnit           = source.getOrderTargetUnit();
+        bullet.targetUnit           = targetUnit;
 
         Sprite targetSprite = bullet.targetUnit == null ? source.getSpriteOrNull() : bullet.targetUnit.getSpriteOrNull();
 
@@ -1479,8 +1513,10 @@ public final class ProjectilePhase {
 
         sprite.setElevationLevel(targetSprite.getElevationLevel() + 1);
 
-        int targetX = bullet.targetUnit == null ? (short) source.getOrderTargetX() : targetSprite.getX();
-        int targetY = bullet.targetUnit == null ? (short) source.getOrderTargetY() : targetSprite.getY();
+        if (bullet.targetUnit != null) {
+            targetX = targetSprite.getX();
+            targetY = targetSprite.getY();
+        }
 
         switch (behavior) {
             case WeaponBehaviors.FLY, WeaponBehaviors.FOLLOW_TARGET, WeaponBehaviors.BOUNCE -> {
@@ -1491,7 +1527,7 @@ public final class ProjectilePhase {
                 if (this.rollMiss(bullet)) {
                     bullet.hitFlags |= HIT_FLAG_MISSED;
 
-                    long vector = FlingyMotionUtils.calculateDirectionVector(source.getHeading(), MISS_DISTANCE);
+                    long vector = FlingyMotionUtils.calculateDirectionVector(heading, MISS_DISTANCE);
 
                     targetX -= (int) vector;
                     targetY -= (int) (vector >>> FlingyMotionUtils.DIRECTION_VECTOR_VERTICAL_SHIFT);
@@ -1768,6 +1804,37 @@ public final class ProjectilePhase {
         }
 
         return true;
+    }
+
+    /**
+     * Ends a bullet as it ends at its target: the bullet starts dying and its sprite plays its Death animation, whose damage command applies the
+     * bullet's hit. A bullet that is dying already is left as it is.
+     *
+     * @param bullet           an active bullet with a sprite
+     * @param instructionLimit the image and order instruction budget
+     * @throws UnsupportedOperationException if the projectile storage is not initialized
+     * @throws IllegalStateException         if the bullet has no sprite
+     */
+    public void detonate(@NotNull Bullet bullet, int instructionLimit) {
+        Context context = this.findContext();
+
+        if (context == null) {
+            throw Exceptions.newUnsupportedOperationException("Bullet detonation requires initialized projectile storage.");
+        }
+
+        if (bullet.orderState == STATE_DYING) {
+            return;
+        }
+
+        Bullet current = context.currentBullet;
+
+        context.currentBullet = bullet;
+
+        try {
+            this.kill(bullet, instructionLimit);
+        } finally {
+            context.currentBullet = current;
+        }
     }
 
     private void kill(@NotNull Bullet bullet, int instructionLimit) {

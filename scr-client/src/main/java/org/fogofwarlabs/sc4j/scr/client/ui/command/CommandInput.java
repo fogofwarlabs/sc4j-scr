@@ -440,7 +440,7 @@ public final class CommandInput {
     }
 
     /**
-     * Encodes and submits a targeting click, using the order fog-type rule, then clears the targeting mode. The targeting of a script target
+     * Encodes and submits a targeting click, using the order fog-type rule, then clears the targeting mode. The targeting of a plugin target
      * button hands the target to the game plugins instead ({@link ScrGamePlugin#onButtonInput}): a target a plugin consumes keeps the mode.
      *
      * @param positionX the target map x coordinate
@@ -453,10 +453,10 @@ public final class CommandInput {
      */
     public @NotNull Result clickTarget(int positionX, int positionY, @Nullable Unit target, int fogType, boolean queued) {
         InterfaceMode mode = this.console.getMode();
-        ScrButtonInput scriptButton = mode.getScriptButton();
+        ScrButtonInput pluginButton = mode.getPluginButton();
 
-        if (scriptButton != null) {
-            if (this.console.getView().deliverButtonInput(scriptButton.createTargeted(positionX, positionY, target, queued))) {
+        if (pluginButton != null) {
+            if (this.console.getView().deliverButtonInput(pluginButton.createTargeted(positionX, positionY, target, queued))) {
                 return Result.INTERFACE;
             }
 
@@ -614,9 +614,9 @@ public final class CommandInput {
                 case SELECT_LARVA -> this.interfaceActions == null ? Result.IGNORED : this.interfaceActions.selectLarva();
                 default -> Result.IGNORED;
             };
-            case SCRIPT -> Result.INTERFACE;
-            case SCRIPT_TARGET -> {
-                mode.startScriptTargeting(press);
+            case PLUGIN -> Result.INTERFACE;
+            case PLUGIN_TARGET -> {
+                mode.startPluginTargeting(press);
 
                 yield Result.INTERFACE;
             }

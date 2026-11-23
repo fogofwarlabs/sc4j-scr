@@ -247,6 +247,15 @@ public final class GameData implements AutoCloseable {
     private @Nullable SoundPathResolver soundPaths;
     private final @NotNull Map<Integer, GrpFile> grpCache;
     /**
+     * The files of this game copy that win over the installed and mod files of the same path ({@link #putGameFile}), by path; empty in the
+     * installed data.
+     */
+    private final @NotNull Map<String, byte[]> gameFiles;
+    /**
+     * The GRPs of {@link #gameFiles} parsed so far, by path.
+     */
+    private final @NotNull Map<String, GrpFile> gameGrps;
+    /**
      * The type-7 code constants, snapshot records and Storm archive records of the installed executable
      * ({@code x86_64/StarCraft.exe} next to the storage), read once; unknown when the executable is missing or another
      * version.
@@ -264,6 +273,10 @@ public final class GameData implements AutoCloseable {
      * The overlay resources by image and overlay table, loaded on first use.
      */
     private final byte @NotNull [] @Nullable [] imageOverlayResources;
+    /**
+     * The overlay resources read by path ({@link #readOverlayResource}), loaded on first use.
+     */
+    private final @NotNull Map<String, byte[]> overlayResourceFiles;
 
     /* Process-wide caches shared by the game copies. */
     private final @Nullable TerrainTileset @NotNull [] terrainTilesets;
@@ -354,6 +367,8 @@ public final class GameData implements AutoCloseable {
         this.soundNames     = null;
         this.soundPaths     = null;
         this.grpCache       = new HashMap<>();
+        this.gameFiles      = new HashMap<>();
+        this.gameGrps       = new HashMap<>();
         this.codeConstants  = new NativeCodeConstants();
 
         this.codeConstants.loadExecutable(storage.getInstallRoot().resolve(EXECUTABLE_DIRECTORY).resolve(EXECUTABLE_FILE_NAME));
@@ -361,6 +376,7 @@ public final class GameData implements AutoCloseable {
         this.imageDamageOverlayCounts = new int[ImagesDat.IMAGE_COUNT];
         this.imageDamageOverlayBase   = null;
         this.imageOverlayResources    = new byte[ImagesDat.IMAGE_COUNT * OVERLAY_TABLE_COUNT][];
+        this.overlayResourceFiles     = new HashMap<>();
 
         Arrays.fill(this.imageDamageOverlayCounts, -1);
 
@@ -433,12 +449,15 @@ public final class GameData implements AutoCloseable {
         this.soundNames     = base.soundNames;
         this.soundPaths     = base.soundPaths;
         this.grpCache       = base.grpCache;
+        this.gameFiles      = new HashMap<>();
+        this.gameGrps       = new HashMap<>();
         this.codeConstants  = base.codeConstants;
 
         // A game's own table for EUD writes, read through to the installed bytes until written.
         this.imageDamageOverlayCounts = new int[ImagesDat.IMAGE_COUNT];
         this.imageDamageOverlayBase   = base.imageDamageOverlayBase == null ? base : base.imageDamageOverlayBase;
         this.imageOverlayResources    = base.imageOverlayResources;
+        this.overlayResourceFiles     = base.overlayResourceFiles;
 
         Arrays.fill(this.imageDamageOverlayCounts, -1);
 
@@ -1022,13 +1041,30 @@ public final class GameData implements AutoCloseable {
 
     /**
      * Loads and caches the GRP referenced by the given {@code images.dat} entry. An added image ({@link #getAddedGraphics()}) reads the SD frames
-     * of its mod files, or the installed GRP of its base image when the mod gives none.
+     * of its mod files, or the installed GRP of its base image when the mod gives none. A file this game was given at the image's frames path
+     * ({@link #putGameFile}, {@link #getFramesPath}) wins over both.
      *
      * @param imageTypeId the {@code images.dat} index or added image id
      * @return the parsed GRP file
      * @throws IOException if the path cannot be resolved or the GRP cannot be decoded
      */
     public @NotNull GrpFile getGrpFile(int imageTypeId) throws IOException {
+        if (!this.gameFiles.isEmpty()) {
+            String path = this.getFramesPath(imageTypeId);
+            byte[] contents = this.gameFiles.get(path);
+
+            if (contents != null) {
+                GrpFile frames = this.gameGrps.get(path);
+
+                if (frames == null) {
+                    frames = GrpFile.parse(contents);
+                    this.gameGrps.put(path, frames);
+                }
+
+                return frames;
+            }
+        }
+
         GrpFile grpFile = this.grpCache.get(imageTypeId);
 
         if (grpFile != null) {
@@ -1049,6 +1085,43 @@ public final class GameData implements AutoCloseable {
     }
 
     /**
+     * Returns the path of the frames an image reads ({@link #getGrpFile}): the GRP path of a native image ({@link #getGrpPath}), the frames path
+     * of the mod files of an added image, or the frames path of its base image when the mod gives none.
+     *
+     * @param imageTypeId the {@code images.dat} index or added image id
+     * @return the storage path or mod file path
+     * @throws IOException if the image string index is invalid or does not reference a GRP
+     */
+    public @NotNull String getFramesPath(int imageTypeId) throws IOException {
+        if (this.addedGraphics.containsImage(imageTypeId)) {
+            ScrAddedImage added = this.addedGraphics.getImage(imageTypeId);
+
+            return added.getGraphics() == null ? this.getFramesPath(added.getBaseImage()) : added.getGraphics().getFramesPath();
+        }
+
+        return this.getGrpPath(imageTypeId);
+    }
+
+    /**
+     * Gives this game a file that wins over the installed file or the mod file of the same path in the game's reads of image frames
+     * ({@link #getGrpFile}, by {@link #getFramesPath}) and of overlay positions ({@link #getImageOverlayOffset},
+     * {@link #getImageDamageOverlayCount}); a later file of the path replaces it. An image created before keeps the frames it was created with,
+     * so the file is given before the game creates an image that reads it. The other games of the installed data read their own files.
+     *
+     * @param path     the storage path ({@code unit/...}) or mod file path
+     * @param contents the file contents, kept and not changed afterwards
+     * @throws IllegalStateException if this is the installed data
+     */
+    public void putGameFile(@NotNull String path, byte @NotNull [] contents) {
+        if (this.installed == null) {
+            throw Exceptions.newIllegalStateException("The installed data takes no file of a game.");
+        }
+
+        this.gameFiles.put(path, contents);
+        this.gameGrps.remove(path);
+    }
+
+    /**
      * Sets a damage-overlay byte of this game, as an EUD write to its damage-overlay table does.
      *
      * @param imageTypeId the {@code images.dat} index
@@ -1063,15 +1136,17 @@ public final class GameData implements AutoCloseable {
      * <p>
      * The byte counts the first {@code 22} coordinate pairs of the first damage-overlay frame that differ from
      * {@code (127, 127)}, then stores twice that count. A zero {@code images.dat} reference represents an absent resource and
-     * yields zero.
+     * yields zero. A file this game was given at the damage overlay's path ({@link #putGameFile}) wins over the installed one. An added image
+     * of a game counts the damage overlay its game's {@code images.dat} values name.
      *
-     * @param imageTypeId the {@code images.dat} index
+     * @param imageTypeId the {@code images.dat} index or added image id
      * @return twice the number of present damage-overlay positions, from {@code 0} through {@code 44}
      * @throws IOException if the referenced table string or coordinate data is invalid
      */
     public int getImageDamageOverlayCount(int imageTypeId) throws IOException {
         if (this.addedGraphics.containsImage(imageTypeId)) {
-            return this.getImageDamageOverlayCount(this.addedGraphics.getOverlayImage(imageTypeId));
+            return this.installed == null ? this.getImageDamageOverlayCount(this.addedGraphics.getOverlayImage(imageTypeId))
+                                          : this.countDamageOverlay(imageTypeId);
         }
 
         int count = this.imageDamageOverlayCounts[imageTypeId];
@@ -1080,46 +1155,103 @@ public final class GameData implements AutoCloseable {
             return count;
         }
 
-        if (this.imageDamageOverlayBase != null) {
+        if (this.imageDamageOverlayBase != null && !this.hasGameOverlay(imageTypeId, ScrImageTypeView.OVERLAY_DAMAGE)) {
             return this.imageDamageOverlayBase.getImageDamageOverlayCount(imageTypeId);
         }
 
-        int resourceIndex = this.imageTypes.getDamageOverlay(imageTypeId);
-
-        count = 0;
-
-        if (resourceIndex != 0) {
-            int stringIndex = resourceIndex - 1;
-
-            if (stringIndex < 0 || stringIndex >= this.imagesTbl.getStringCount()) {
-                throw Exceptions.newIOException("Invalid damage-overlay string index for image {0}: {1}", imageTypeId, stringIndex);
-            }
-
-            String path = "unit/" + this.imagesTbl.getString(stringIndex).replace('\\', '/');
-            byte[] contents = this.storage.readFile(path);
-
-            if (contents.length < OVERLAY_HEADER_SIZE + OVERLAY_FRAME_OFFSET_SIZE) {
-                throw Exceptions.newIOException("Damage-overlay data lacks its first frame offset: {0}", path);
-            }
-
-            long frameOffset = Integer.toUnsignedLong(ByteBuffer.wrap(contents).order(ByteOrder.LITTLE_ENDIAN).getInt(OVERLAY_HEADER_SIZE));
-
-            if (frameOffset + DAMAGE_OVERLAY_POSITIONS * OVERLAY_POSITION_SIZE > contents.length) {
-                throw Exceptions.newIOException("Damage-overlay data lacks 22 first-frame positions: {0}", path);
-            }
-
-            for (int positionIndex = 0; positionIndex < DAMAGE_OVERLAY_POSITIONS; positionIndex++) {
-                int offset = (int) frameOffset + positionIndex * OVERLAY_POSITION_SIZE;
-
-                if (contents[offset] != ABSENT_OVERLAY_COORDINATE || contents[offset + 1] != ABSENT_OVERLAY_COORDINATE) {
-                    count += DAMAGE_OVERLAY_COUNT_PER_POSITION;
-                }
-            }
-        }
+        count = this.countDamageOverlay(imageTypeId);
 
         this.imageDamageOverlayCounts[imageTypeId] = count;
 
         return count;
+    }
+
+    /**
+     * Checks whether this game was given the file of an overlay resource of an image ({@link #putGameFile}).
+     *
+     * @throws IOException if the referenced table string is invalid
+     */
+    private boolean hasGameOverlay(int imageTypeId, int overlayType) throws IOException {
+        return !this.gameFiles.isEmpty() && this.imageTypes.getOverlay(imageTypeId, overlayType) != 0 &&
+               this.gameFiles.containsKey(this.getOverlayPath(imageTypeId, overlayType));
+    }
+
+    /**
+     * Counts the damage-overlay byte of an image from the damage overlay its {@code images.dat} values name.
+     *
+     * @return twice the number of present damage-overlay positions, {@code 0} for an image without a damage overlay
+     * @throws IOException if the referenced table string or coordinate data is invalid
+     */
+    private int countDamageOverlay(int imageTypeId) throws IOException {
+        if (this.imageTypes.getDamageOverlay(imageTypeId) == 0) {
+            return 0;
+        }
+
+        String path = this.getOverlayPath(imageTypeId, ScrImageTypeView.OVERLAY_DAMAGE);
+        byte[] contents = this.readOverlayResource(path);
+
+        if (contents.length < OVERLAY_HEADER_SIZE + OVERLAY_FRAME_OFFSET_SIZE) {
+            throw Exceptions.newIOException("Damage-overlay data lacks its first frame offset: {0}", path);
+        }
+
+        long frameOffset = Integer.toUnsignedLong(ByteBuffer.wrap(contents).order(ByteOrder.LITTLE_ENDIAN).getInt(OVERLAY_HEADER_SIZE));
+
+        if (frameOffset + DAMAGE_OVERLAY_POSITIONS * OVERLAY_POSITION_SIZE > contents.length) {
+            throw Exceptions.newIOException("Damage-overlay data lacks 22 first-frame positions: {0}", path);
+        }
+
+        int count = 0;
+
+        for (int positionIndex = 0; positionIndex < DAMAGE_OVERLAY_POSITIONS; positionIndex++) {
+            int offset = (int) frameOffset + positionIndex * OVERLAY_POSITION_SIZE;
+
+            if (contents[offset] != ABSENT_OVERLAY_COORDINATE || contents[offset + 1] != ABSENT_OVERLAY_COORDINATE) {
+                count += DAMAGE_OVERLAY_COUNT_PER_POSITION;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Returns the storage path of an overlay resource of an image, after its {@code images.dat} values.
+     *
+     * @throws IOException if the image has no resource for the overlay table or its string index is invalid
+     */
+    private @NotNull String getOverlayPath(int imageTypeId, int overlayType) throws IOException {
+        int stringIndex = this.imageTypes.getOverlay(imageTypeId, overlayType) - 1;
+
+        if (stringIndex < 0) {
+            throw Exceptions.newIOException("Image {0} has no overlay table {1}.", imageTypeId, overlayType);
+        }
+
+        if (stringIndex >= this.imagesTbl.getStringCount()) {
+            throw Exceptions.newIOException("Invalid image-overlay string index for image {0}: {1}", imageTypeId, stringIndex);
+        }
+
+        return "unit/" + this.imagesTbl.getString(stringIndex).replace('\\', '/');
+    }
+
+    /**
+     * Reads an overlay resource by path: a file this game was given ({@link #putGameFile}), else the installed file, read once and kept.
+     *
+     * @throws IOException if the file cannot be read
+     */
+    private byte @NotNull [] readOverlayResource(@NotNull String path) throws IOException {
+        byte[] contents = this.gameFiles.get(path);
+
+        if (contents != null) {
+            return contents;
+        }
+
+        contents = this.overlayResourceFiles.get(path);
+
+        if (contents == null) {
+            contents = this.storage.readFile(path);
+            this.overlayResourceFiles.put(path, contents);
+        }
+
+        return contents;
     }
 
     /**
@@ -1187,9 +1319,10 @@ public final class GameData implements AutoCloseable {
      * Reads one signed coordinate pair from an image overlay resource.
      * <p>
      * The frame offset DWORD and the coordinate pair are read wherever they lie in the resource: neither the frame count nor the position count of
-     * the resource bounds the frame or the position.
+     * the resource bounds the frame or the position. A file this game was given at the resource's path ({@link #putGameFile}) wins over the
+     * installed one. An added image of a game without own offsets of the table reads the resource its game's {@code images.dat} values name.
      *
-     * @param imageTypeId  the {@code images.dat} index
+     * @param imageTypeId  the {@code images.dat} index or added image id
      * @param overlayType  the original overlay table index from attack {@code 0} through shield {@code 5}
      * @param frameIndex   the actual image frame index
      * @param overlayIndex the coordinate pair within that frame
@@ -1214,25 +1347,24 @@ public final class GameData implements AutoCloseable {
                 }
             }
 
-            return this.getImageOverlayOffset(added.getBaseImage(), overlayType, frameIndex, overlayIndex);
+            if (this.installed == null) {
+                return this.getImageOverlayOffset(added.getBaseImage(), overlayType, frameIndex, overlayIndex);
+            }
         }
 
-        int resourceIndex = imageTypeId * OVERLAY_TABLE_COUNT + overlayType;
-        byte[] contents = this.imageOverlayResources[resourceIndex];
+        byte[] contents;
 
-        if (contents == null) {
-            int stringIndex = this.imageTypes.getOverlay(imageTypeId, overlayType) - 1;
+        if (this.addedGraphics.containsImage(imageTypeId) || this.hasGameOverlay(imageTypeId, overlayType)) {
+            contents = this.readOverlayResource(this.getOverlayPath(imageTypeId, overlayType));
+        } else {
+            int resourceIndex = imageTypeId * OVERLAY_TABLE_COUNT + overlayType;
 
-            if (stringIndex < 0) {
-                throw Exceptions.newIOException("Image {0} has no overlay table {1}.", imageTypeId, overlayType);
+            contents = this.imageOverlayResources[resourceIndex];
+
+            if (contents == null) {
+                contents                                  = this.storage.readFile(this.getOverlayPath(imageTypeId, overlayType));
+                this.imageOverlayResources[resourceIndex] = contents;
             }
-
-            if (stringIndex >= this.imagesTbl.getStringCount()) {
-                throw Exceptions.newIOException("Invalid image-overlay string index for image {0}: {1}", imageTypeId, stringIndex);
-            }
-
-            contents                                  = this.storage.readFile("unit/" + this.imagesTbl.getString(stringIndex).replace('\\', '/'));
-            this.imageOverlayResources[resourceIndex] = contents;
         }
 
         long frameOffsetPosition = OVERLAY_HEADER_SIZE + (long) frameIndex * OVERLAY_FRAME_OFFSET_SIZE;

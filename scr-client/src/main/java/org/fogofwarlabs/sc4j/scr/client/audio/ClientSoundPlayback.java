@@ -56,9 +56,9 @@ public final class ClientSoundPlayback implements AutoCloseable {
     private static final int VOLUME_FALLOFF_PIXELS = 512;
 
     /**
-     * The minimum volume of a sound file event: it fades to silence outside the screen.
+     * The minimum volume of a plugin sound past the sound table: it fades to silence outside the screen.
      */
-    private static final int FILE_MINIMUM_VOLUME = 0;
+    private static final int PLUGIN_SOUND_MINIMUM_VOLUME = 0;
 
     /**
      * SC:R sounds keep the centre: their stereo position does not follow the screen.
@@ -109,8 +109,8 @@ public final class ClientSoundPlayback implements AutoCloseable {
     private static final @NotNull SoundCue DATA_CUE = SoundCue.of(0);
 
     /**
-     * Receives every drained sound event with its resolved volume and whether its file is available; used by headless tests of the event lifecycle,
-     * where no audio device may exist.
+     * Receives every drained sound event with its resolved volume and whether its file is available, except the sounds whose file a game plugin
+     * gives; used by headless tests of the event lifecycle, where no audio device may exist.
      */
     public interface Observer {
         /**
@@ -425,11 +425,12 @@ public final class ClientSoundPlayback implements AutoCloseable {
             SoundChannels output = this.effects;
 
             if (this.observer != null) {
-                this.observeEvents(this.observer, events, data, camera);
+                this.observeEvents(this.observer, gameView, events, data, camera);
             }
 
             if (output != null && this.enabled && events.getCount() > 0) {
-                this.playEvents(output, events, data, camera, presentation.getInterfaceLink().getLocalInterface().getUnitSpeechMuted() != 0);
+                this.playEvents(output, gameView, events, data, camera,
+                                presentation.getInterfaceLink().getLocalInterface().getUnitSpeechMuted() != 0);
             }
         } finally {
             events.clear();
@@ -437,15 +438,20 @@ public final class ClientSoundPlayback implements AutoCloseable {
         }
     }
 
-    private void observeEvents(@NotNull Observer target, @NotNull SoundEvents events, @NotNull GameData data, @NotNull ClientCamera camera) {
+    private void observeEvents(@NotNull Observer target,
+                               @NotNull ScrGameView gameView,
+                               @NotNull SoundEvents events,
+                               @NotNull GameData data,
+                               @NotNull ClientCamera camera) {
         ScrSoundTypeView sounds = data.getSoundTypes();
 
         for (int index = 0; index < events.getCount(); index++) {
-            if (events.getFile(index) != null) {
+            int soundIdentifier = events.getSoundId(index);
+
+            if (gameView.findSoundFile(soundIdentifier) != null) {
                 continue;
             }
 
-            int soundIdentifier = events.getSoundId(index);
             boolean available;
 
             try {
@@ -464,15 +470,18 @@ public final class ClientSoundPlayback implements AutoCloseable {
 
     /**
      * Plays frame sound events and skips sounds at or below the silence threshold; while unit speech is muted every game sound plays at a fifth
-     * of its volume. Stops when repeated device failures closed the output.
+     * of its volume. A sound whose file a game plugin gives ({@link ScrGameView#findSoundFile}) plays that file ({@link #playFile}). Stops when
+     * repeated device failures closed the output.
      *
      * @param output          the open sound effect channels
+     * @param gameView        the game view, whose plugins give sound files
      * @param events          the frame's sound events
      * @param data            the game data
      * @param camera          the camera used to resolve sound positions
      * @param unitSpeechMuted whether unit speech is muted
      */
     private void playEvents(@NotNull SoundChannels output,
+                            @NotNull ScrGameView gameView,
                             @NotNull SoundEvents events,
                             @NotNull GameData data,
                             @NotNull ClientCamera camera,
@@ -481,10 +490,10 @@ public final class ClientSoundPlayback implements AutoCloseable {
 
         for (int index = 0; index < events.getCount() && this.effects == output; index++) {
             int soundIdentifier = events.getSoundId(index);
-            byte[] file = events.getFile(index);
+            byte[] file = gameView.findSoundFile(soundIdentifier);
 
             if (file != null) {
-                this.playFile(file, events.getPositionX(index), events.getPositionY(index), camera, unitSpeechMuted);
+                this.playFile(file, sounds, soundIdentifier, events.getPositionX(index), events.getPositionY(index), camera, unitSpeechMuted);
 
                 continue;
             }
@@ -534,18 +543,28 @@ public final class ClientSoundPlayback implements AutoCloseable {
     }
 
     /**
-     * Plays a sound file event on the map sound channels ({@link #playData}) at the volume of its position: the volume of a positioned sound on
-     * screen, fading to silence over {@link #VOLUME_FALLOFF_PIXELS} outside it, full volume without position; a fifth of it while unit speech is
-     * muted, and nothing at the silence threshold or below.
+     * Plays the sound file of a game plugin on the map sound channels ({@link #playData}) at the volume of its position: a sound of the table
+     * keeps its table volume, a sound past the table plays at full volume on screen and without position, fading to silence over
+     * {@link #VOLUME_FALLOFF_PIXELS} outside it; a fifth of it while unit speech is muted, and nothing at the silence threshold or below.
      *
      * @param file            the WAVE or Ogg Vorbis file
+     * @param sounds          the sound definitions
+     * @param soundIdentifier the sound id of the event
      * @param horizontal      the horizontal map position of the sound
      * @param vertical        the vertical map position of the sound
      * @param camera          the camera used to resolve the position
      * @param unitSpeechMuted whether unit speech is muted
      */
-    private void playFile(byte @NotNull [] file, int horizontal, int vertical, @NotNull ClientCamera camera, boolean unitSpeechMuted) {
-        float scaled = getVolume(ClientAudio.MAXIMUM_VOLUME, FILE_MINIMUM_VOLUME, horizontal, vertical, camera);
+    private void playFile(byte @NotNull [] file,
+                          @NotNull ScrSoundTypeView sounds,
+                          int soundIdentifier,
+                          int horizontal,
+                          int vertical,
+                          @NotNull ClientCamera camera,
+                          boolean unitSpeechMuted) {
+        float scaled = soundIdentifier >= 0 && soundIdentifier < SfxdataDat.SOUND_COUNT
+                       ? getVolume(sounds, soundIdentifier, horizontal, vertical, camera)
+                       : getVolume(ClientAudio.MAXIMUM_VOLUME, PLUGIN_SOUND_MINIMUM_VOLUME, horizontal, vertical, camera);
 
         if (unitSpeechMuted) {
             scaled /= MUTED_VOLUME_DIVISOR;

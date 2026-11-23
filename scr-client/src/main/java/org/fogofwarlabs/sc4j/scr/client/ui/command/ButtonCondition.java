@@ -263,7 +263,7 @@ public enum ButtonCondition {
      * The state a game plugin sets for the condition value ({@code ScrButtonStates}), evaluated like the other conditions only for an own
      * active unit. SC:R's own condition, whose identifier is no native function address.
      */
-    SCRIPT(0x1L);
+    PLUGIN(0x1L);
 
     /**
      * Finds the condition of a native function address, as the button set table holds it.

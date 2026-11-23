@@ -16,6 +16,7 @@ import org.fogofwarlabs.sc4j.scr.data.format.dat.DatTable;
 import org.fogofwarlabs.sc4j.scr.data.format.dat.ImagesDat;
 import org.fogofwarlabs.sc4j.scr.data.format.dat.UnitsDat;
 import org.fogofwarlabs.sc4j.scr.data.format.dat.WeaponsDat;
+import org.fogofwarlabs.sc4j.scr.data.format.image.ImageFileWriterUtils;
 import org.fogofwarlabs.sc4j.scr.data.format.text.TblFile;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.ImageIds;
 import org.fogofwarlabs.sc4j.scr.data.type.constant.UnitGroupFlags;
@@ -31,10 +32,11 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 
 /**
- * Checks installed game data loading: console textures, image and unit tables, image file lookups, special overlay offsets and table
- * copies.
+ * Checks installed game data loading: console textures, image and unit tables, image file lookups, special overlay offsets, table copies and
+ * the files one game copy is given.
  */
 @RequiresInstallation
 final class GameDataTest {
@@ -56,6 +58,12 @@ final class GameDataTest {
     private static final int OVERRUN_ELEMENTS = 8;
     private static final int GAME_COPY_HIT_POINT_INCREASE = 256;
     private static final int SCENARIO_COPY_HIT_POINT_INCREASE = 512;
+    /**
+     * The canvas side of the frames a game file gives an image, and the position the game file gives a special overlay.
+     */
+    private static final int GAME_FILE_CANVAS = 8;
+    private static final byte GAME_FILE_OVERLAY_X = 9;
+    private static final byte GAME_FILE_OVERLAY_Y = -7;
     /**
      * The byte offset of the frame count in a special overlay file.
      */
@@ -369,6 +377,46 @@ final class GameDataTest {
             Assertions.assertEquals(damage, installed.getWeaponTypes().getDamageAmount(0));
             Assertions.assertEquals(hitPoints + GAME_COPY_HIT_POINT_INCREASE, first.getUnitTypes().getHitPoints(marine));
             Assertions.assertEquals(damage, first.getWeaponTypes().getDamageAmount(0));
+        }
+    }
+
+    @Test
+    void put_game_file_should_give_one_game_copy_its_own_frames_and_overlay_positions() throws IOException {
+        try (CascStorage storage = CascStorage.open(ExternalInput.INSTALLATION.getPath()); GameData installed = GameData.load(storage)) {
+            GameData first = installed.createGameCopy();
+            GameData second = installed.createGameCopy();
+            int sprite = installed.getFlingyTypes().getSprite(installed.getUnitTypes().getFlingyType(ScrUnitIds.TERRAN_MARINE));
+            int marine = installed.getSpriteTypes().getImage(sprite);
+            String framesPath = installed.getFramesPath(marine);
+            int installedFrames = installed.getGrpFile(marine).getFrameCount();
+            byte[] frames = ImageFileWriterUtils.encodeGrp(GAME_FILE_CANVAS, GAME_FILE_CANVAS, List.of(new byte[GAME_FILE_CANVAS * GAME_FILE_CANVAS]));
+
+            Assertions.assertEquals(installed.getGrpPath(marine), framesPath);
+
+            first.putGameFile(framesPath, frames);
+
+            Assertions.assertEquals(1, first.getGrpFile(marine).getFrameCount());
+            Assertions.assertEquals(GAME_FILE_CANVAS, first.getGrpFile(marine).getWidth());
+            Assertions.assertEquals(installedFrames, second.getGrpFile(marine).getFrameCount(), "another game reads the installed frames");
+            Assertions.assertEquals(installedFrames, installed.getGrpFile(marine).getFrameCount());
+            Assertions.assertThrows(IllegalStateException.class, () -> installed.putGameFile(framesPath, frames));
+
+            TblFile names = TblFile.parse(storage.readFile("arr/images.tbl"));
+            int resourceIndex = installed.getImages().get("Special Overlay", ImageIds.VESPENE_GEYSER);
+            String overlayPath = "unit/" + names.getString(resourceIndex - 1).replace('\\', '/');
+            byte[] overlay = storage.readFile(overlayPath);
+            int frameOffset = ByteBuffer.wrap(overlay).order(ByteOrder.LITTLE_ENDIAN).getInt(OVERLAY_FRAME_OFFSETS_OFFSET);
+            int nativeOffset = second.getImageSpecialOverlayOffset(ImageIds.VESPENE_GEYSER, 0, 0);
+
+            overlay[frameOffset]     = GAME_FILE_OVERLAY_X;
+            overlay[frameOffset + 1] = GAME_FILE_OVERLAY_Y;
+            first.putGameFile(overlayPath, overlay);
+
+            int gameOffset = first.getImageSpecialOverlayOffset(ImageIds.VESPENE_GEYSER, 0, 0);
+
+            Assertions.assertEquals(GAME_FILE_OVERLAY_X, (short) gameOffset);
+            Assertions.assertEquals(GAME_FILE_OVERLAY_Y, (short) (gameOffset >>> Short.SIZE));
+            Assertions.assertEquals(nativeOffset, second.getImageSpecialOverlayOffset(ImageIds.VESPENE_GEYSER, 0, 0));
         }
     }
 }

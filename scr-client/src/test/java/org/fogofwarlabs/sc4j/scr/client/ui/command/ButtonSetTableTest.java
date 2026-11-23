@@ -106,9 +106,9 @@ final class ButtonSetTableTest {
             }
         }
 
-        // The table holds every native function; SC:R's own script functions are for game plugins.
-        Assertions.assertEquals(EnumSet.complementOf(EnumSet.of(ButtonCondition.SCRIPT)), conditions);
-        Assertions.assertEquals(EnumSet.complementOf(EnumSet.of(ButtonAction.SCRIPT, ButtonAction.SCRIPT_TARGET)), actions);
+        // The table holds every native function; SC:R's own plugin functions are for game plugins.
+        Assertions.assertEquals(EnumSet.complementOf(EnumSet.of(ButtonCondition.PLUGIN)), conditions);
+        Assertions.assertEquals(EnumSet.complementOf(EnumSet.of(ButtonAction.PLUGIN, ButtonAction.PLUGIN_TARGET)), actions);
     }
 
     @Test

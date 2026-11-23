@@ -118,15 +118,15 @@ final class CommandInputTest {
     private static final int SEARCH_RADIUS = 128;
     private static final int SELECT_LARVA_SLOT = 0;
     /**
-     * The script button of the script button test: its slot, condition and action value, icon, hotkey and texts, and the set a request shows.
+     * The plugin button of the plugin button test: its slot, condition and action value, icon, hotkey and texts, and the set a request shows.
      */
-    private static final int SCRIPT_SLOT = 0;
-    private static final int SCRIPT_VALUE = 3;
-    private static final int SCRIPT_ICON = 236;
-    private static final char SCRIPT_HOTKEY = 'z';
-    private static final @NotNull String SCRIPT_TEXT = "Zap\nnow";
-    private static final @NotNull String SCRIPT_DISABLED_TEXT = "\u0006Not ready";
-    private static final int SCRIPT_CHANGED_SET = 0;
+    private static final int PLUGIN_SLOT = 0;
+    private static final int PLUGIN_VALUE = 3;
+    private static final int PLUGIN_ICON = 236;
+    private static final char PLUGIN_HOTKEY = 'z';
+    private static final @NotNull String PLUGIN_TEXT = "Zap\nnow";
+    private static final @NotNull String PLUGIN_DISABLED_TEXT = "\u0006Not ready";
+    private static final int PLUGIN_CHANGED_SET = 0;
 
     private static @Nullable GameData gameData;
     private static @Nullable ReplayRuntime runtime;
@@ -496,12 +496,12 @@ final class CommandInputTest {
     }
 
     /**
-     * Puts a script button first in the shown set's table, so that it takes position 1 unless its state hides it: its state starts hidden, a
+     * Puts a plugin button first in the shown set's table, so that it takes position 1 unless its state hides it: its state starts hidden, a
      * disabled one shows its texts in place of the strings; a press sends nothing, and a target button enters a targeting mode whose click
      * sends nothing either.
      */
     @Test
-    void script_buttons_read_the_local_state_and_send_no_command() throws IOException {
+    void plugin_buttons_read_the_local_state_and_send_no_command() throws IOException {
         try (ClientSession session = ClientReplayScenario.start(GameTestResources.REPLAY_TVT_BAEKDUDAEGAN, TVT_FRAME)) {
             Game game = session.getGame();
             ConsoleModel model = new ConsoleModel(new ScrGameView(game), new ScrPresentation(game));
@@ -516,81 +516,81 @@ final class CommandInputTest {
 
             CommandCard card = model.getCommandCard();
             int set = card.getDisplayedSet();
-            ButtonDefinition first = card.getButton(SCRIPT_SLOT);
+            ButtonDefinition first = card.getButton(PLUGIN_SLOT);
 
             Assertions.assertNotNull(first);
-            installScriptButton(host, set, ButtonAction.SCRIPT);
+            installPluginButton(host, set, ButtonAction.PLUGIN);
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            Assertions.assertSame(first.getAction(), card.getButton(SCRIPT_SLOT).getAction(), "a script state starts hidden");
+            Assertions.assertSame(first.getAction(), card.getButton(PLUGIN_SLOT).getAction(), "a plugin state starts hidden");
 
-            states.setState(SCRIPT_VALUE, ScrButtonStates.DISABLED);
+            states.setState(PLUGIN_VALUE, ScrButtonStates.DISABLED);
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            ButtonDefinition script = card.getButton(SCRIPT_SLOT);
+            ButtonDefinition plugin = card.getButton(PLUGIN_SLOT);
 
-            Assertions.assertNotNull(script);
-            Assertions.assertEquals(ButtonCondition.SCRIPT, script.getCondition());
-            Assertions.assertEquals(CommandCard.DISABLED, card.getState(SCRIPT_SLOT));
-            Assertions.assertEquals(0, card.getDisabledString(SCRIPT_SLOT));
-            Assertions.assertEquals(SCRIPT_DISABLED_TEXT,
-                                    ButtonTooltip.build(new ScrGameView(game), text, profile, script, true, card.getDisabledString(SCRIPT_SLOT),
+            Assertions.assertNotNull(plugin);
+            Assertions.assertEquals(ButtonCondition.PLUGIN, plugin.getCondition());
+            Assertions.assertEquals(CommandCard.DISABLED, card.getState(PLUGIN_SLOT));
+            Assertions.assertEquals(0, card.getDisabledString(PLUGIN_SLOT));
+            Assertions.assertEquals(PLUGIN_DISABLED_TEXT,
+                                    ButtonTooltip.build(new ScrGameView(game), text, profile, plugin, true, card.getDisabledString(PLUGIN_SLOT),
                                                         model.getSelection().getActiveUnit(), FIRST_PLAYER, ScrRaceIds.TERRAN).getText());
-            Assertions.assertEquals(CommandInput.Result.IGNORED, input.pressSlot(SCRIPT_SLOT, false));
+            Assertions.assertEquals(CommandInput.Result.IGNORED, input.pressSlot(PLUGIN_SLOT, false));
 
-            states.setState(SCRIPT_VALUE, ScrButtonStates.HIDDEN);
+            states.setState(PLUGIN_VALUE, ScrButtonStates.HIDDEN);
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            Assertions.assertSame(first.getAction(), card.getButton(SCRIPT_SLOT).getAction(), "a hidden script button leaves its position");
+            Assertions.assertSame(first.getAction(), card.getButton(PLUGIN_SLOT).getAction(), "a hidden plugin button leaves its position");
 
-            states.setState(SCRIPT_VALUE, ScrButtonStates.ENABLED);
+            states.setState(PLUGIN_VALUE, ScrButtonStates.ENABLED);
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            Assertions.assertEquals(CommandCard.ENABLED, card.getState(SCRIPT_SLOT));
-            Assertions.assertEquals(0, card.findTableIndex(set, card.getButton(SCRIPT_SLOT)));
-            Assertions.assertEquals(SCRIPT_SLOT, input.findHotkeySlot(profile, SCRIPT_HOTKEY));
-            Assertions.assertEquals(SCRIPT_TEXT, ButtonTooltip.build(new ScrGameView(game), text, profile, card.getButton(SCRIPT_SLOT), false, 0,
+            Assertions.assertEquals(CommandCard.ENABLED, card.getState(PLUGIN_SLOT));
+            Assertions.assertEquals(0, card.findTableIndex(set, card.getButton(PLUGIN_SLOT)));
+            Assertions.assertEquals(PLUGIN_SLOT, input.findHotkeySlot(profile, PLUGIN_HOTKEY));
+            Assertions.assertEquals(PLUGIN_TEXT, ButtonTooltip.build(new ScrGameView(game), text, profile, card.getButton(PLUGIN_SLOT), false, 0,
                                                                      model.getSelection().getActiveUnit(), FIRST_PLAYER,
                                                                      ScrRaceIds.TERRAN).getText());
-            Assertions.assertEquals(CommandInput.Result.INTERFACE, input.pressSlot(SCRIPT_SLOT, false, true));
-            Assertions.assertEquals(List.of(), sink.getCommands(), "a script button sends no command");
+            Assertions.assertEquals(CommandInput.Result.INTERFACE, input.pressSlot(PLUGIN_SLOT, false, true));
+            Assertions.assertEquals(List.of(), sink.getCommands(), "a plugin button sends no command");
             Assertions.assertFalse(model.getMode().isTargeting());
 
-            installScriptButton(host, set, ButtonAction.SCRIPT_TARGET);
+            installPluginButton(host, set, ButtonAction.PLUGIN_TARGET);
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            Assertions.assertEquals(CommandInput.Result.INTERFACE, input.pressSlot(SCRIPT_SLOT, true));
+            Assertions.assertEquals(CommandInput.Result.INTERFACE, input.pressSlot(PLUGIN_SLOT, true));
             Assertions.assertTrue(model.getMode().isTargeting());
             Assertions.assertEquals(NO_TARGET_ORDER, model.getMode().getUnitTargetOrder());
 
-            ScrButtonInput pressed = model.getMode().getScriptButton();
+            ScrButtonInput pressed = model.getMode().getPluginButton();
 
             Assertions.assertNotNull(pressed);
             Assertions.assertEquals(set, pressed.getSet());
             Assertions.assertEquals(0, pressed.getIndex());
-            Assertions.assertEquals(SCRIPT_VALUE, pressed.getActionValue());
+            Assertions.assertEquals(PLUGIN_VALUE, pressed.getActionValue());
             Assertions.assertTrue(pressed.isQueued());
 
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            Assertions.assertEquals(CANCEL_TARGETING_SET, card.getDisplayedSet(), "script targeting shows the cancel set");
+            Assertions.assertEquals(CANCEL_TARGETING_SET, card.getDisplayedSet(), "plugin targeting shows the cancel set");
             Assertions.assertEquals(CommandInput.Result.COMMAND,
                                     input.clickTarget(GROUND_TARGET_X, GROUND_TARGET_Y, null, CommandInput.NO_UNIT_TYPE, false));
-            Assertions.assertEquals(List.of(), sink.getCommands(), "a script target sends no command");
+            Assertions.assertEquals(List.of(), sink.getCommands(), "a plugin target sends no command");
             Assertions.assertFalse(model.getMode().isTargeting());
-            Assertions.assertNull(model.getMode().getScriptButton());
+            Assertions.assertNull(model.getMode().getPluginButton());
 
-            states.requestButtonSet(SCRIPT_CHANGED_SET);
+            states.requestButtonSet(PLUGIN_CHANGED_SET);
             model.update(FIRST_PLAYER, CommandCard.Perspective.PLAYER, REPLAY_PAUSED, GAME_SPEED_SETTING, REPLAY_SPEED);
 
-            Assertions.assertEquals(SCRIPT_CHANGED_SET, card.getDisplayedSet(), "a requested set shows as Change Buttons shows it");
+            Assertions.assertEquals(PLUGIN_CHANGED_SET, card.getDisplayedSet(), "a requested set shows as Change Buttons shows it");
         }
     }
 
     /**
-     * Copies the installed table into the game's table on the first call, then puts a script button with the action first in a set.
+     * Copies the installed table into the game's table on the first call, then puts a plugin button with the action first in a set.
      */
-    private static void installScriptButton(@NotNull HostButtonSets host, int set, @NotNull ButtonAction action) {
+    private static void installPluginButton(@NotNull HostButtonSets host, int set, @NotNull ButtonAction action) {
         if (!host.isReplaced()) {
             HostButtonSets.Button[][] installed = ButtonSetTable.createHostButtons();
 
@@ -603,11 +603,11 @@ final class CommandInputTest {
 
         Assertions.assertNotNull(buttons);
 
-        boolean replacing = buttons[0].getCondition() == ButtonCondition.SCRIPT.getNativeAddress();
+        boolean replacing = buttons[0].getCondition() == ButtonCondition.PLUGIN.getNativeAddress();
         HostButtonSets.Button[] changed = new HostButtonSets.Button[replacing ? buttons.length : buttons.length + 1];
 
-        changed[0] = new HostButtonSets.Button(1, SCRIPT_ICON, ButtonCondition.SCRIPT.getNativeAddress(), SCRIPT_VALUE, action.getNativeAddress(),
-                                               SCRIPT_VALUE, 0, 0, SCRIPT_HOTKEY + "\0" + SCRIPT_TEXT, SCRIPT_DISABLED_TEXT);
+        changed[0] = new HostButtonSets.Button(1, PLUGIN_ICON, ButtonCondition.PLUGIN.getNativeAddress(), PLUGIN_VALUE, action.getNativeAddress(),
+                                               PLUGIN_VALUE, 0, 0, PLUGIN_HOTKEY + "\0" + PLUGIN_TEXT, PLUGIN_DISABLED_TEXT);
         System.arraycopy(buttons, replacing ? 1 : 0, changed, 1, changed.length - 1);
         host.replace(set, changed.length, changed, host.getConnectedSet(set));
     }

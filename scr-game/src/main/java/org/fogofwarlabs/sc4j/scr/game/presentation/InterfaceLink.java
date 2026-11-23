@@ -137,7 +137,7 @@ public final class InterfaceLink {
     }
 
     /**
-     * @return the local command card state a game plugin sets: the script button states and the requested button set
+     * @return the local command card state a game plugin sets: the plugin button states and the requested button set
      */
     public @NotNull ScrButtonStates getButtonStates() {
         return this.buttonStates;

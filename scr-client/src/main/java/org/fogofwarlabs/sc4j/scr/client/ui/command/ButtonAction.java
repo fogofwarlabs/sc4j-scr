@@ -254,12 +254,12 @@ public enum ButtonAction {
     /**
      * Sends nothing: only the game plugins see the press. SC:R's own action, whose identifier is no native function address.
      */
-    SCRIPT(0x2L, Kind.SCRIPT, -1),
+    PLUGIN(0x2L, Kind.PLUGIN, -1),
     /**
      * Enters a targeting mode whose target only the game plugins see, a unit or the ground, instead of an order. SC:R's own action, as
-     * {@link #SCRIPT}.
+     * {@link #PLUGIN}.
      */
-    SCRIPT_TARGET(0x3L, Kind.SCRIPT_TARGET, -1);
+    PLUGIN_TARGET(0x3L, Kind.PLUGIN_TARGET, -1);
 
     /**
      * Classifies the effect of pressing a button.
@@ -288,11 +288,11 @@ public enum ButtonAction {
         /**
          * Tells the game plugins about the press only.
          */
-        SCRIPT,
+        PLUGIN,
         /**
          * Enters a targeting mode whose target the game plugins receive.
          */
-        SCRIPT_TARGET
+        PLUGIN_TARGET
     }
 
     /**

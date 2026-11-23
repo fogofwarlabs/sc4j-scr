@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A command card button the local player pressed, or the map point a script target button targeted, that a game plugin sees
+ * A command card button the local player pressed, or the map point a plugin target button targeted, that a game plugin sees
  * ({@link ScrGamePlugin#onButtonInput}). The button is named by its button set, its index in the set's table and its fields as the table holds
  * them ({@link HostButtonSets.Button}): the condition and action are function addresses.
  */
@@ -152,7 +152,7 @@ public final class ScrButtonInput {
     }
 
     /**
-     * @return {@code true} for the map point of a script target button, {@code false} for a button press
+     * @return {@code true} for the map point of a plugin target button, {@code false} for a button press
      */
     public boolean isTargeted() {
         return this.targeted;

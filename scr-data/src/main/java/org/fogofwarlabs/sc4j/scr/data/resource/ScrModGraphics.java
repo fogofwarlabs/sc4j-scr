@@ -102,6 +102,13 @@ public final class ScrModGraphics {
     }
 
     /**
+     * @return the path of the SD GRP file in the mod's files
+     */
+    public @NotNull String getFramesPath() {
+        return this.framesPath;
+    }
+
+    /**
      * Returns the path of the ANIM file of a quality.
      *
      * @param quality the asset quality

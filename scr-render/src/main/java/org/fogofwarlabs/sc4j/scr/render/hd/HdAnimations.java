@@ -2,7 +2,11 @@ package org.fogofwarlabs.sc4j.scr.render.hd;
 
 import org.fogofwarlabs.sc4j.engine.resource.ResourceNotFoundException;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.TextureSheet;
+import org.fogofwarlabs.sc4j.scr.content.ScrAddedGraphics;
+import org.fogofwarlabs.sc4j.scr.content.ScrAddedImage;
+import org.fogofwarlabs.sc4j.scr.data.format.dat.ImagesDat;
 import org.fogofwarlabs.sc4j.scr.data.format.image.ImageRelations;
+import org.fogofwarlabs.sc4j.scr.data.resource.ScrModGraphics;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceKeys;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrSkin;
@@ -70,12 +74,22 @@ public final class HdAnimations {
 
     /**
      * Returns the image whose anim an image shares: {@link #loadTextureSheet(int)} reads the same file for both, so their textures and frame
-     * placement are the same.
+     * placement are the same. An added image without an anim of its own in the quality shares the anim of its base image.
      *
      * @param image the image identifier
      * @return the lowest image drawn by the same anim, {@code image} itself when no lower image shares it
      */
     int getSharedImage(int image) {
+        ScrAddedGraphics added = image < ImagesDat.IMAGE_COUNT ? null : this.resources.getAddedGraphics();
+
+        if (added != null && added.containsImage(image)) {
+            ScrAddedImage addedImage = added.getImage(image);
+            ScrModGraphics graphics = addedImage.getGraphics();
+
+            return graphics == null || graphics.getAnimationPath(this.quality.getAssetSet()) == null ? this.getSharedImage(addedImage.getBaseImage())
+                                                                                                     : image;
+        }
+
         return this.skin.getSharedImage(image);
     }
 

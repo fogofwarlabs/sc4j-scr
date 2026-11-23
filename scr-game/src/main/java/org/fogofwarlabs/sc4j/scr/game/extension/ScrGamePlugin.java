@@ -2,10 +2,12 @@ package org.fogofwarlabs.sc4j.scr.game.extension;
 
 import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
+import org.fogofwarlabs.sc4j.scr.data.format.dat.SfxdataDat;
 import org.fogofwarlabs.sc4j.scr.data.format.terrain.TerrainTileset;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageAnimation;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrImageSheet;
 import org.fogofwarlabs.sc4j.scr.game.presentation.InterfaceLink;
+import org.fogofwarlabs.sc4j.scr.game.presentation.SoundEvents;
 import org.fogofwarlabs.sc4j.scr.game.sprite.SpriteImage;
 import org.fogofwarlabs.sc4j.scr.game.trigger.eud.ClassicMemoryView;
 import org.fogofwarlabs.sc4j.scr.game.trigger.eud.region.LocalView;
@@ -83,12 +85,12 @@ public interface ScrGamePlugin {
 
     /**
      * Called when the local player presses an enabled command card button in a running live game, by a mouse click or a hotkey, before the
-     * button's action runs; and when the local player targets a map point or unit with a script target button, instead of an order. The plugins
+     * button's action runs; and when the local player targets a map point or unit with a plugin target button, instead of an order. The plugins
      * see an input in extension order until one consumes it.
      * <p>
      * A consumed press runs no action: no command, no targeting or placement mode, no card change. A consumed target leaves the targeting mode
-     * waiting for another target, as a refused target of an order does. A press of a script button runs nothing itself, and the targeting mode
-     * of a script target button ends at a target that no plugin consumed.
+     * waiting for another target, as a refused target of an order does. A press of a plugin button runs nothing itself, and the targeting mode
+     * of a plugin target button ends at a target that no plugin consumed.
      *
      * @param input the button input
      * @return {@code true} if the plugin consumed the input, which then reaches neither the later plugins nor the game, {@code false} otherwise
@@ -230,6 +232,18 @@ public interface ScrGamePlugin {
      * @return the picture, or {@code null} for the other icons
      */
     default @Nullable Picture findResourceIconPicture(int icon) {
+        return null;
+    }
+
+    /**
+     * Finds the sound file a played sound event plays instead of its sound table entry ({@link SoundEvents}): a WAVE or Ogg Vorbis file on the
+     * map sound channels, at the volume of its position. The sound ids from {@value SfxdataDat#SOUND_COUNT} up have no table entry and are free
+     * for plugins; they fade to silence outside the screen. The same array is returned while the sound is unchanged.
+     *
+     * @param soundId the sound id of a played sound event
+     * @return the sound file, or {@code null} for the sound table entry
+     */
+    default byte @Nullable [] findSoundFile(int soundId) {
         return null;
     }
 
