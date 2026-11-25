@@ -380,7 +380,7 @@ public final class ChkFile {
      * @param version the {@code VER } value
      * @return {@code true} if the version is a Brood War map version ({@link #VERSION_BROOD_WAR} or {@link #VERSION_REMASTERED_BROOD_WAR}), {@code false} otherwise
      */
-    static boolean isExpansionVersion(int version) {
+    public static boolean isExpansionVersion(int version) {
         return version == VERSION_BROOD_WAR || version == VERSION_REMASTERED_BROOD_WAR;
     }
 

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 /**
- * Tests the scenario size limit that the {@link ScrDataExtension} implementations give the map reader.
+ * Tests the scenario size limit and the map file extensions that the {@link ScrDataExtension} implementations give the map reader.
  */
 final class ScrDataExtensionUtilsTest {
     private static @NotNull ScrDataExtension createExtension(int maximumScenarioSize) {
@@ -18,6 +18,36 @@ final class ScrDataExtensionUtilsTest {
                 return maximumScenarioSize;
             }
         };
+    }
+
+    private static @NotNull ScrDataExtension createExtension(@NotNull String @NotNull ... mapFileExtensions) {
+        return new ScrDataExtension() {
+            @Override
+            public @NotNull List<@NotNull String> getExtraMapFileExtensions() {
+                return List.of(mapFileExtensions);
+            }
+        };
+    }
+
+    @Test
+    void without_an_extension_no_map_file_extension_is_added() {
+        Assertions.assertEquals(List.of(), ScrDataExtensionUtils.getExtraMapFileExtensions());
+        Assertions.assertEquals(List.of(), ScrDataExtensionUtils.collectExtraMapFileExtensions(List.of(new ScrDataExtension() {
+        })));
+    }
+
+    @Test
+    void extensions_add_map_file_extensions_in_lower_case_each_once() {
+        List<ScrDataExtension> extensions = List.of(createExtension(".SCE", ".abc"), createExtension(".sce"));
+
+        Assertions.assertEquals(List.of(".sce", ".abc"), ScrDataExtensionUtils.collectExtraMapFileExtensions(extensions));
+    }
+
+    @Test
+    void collect_extra_map_file_extensions_should_reject_an_extension_without_a_dot() {
+        List<ScrDataExtension> extensions = List.of(createExtension("sce"));
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> ScrDataExtensionUtils.collectExtraMapFileExtensions(extensions));
     }
 
     @Test

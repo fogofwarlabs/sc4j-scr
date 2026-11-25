@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -222,7 +223,7 @@ final class ReplayFileTest {
     private static @NotNull List<Path> findReplayFiles() throws IOException {
         try (Stream<Path> walk = Files.walk(ExternalInput.REPLAYS.getPath())) {
             return walk.filter(Files::isRegularFile)
-                       .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".rep"))
+                       .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".rep"))
                        .limit(getCorpusLimit())
                        .collect(Collectors.toList());
         }

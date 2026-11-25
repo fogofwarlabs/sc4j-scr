@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Inspects CASC paths for graphics table and GRP asset discovery.
@@ -18,7 +19,7 @@ final class GraphicsAssetPathTest {
             List<String> fileNames = storage.getFileNames();
 
             for (String fileName : fileNames) {
-                String lowerName = fileName.toLowerCase();
+                String lowerName = fileName.toLowerCase(Locale.ROOT);
 
                 if (lowerName.endsWith(".tbl") || (lowerName.contains("marine") && lowerName.endsWith(".grp"))) {
                     System.out.println(fileName);

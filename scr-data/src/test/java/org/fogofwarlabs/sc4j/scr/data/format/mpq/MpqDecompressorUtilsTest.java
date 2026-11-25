@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Tests MPQ sector methods against fixed vectors and optional installed-map WAVE files.
@@ -174,7 +175,7 @@ final class MpqDecompressorUtilsTest {
             for (MpqArchive.MpqEntry entry : archive.getEntries()) {
                 String fileName = entry.getFileName();
 
-                if (fileName == null || !fileName.toLowerCase().endsWith(".wav") || entry.getFileSize() < RIFF_HEADER_SIZE) {
+                if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(".wav") || entry.getFileSize() < RIFF_HEADER_SIZE) {
                     continue;
                 }
 

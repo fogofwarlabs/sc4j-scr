@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -246,7 +247,7 @@ final class ReplayLoaderUtilsTest {
     private static @NotNull List<Path> findReplayFiles(int limit) throws IOException {
         try (Stream<Path> walk = Files.walk(ExternalInput.REPLAYS.getPath())) {
             return walk.filter(Files::isRegularFile)
-                       .filter(path -> path.getFileName().toString().toLowerCase().endsWith(REPLAY_EXTENSION))
+                       .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(REPLAY_EXTENSION))
                        .limit(limit)
                        .collect(Collectors.toList());
         }

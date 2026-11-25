@@ -45,18 +45,26 @@
 
 ## 게임 데이터
 
-Gradle 속성 `sc4j.data`는 스타크래프트: 리마스터 폴더(`.build.info`와 `x86_64/StarCraft.exe`가 있는 폴더)를 가리킵니다. `%USERPROFILE%\.gradle\gradle.properties`(`sc4j.data=<폴더>`, 슬래시 사용), `-Psc4j.data=<폴더>`, CI에서는 `ORG_GRADLE_PROJECT_sc4j.data`로 설정합니다.
+Gradle 속성 `sc4j.data`는 스타크래프트: 리마스터 폴더(`.build.info`와 `x86_64/StarCraft.exe`(Windows) 또는 `x86_64/StarCraft.app`(macOS)이 있는 폴더)를 가리킵니다. Gradle 사용자 폴더(Windows는 `%USERPROFILE%\.gradle`, Linux와 macOS는 `~/.gradle`)의 `gradle.properties`에 `sc4j.data=<폴더>`(슬래시 사용)로 쓰거나, `-Psc4j.data=<폴더>`, CI에서는 `ORG_GRADLE_PROJECT_sc4j.data`로 설정합니다.
 
-`installMod`는 공유 게임 폴더가 없는 설치본에 이 값을 써 넣습니다. 런처는 Windows에 기록된 위치에서 폴더를 찾고, 없으면 모드 설정에서 묻습니다.
+스타크래프트: 리마스터는 Linux 버전이 없습니다. Linux에서는 Wine, Proton 또는 Lutris로 설치한 폴더나 설치 폴더의 복사본(빌드 1.23.10)을 씁니다. SC4J는 폴더를 직접 읽으므로 실행에 Wine이 필요하지 않습니다.
+
+`installMod`는 공유 게임 폴더가 없는 설치본에 이 값을 써 넣습니다. 런처는 시스템에서 게임이 보통 설치되는 위치에서 폴더를 찾고, 없으면 모드 설정에서 묻습니다.
 
 ## 빌드와 실행
 
-JDK 25가 필요합니다. 명령은 저장소 루트에서 실행합니다(Linux에서는 `./gradlew`).
+JDK 25가 필요합니다. 명령은 저장소 루트에서 실행합니다. 아래 명령은 Windows 기준이며, Linux와 macOS에서는 `.\gradlew.bat` 대신 `./gradlew`를, 경로에는 `/`를 씁니다.
 
 ```powershell
 git clone https://github.com/fogofwarlabs/sc4j-scr.git
 cd sc4j-scr
 .\gradlew.bat build
+```
+
+```sh
+git clone https://github.com/fogofwarlabs/sc4j-scr.git
+cd sc4j-scr
+./gradlew build
 ```
 
 엔진 버전은 `gradle.properties`의 `sc4jVersion`이며 Maven Central에서 가져옵니다. `../sc4j`(또는 `-Psc4j.engine.dir=<폴더>`)에 엔진 체크아웃이 있으면 그것을 쓰고, `-Psc4j.engine.local=false`로 끕니다.

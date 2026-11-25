@@ -38,8 +38,8 @@ dependencies {
 
     // The native libraries of the engine's video default (FFmpeg through JavaCPP; the jars come with sc4j-engine), staged with the
     // client's own for its tests, its run task and the install.
-    nativeLibraries 'org.bytedeco:javacpp:1.5.11:windows-x86_64'
-    nativeLibraries 'org.bytedeco:ffmpeg:7.1-1.5.11:windows-x86_64'
+    nativeLibraries "org.bytedeco:javacpp:1.5.11:$JAVACPP_NATIVES"
+    nativeLibraries "org.bytedeco:ffmpeg:7.1-1.5.11:$JAVACPP_NATIVES"
 }
 
 application {

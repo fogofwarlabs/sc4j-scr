@@ -10,7 +10,7 @@ def nativeDirectory = layout.buildDirectory.dir('native-libraries')
 def stageNativeLibraries = tasks.register('stageNativeLibraries', Sync) {
     description = 'Stages the existing native dependencies outside the Java runtime classpath.'
     from({ nativeLibraries.collect { archive -> zipTree(archive) } }) {
-        include '**/*.dll', '**/*.so', '**/*.so.*'
+        include '**/*.dll', '**/*.so', '**/*.so.*', '**/*.dylib'
         exclude 'META-INF/**', '**/*.sha1', '**/*.git'
         eachFile { details -> details.path = details.name }
         includeEmptyDirs = false

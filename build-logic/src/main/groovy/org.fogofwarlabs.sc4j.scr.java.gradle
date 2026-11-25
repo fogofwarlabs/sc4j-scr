@@ -1,14 +1,18 @@
 // The conventions of the SC:R builds. A project applies it before its Java plugins react; the root project registers the sc4j.data check of the
 // integration tier.
 
-// The LWJGL version of the engine and the classifier of its native libraries on this platform.
+// The LWJGL version of the engine and the classifiers of the native libraries on this platform: LWJGL's and JavaCPP's (FFmpeg, the engine's
+// video default). JavaCPP names macOS macosx and has no Windows arm64 build.
 def operatingSystemName = System.getProperty('os.name').toLowerCase(Locale.ROOT)
-def nativePlatform = operatingSystemName.contains('windows') ? 'windows' : operatingSystemName.contains('linux') ? 'linux' : null
+def nativePlatform = operatingSystemName.contains('windows') ? 'windows' : operatingSystemName.contains('linux') ? 'linux' :
+                                                                           operatingSystemName.startsWith('mac') ? 'macos' : null
 if (nativePlatform == null) {
     throw new GradleException('Not supported operating system: ' + System.getProperty('os.name'))
 }
+def armArchitecture = System.getProperty('os.arch').toLowerCase(Locale.ROOT) in ['aarch64', 'arm64']
 ext.LWJGL_VERSION = '3.3.6'
-ext.LWJGL_NATIVES = 'natives-' + nativePlatform + (System.getProperty('os.arch').toLowerCase(Locale.ROOT) in ['aarch64', 'arm64'] ? '-arm64' : '')
+ext.LWJGL_NATIVES = 'natives-' + nativePlatform + (armArchitecture ? '-arm64' : '')
+ext.JAVACPP_NATIVES = (nativePlatform == 'macos' ? 'macosx' : nativePlatform) + (armArchitecture && nativePlatform != 'windows' ? '-arm64' : '-x86_64')
 
 // The licence files of every distribution: LICENSE, NOTICE and the third-party licence texts of licenses/ that NOTICE names. A
 // distribution folder carries all three, a jar LICENSE and NOTICE in META-INF/. checkDistributionLicenses fails when a file is missing,
@@ -132,7 +136,7 @@ plugins.withId('application') {
             unixText = unixText.replace('# Add default JVM options here.', unixPreparation + '# Add default JVM options here.')
             def unixJava = 'if [ -x "$APP_HOME/../java/bin/java" ] ; then\n    JAVA_HOME=$APP_HOME/../java\nfi\n\n'
             unixScript.text = unixText.replace('# Determine the Java command to use to start the JVM.',
-                unixJava + '# Determine the Java command to use to start the JVM.')
+                                               unixJava + '# Determine the Java command to use to start the JVM.')
         }
     }
     // Every application distribution carries LICENSE, NOTICE and licenses/ at its root; the install task fails when its folder misses one of

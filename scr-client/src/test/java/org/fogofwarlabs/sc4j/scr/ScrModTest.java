@@ -40,6 +40,7 @@ import java.util.Map;
 final class ScrModTest {
     private static final @NotNull String BUILD_INFO_HEADER = "Branch!STRING:0|Active!DEC:1|Build Key!HEX:16|Version!STRING:0\n";
     private static final @NotNull String EXECUTABLE = "x86_64/StarCraft.exe";
+    private static final @NotNull String MACOS_EXECUTABLE = "x86_64/StarCraft.app/Contents/MacOS/StarCraft";
     private static final byte @NotNull [] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G'};
 
     /**
@@ -207,7 +208,8 @@ final class ScrModTest {
         Assertions.assertEquals(List.of("StarCraft"), folder.getUninstallEntries());
         Assertions.assertEquals(List.of("StarCraft"), folder.getProgramFolders());
         Assertions.assertTrue(folder.isRequired());
-        Assertions.assertEquals(List.of(".build.info", EXECUTABLE), folder.getContainedPaths());
+        Assertions.assertEquals(List.of(".build.info"), folder.getContainedPaths());
+        Assertions.assertEquals(List.of(EXECUTABLE, MACOS_EXECUTABLE), folder.getAnyContainedPaths());
         Assertions.assertNotNull(folder.getMessage());
         Assertions.assertNotNull(locale);
         Assertions.assertTrue(locale.isSystemDefault());

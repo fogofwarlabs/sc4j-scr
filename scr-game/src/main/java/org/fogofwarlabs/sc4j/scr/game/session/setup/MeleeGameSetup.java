@@ -173,7 +173,7 @@ public final class MeleeGameSetup {
     /**
      * Creates a {@link MeleeGameSetup} instance from command-line style values.
      *
-     * @param mapPath       a {@code .scm}/{@code .scx} map archive or a raw {@code .chk} scenario
+     * @param mapPath       a map archive or a raw {@code .chk} scenario
      * @param humanName     the local player name
      * @param humanRace     the human race name ({@link #parseRace})
      * @param computerRaces the comma-separated computer race names, in lobby order
@@ -194,7 +194,7 @@ public final class MeleeGameSetup {
     /**
      * Creates a {@link MeleeGameSetup} instance from command-line style values, optionally in the map compatibility mode.
      *
-     * @param mapPath          a {@code .scm}/{@code .scx} map archive or a raw {@code .chk} scenario
+     * @param mapPath          a map archive or a raw {@code .chk} scenario
      * @param humanName        the local player name
      * @param humanRace        the human race name ({@link #parseRace})
      * @param computerRaces    the comma-separated computer race names, in lobby order
@@ -238,7 +238,7 @@ public final class MeleeGameSetup {
     /**
      * Creates a {@link MeleeGameSetup} instance for a single-player Use Map Settings game from command-line style values.
      *
-     * @param mapPath   a {@code .scm}/{@code .scx} map archive or a raw {@code .chk} scenario
+     * @param mapPath   a map archive or a raw {@code .chk} scenario
      * @param humanName the local player name
      * @param humanRace the human race name ({@link #parseRace}), used for a selectable slot race
      * @param humanSlot the human's index among the map's human slots
@@ -257,7 +257,7 @@ public final class MeleeGameSetup {
      * Creates a {@link MeleeGameSetup} instance for a single-player Use Map Settings game, optionally in the map
      * compatibility mode.
      *
-     * @param mapPath          a {@code .scm}/{@code .scx} map archive or a raw {@code .chk} scenario
+     * @param mapPath          a map archive or a raw {@code .chk} scenario
      * @param humanName        the local player name
      * @param humanRace        the human race name ({@link #parseRace}), used for a selectable slot race
      * @param humanSlot        the human's index among the map's human slots

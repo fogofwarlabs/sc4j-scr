@@ -10,6 +10,7 @@ import org.fogofwarlabs.sc4j.scr.client.glue.GlueScreen;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.DialogPainter;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ListBox;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrControl;
+import org.fogofwarlabs.sc4j.scr.data.extension.ScrDataExtensionUtils;
 import org.fogofwarlabs.sc4j.scr.game.replay.ScrReplayFormat;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -60,9 +61,10 @@ public abstract class FileBrowserScreen extends GlueScreen {
      */
     protected static final int FOLDER = 6;
     /**
-     * The map file extensions, lower case with the dot.
+     * The map file extensions, lower case with the dot: the native ones, then those the data extensions add
+     * ({@link ScrDataExtensionUtils#getExtraMapFileExtensions}).
      */
-    static final @NotNull List<String> MAP_EXTENSIONS = List.of(ORIGINAL_MAP_EXTENSION, EXPANSION_MAP_EXTENSION);
+    static final @NotNull List<String> MAP_EXTENSIONS = createMapExtensions();
 
     private static final @NotNull Logger LOGGER = Logger.of(FileBrowserScreen.class);
 
@@ -105,6 +107,37 @@ public abstract class FileBrowserScreen extends GlueScreen {
         }
     }
 
+    private static @NotNull List<String> createMapExtensions() {
+        List<String> extensions = new ArrayList<>(List.of(ORIGINAL_MAP_EXTENSION, EXPANSION_MAP_EXTENSION));
+
+        for (String extension : ScrDataExtensionUtils.getExtraMapFileExtensions()) {
+            if (!extensions.contains(extension)) {
+                extensions.add(extension);
+            }
+        }
+
+        return List.copyOf(extensions);
+    }
+
+    /**
+     * Checks whether a file is a map archive by its file name extension, ignoring case: {@value #ORIGINAL_MAP_EXTENSION},
+     * {@value #EXPANSION_MAP_EXTENSION} or an extension a data extension adds ({@link ScrDataExtensionUtils#getExtraMapFileExtensions}).
+     *
+     * @param file the file
+     * @return {@code true} if the file name ends with a map file extension, {@code false} otherwise
+     */
+    public static boolean isMapFile(@NotNull Path file) {
+        String name = file.getFileName() == null ? "" : file.getFileName().toString().toLowerCase(Locale.ROOT);
+
+        for (String extension : MAP_EXTENSIONS) {
+            if (name.endsWith(extension)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static @Nullable ReplayInformation readReplay(@NotNull Path file) {
         if (!file.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(REPLAY_EXTENSION)) {
             return null;
@@ -120,9 +153,7 @@ public abstract class FileBrowserScreen extends GlueScreen {
     }
 
     private static @Nullable MapInformation readMap(@NotNull Path file, boolean mapCompatibility) {
-        String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
-
-        if (MAP_EXTENSIONS.stream().noneMatch(name::endsWith)) {
+        if (!isMapFile(file)) {
             return null;
         }
 

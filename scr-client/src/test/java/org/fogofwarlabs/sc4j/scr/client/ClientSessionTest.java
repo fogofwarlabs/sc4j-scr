@@ -35,7 +35,6 @@ import org.fogofwarlabs.sc4j.scr.game.visibility.LocalVision;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -66,12 +65,6 @@ final class ClientSessionTest {
      * The frame of {@link GameTestResources#REPLAY_STALE_RESTART_GAME} whose stale Restart Game command ends native replay playback.
      */
     private static final int STALE_RESTART_GAME_FRAME = 14988;
-
-    /**
-     * The system property and its prefix that select the actual Windows client timing.
-     */
-    private static final @NotNull String OPERATING_SYSTEM_PROPERTY = "os.name";
-    private static final @NotNull String WINDOWS_PREFIX = "Windows";
 
     /**
      * The game type and the victory condition that the header of the one-on-one replay records.
@@ -366,13 +359,6 @@ final class ClientSessionTest {
     private static final @NotNull String COMPUTER_RACE = "zerg";
 
     /**
-     * Skips a test that needs the actual client timing outside Windows.
-     */
-    private static void assumeWindowsTiming() {
-        Assumptions.assumeTrue(System.getProperty(OPERATING_SYSTEM_PROPERTY).startsWith(WINDOWS_PREFIX), "Actual client timing requires Windows.");
-    }
-
-    /**
      * Plays the same frame sequence while switching the audio set at its midpoint.
      *
      * @param session the playback session
@@ -599,8 +585,6 @@ final class ClientSessionTest {
 
     @Test
     void one_on_one_replay_starts_with_map_resources_two_bases_and_eight_workers() throws IOException {
-        assumeWindowsTiming();
-
         Path replayPath = GameTestResources.getPath(GameTestResources.REPLAY_ZVZ_HEARTBREAK_RIDGE);
 
         try (ClientSession session = ClientSession.load(ExternalInput.INSTALLATION.getPath(), replayPath)) {
@@ -682,8 +666,6 @@ final class ClientSessionTest {
 
     @Test
     void session_retains_partial_frame_and_pending_command_until_reset() throws IOException {
-        assumeWindowsTiming();
-
         Path replayPath = GameTestResources.getPath(GameTestResources.REPLAY_ZVP_FIGHTING_SPIRIT);
 
         try (ClientSession session = ClientSession.load(ExternalInput.INSTALLATION.getPath(), replayPath)) {
@@ -735,8 +717,6 @@ final class ClientSessionTest {
 
     @Test
     void reset_should_keep_the_replay_vision_and_the_reveal_of_the_vision_dialog() throws IOException {
-        assumeWindowsTiming();
-
         Path replayPath = GameTestResources.getPath(GameTestResources.REPLAY_ZVP_FIGHTING_SPIRIT);
 
         try (ClientSession session = ClientSession.load(ExternalInput.INSTALLATION.getPath(), replayPath)) {
@@ -764,8 +744,6 @@ final class ClientSessionTest {
 
     @Test
     void get_active_players_should_drop_a_computer_out_of_the_game() throws IOException {
-        assumeWindowsTiming();
-
         Path replayPath = GameTestResources.getPath(GameTestResources.REPLAY_ZVP_FIGHTING_SPIRIT);
 
         try (ClientSession session = ClientSession.load(ExternalInput.INSTALLATION.getPath(), replayPath)) {

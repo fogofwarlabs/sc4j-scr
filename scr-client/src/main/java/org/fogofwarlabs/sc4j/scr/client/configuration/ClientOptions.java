@@ -82,7 +82,7 @@ public final class ClientOptions {
          * With a campaign mission the map is the {@code --campaign} argument, used only as the session and replay file name. With the map's own
          * settings the slot is the index among the map's human slots.
          *
-         * @param map              the {@code .scm}/{@code .scx} map or raw {@code .chk}
+         * @param map              the map archive or raw {@code .chk}
          * @param campaign         the built-in campaign mission ({@code --campaign}: index, launch name such as {@code bw-terran-1}, or {@code list})
          * @param usingMapSettings whether the map's own settings fix players, races and forces ({@code --ums})
          * @param name             the human player's name ({@code --name})

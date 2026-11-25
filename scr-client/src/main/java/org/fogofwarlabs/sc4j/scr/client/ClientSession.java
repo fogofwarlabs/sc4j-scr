@@ -485,7 +485,7 @@ public final class ClientSession implements AutoCloseable {
                                                      boolean hasGameSeed, int gameSeed, @Nullable String locale) throws IOException {
         ClientSession session = startLive(storage, gameData, gameDirectory, mapPath, setup, hasGameSeed, gameSeed, locale);
 
-        if (isMapArchive(mapPath)) {
+        if (FileBrowserScreen.isMapFile(mapPath)) {
             session.mapArchive       = mapPath.toAbsolutePath().normalize();
             session.mapCompatibility = setup.isMapCompatibility();
             session.openedMapArchive = setup.getMapArchive();
@@ -681,7 +681,7 @@ public final class ClientSession implements AutoCloseable {
         Path mapPath = setup.getMapPath();
         ClientSession session = startLive(storage, gameData, gameDirectory, mapPath == null ? file : mapPath, liveGame, locale);
 
-        if (mapPath != null && isMapArchive(mapPath)) {
+        if (mapPath != null && FileBrowserScreen.isMapFile(mapPath)) {
             session.mapArchive       = mapPath.toAbsolutePath().normalize();
             session.mapCompatibility = setup.isMapCompatibility();
         }
@@ -823,18 +823,6 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * Checks whether a map file is an original or expansion map archive by its lower-case file name extension.
-     *
-     * @param mapPath the map file
-     * @return {@code true} if the file name ends with a map archive extension, {@code false} otherwise
-     */
-    private static boolean isMapArchive(@NotNull Path mapPath) {
-        String name = mapPath.getFileName() == null ? "" : mapPath.getFileName().toString().toLowerCase(Locale.ROOT);
-
-        return name.endsWith(FileBrowserScreen.ORIGINAL_MAP_EXTENSION) || name.endsWith(FileBrowserScreen.EXPANSION_MAP_EXTENSION);
-    }
-
-    /**
      * Reads the host clock in whole seconds, as {@code time(0)} returns it for the game seed, the cheat input's C runtime reseed
      * and the saved game commands.
      *
@@ -865,7 +853,7 @@ public final class ClientSession implements AutoCloseable {
 
     private boolean closed;
     private @Nullable ReplayRuntime runtime;
-    private @Nullable WindowsHostTiming hostTiming;
+    private @Nullable HostTiming hostTiming;
     /**
      * The client's watchdog of the simulation frames, or {@code null} when the frames are not watched.
      */
@@ -2132,7 +2120,7 @@ public final class ClientSession implements AutoCloseable {
 
 
     /**
-     * Starts the common replay runtime with measured Windows host timing.
+     * Starts the common replay runtime with the measured host timing ({@link HostTiming}).
      * Retains startup failures for inspection without publishing an executable world.
      *
      * @throws IllegalStateException if the session is closed or startup was already requested
@@ -2142,7 +2130,7 @@ public final class ClientSession implements AutoCloseable {
     }
 
     /**
-     * Starts the common replay runtime with measured Windows host timing; a restart applies the vision before it to the new world before it runs
+     * Starts the common replay runtime with the measured host timing; a restart applies the vision before it to the new world before it runs
      * ({@link LocalVision#restartReplay}). Retains startup failures for inspection without publishing an executable world.
      *
      * @param previousVision the vision of the replay before a restart, or {@code null} for a first start
@@ -2157,7 +2145,7 @@ public final class ClientSession implements AutoCloseable {
         this.selectedPlacement = null;
 
         try {
-            this.hostTiming = new WindowsHostTiming();
+            this.hostTiming = HostTiming.create();
 
             // One set of sound channels per session: a seek restart reuses it instead of creating it again.
             if (this.soundPlayback == null) {
@@ -3336,7 +3324,7 @@ public final class ClientSession implements AutoCloseable {
      */
     public int @Nullable [] updateColorCycle(boolean colorCycling, boolean minimized) {
         ReplayRuntime current = this.runtime;
-        WindowsHostTiming timing = this.hostTiming;
+        HostTiming timing = this.hostTiming;
 
         if (current == null || timing == null) {
             return null;

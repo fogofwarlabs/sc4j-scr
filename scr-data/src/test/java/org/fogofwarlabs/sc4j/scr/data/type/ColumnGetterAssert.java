@@ -167,8 +167,11 @@ final class ColumnGetterAssert {
 
         // The tables with requirement index columns also take the loader's column names (strings) after the columns, the
         // tables with a game memory layout an overrun reader, which the probe ids inside the columns never reach, and the
-        // unit table its trait columns, which hold NO_DAT_COLUMN here: a trait getter reads no DAT column.
-        Constructor<?> constructor = typeTableClass.getConstructors()[0];
+        // unit table its trait columns, which hold NO_DAT_COLUMN here: a trait getter reads no DAT column. The table's shortest constructor is used,
+        // since the order of getConstructors is not specified.
+        Constructor<?> constructor = Arrays.stream(typeTableClass.getConstructors())
+                                           .min(Comparator.comparingInt(Constructor::getParameterCount))
+                                           .orElseThrow();
         Class<?>[] parameterTypes = constructor.getParameterTypes();
         Object[] arguments = new Object[parameterTypes.length];
         ColumnOverrunReader<Object> unreachable = (column, index) -> Assertions.fail("The probe read " + column + " outside its column.");

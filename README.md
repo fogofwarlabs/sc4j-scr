@@ -45,18 +45,26 @@ Supported game build: StarCraft: Remastered 1.23.10.
 
 ## Game data
 
-The Gradle property `sc4j.data` names the StarCraft: Remastered folder (the one with `.build.info` and `x86_64/StarCraft.exe`). Set it in `%USERPROFILE%\.gradle\gradle.properties` (`sc4j.data=<folder>`, forward slashes), with `-Psc4j.data=<folder>`, or in CI with `ORG_GRADLE_PROJECT_sc4j.data`.
+The Gradle property `sc4j.data` names the StarCraft: Remastered folder: the one with `.build.info` and `x86_64/StarCraft.exe` (Windows) or `x86_64/StarCraft.app` (macOS). Set it in `gradle.properties` of the Gradle user home (`%USERPROFILE%\.gradle` on Windows, `~/.gradle` on Linux and macOS) as `sc4j.data=<folder>` with forward slashes, with `-Psc4j.data=<folder>`, or in CI with `ORG_GRADLE_PROJECT_sc4j.data`.
 
-`installMod` writes it as the shared game folder of an install that has none. The launcher finds the folder where Windows records the game, or asks for it in the mod's settings.
+StarCraft: Remastered has no Linux version. On Linux, use the folder of an install made with Wine, Proton or Lutris, or a copy of an install folder (build 1.23.10). SC4J reads the folder itself and does not need Wine to run.
+
+`installMod` writes it as the shared game folder of an install that has none. The launcher looks for the folder where the system usually has the game, or asks for it in the mod's settings.
 
 ## Build and run
 
-Needs JDK 25. Commands run from the repository root (`./gradlew` on Linux).
+Needs JDK 25. Commands run from the repository root. The commands below are for Windows; on Linux and macOS use `./gradlew` instead of `.\gradlew.bat` and `/` in paths.
 
 ```powershell
 git clone https://github.com/fogofwarlabs/sc4j-scr.git
 cd sc4j-scr
 .\gradlew.bat build
+```
+
+```sh
+git clone https://github.com/fogofwarlabs/sc4j-scr.git
+cd sc4j-scr
+./gradlew build
 ```
 
 The engine version is `sc4jVersion` in `gradle.properties`, taken from Maven Central. An engine checkout at `../sc4j` (or `-Psc4j.engine.dir=<folder>`) is used instead; `-Psc4j.engine.local=false` turns that off.

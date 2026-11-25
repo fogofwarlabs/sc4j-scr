@@ -9,10 +9,10 @@ import java.lang.foreign.ValueLayout;
 import java.util.Locale;
 
 /**
- * Reads absolute Windows host ticks (the engine host clock, {@link HostTickClock}) and the separate unit-phase timing diagnostic from the Windows
- * shared user data.
+ * Reads the Windows host clocks: the host uptime clock from the engine host clock ({@link HostTickClock}) and the elapsed tick difference against
+ * the tick count of the Windows shared user data.
  */
-public final class WindowsHostTiming {
+public final class WindowsHostTiming implements HostTiming {
     private static final @NotNull String OPERATING_SYSTEM_PROPERTY = "os.name";
     private static final @NotNull String ARCHITECTURE_PROPERTY = "os.arch";
     private static final @NotNull String WINDOWS_PREFIX = "Windows";
@@ -33,6 +33,15 @@ public final class WindowsHostTiming {
     private static final int TRANSITION_MINOR_VERSION = 2;
     private static final int TICK_MULTIPLIER_SHIFT = 24;
 
+    /**
+     * @return {@code true} if the host is Windows x64, {@code false} otherwise
+     */
+    public static boolean isSupported() {
+        String architecture = System.getProperty(ARCHITECTURE_PROPERTY).toLowerCase(Locale.ROOT);
+
+        return System.getProperty(OPERATING_SYSTEM_PROPERTY).startsWith(WINDOWS_PREFIX) &&
+               (architecture.equals(AMD64_ARCHITECTURE) || architecture.equals(X86_64_ARCHITECTURE));
+    }
 
     private final @NotNull MemorySegment sharedUserData;
     private final @NotNull HostTickClock clock;
@@ -45,10 +54,7 @@ public final class WindowsHostTiming {
      */
     @SuppressWarnings("restricted")
     public WindowsHostTiming() {
-        String architecture = System.getProperty(ARCHITECTURE_PROPERTY).toLowerCase(Locale.ROOT);
-
-        if (!System.getProperty(OPERATING_SYSTEM_PROPERTY).startsWith(WINDOWS_PREFIX) ||
-            !(architecture.equals(AMD64_ARCHITECTURE) || architecture.equals(X86_64_ARCHITECTURE))) {
+        if (!isSupported()) {
             throw Exceptions.newUnsupportedOperationException("The native shared-data timing layout requires Windows x64.");
         }
 
@@ -57,10 +63,13 @@ public final class WindowsHostTiming {
     }
 
     /**
-     * Converts shared ticks and subtracts them from the host uptime clock.
+     * Reads the elapsed tick difference that the unit phase compares with its host-timing diagnostic range: the host uptime clock minus the
+     * converted tick count of the shared user data, read just before it.
      *
-     * @return the wrapped 32-bit difference used by unsigned diagnostic comparisons
+     * @return the wrapped 32-bit difference of the host uptime clock and an earlier reading of the same clock
+     * @throws IllegalStateException if the {@code GetTickCount} call fails
      */
+    @Override
     public int readElapsedTicks() {
         int multiplier = this.sharedUserData.get(ValueLayout.JAVA_INT, TICK_MULTIPLIER_OFFSET);
         int majorVersion = this.sharedUserData.get(ValueLayout.JAVA_INT, MAJOR_VERSION_OFFSET);
@@ -75,11 +84,12 @@ public final class WindowsHostTiming {
     }
 
     /**
-     * Reads the system uptime clock used by host display scheduling.
+     * Reads the host uptime clock used by host display scheduling.
      *
      * @return the current {@code GetTickCount} DWORD, wrapping every {@code 49.7} days
      * @throws IllegalStateException if the {@code GetTickCount} call fails
      */
+    @Override
     public int readHostTicks() {
         return this.clock.readTicks();
     }

@@ -34,7 +34,7 @@ public final class MapInformation {
     /**
      * Creates a {@link MapInformation} instance from a map file's scenario.
      *
-     * @param file             the {@code .scm} or {@code .scx} file
+     * @param file             the map archive
      * @param mapCompatibility whether the relaxed {@code 1.16}-era map rules apply
      * @return the created {@link MapInformation} instance
      * @throws IOException if the archive cannot be read or the map list rejects the map
