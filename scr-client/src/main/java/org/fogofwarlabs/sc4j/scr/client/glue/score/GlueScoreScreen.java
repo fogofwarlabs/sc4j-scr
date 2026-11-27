@@ -584,7 +584,7 @@ public final class GlueScoreScreen extends GlueScreen {
         if (!row.getForceName().isEmpty()) {
             // Place the force name to the right of the race icon.
             float forceLeft = left + FORCE_NAME_OFFSET_X + icon.getWidth();
-            String forceName = this.score.isMapForceName(row.getForceName()) ? this.getContext().resolveMapText(row.getForceName())
+            String forceName = this.score.isMapForceName(row.getForceName()) ? this.getContext().presentMapText(row.getForceName())
                                                                              : row.getForceName();
 
             canvas.drawText(GlueCanvas.SMALL_FONT,

@@ -5,8 +5,12 @@ import org.fogofwarlabs.sc4j.engine.client.dialog.TextClipboard;
 import org.fogofwarlabs.sc4j.engine.client.host.HostWindow;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
-import org.fogofwarlabs.sc4j.scr.client.*;
+import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
+import org.fogofwarlabs.sc4j.scr.client.ClientContext;
+import org.fogofwarlabs.sc4j.scr.client.ClientPlayer;
+import org.fogofwarlabs.sc4j.scr.client.ReleaseStatus;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.client.glue.campaign.CampaignMissionNames;
 import org.fogofwarlabs.sc4j.scr.client.glue.lobby.RoomFilter;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialogLayer;
@@ -373,20 +377,20 @@ public final class GlueContext {
     }
 
     /**
-     * @return the translation of other players' chat texts and of map texts
+     * @return how the client shows map texts and the texts of other players
      */
-    public @NotNull TextTranslation getTextTranslation() {
-        return this.client.getTextTranslation();
+    public @NotNull ScrTextPresenter getTextPresenter() {
+        return this.client.getTextPresenter();
     }
 
     /**
-     * Returns the text a map text shows in the text language ({@link TextTranslation#resolveMapText}).
+     * Returns the text a map text shows ({@link ScrTextPresenter#presentMapText}).
      *
      * @param text the map text
-     * @return the translation once it came, the text itself until then and while map-text translation is off
+     * @return the shown text
      */
-    public @NotNull String resolveMapText(@NotNull String text) {
-        return this.getTextTranslation().resolveMapText(text, this.getTextLocale());
+    public @NotNull String presentMapText(@NotNull String text) {
+        return this.getTextPresenter().presentMapText(text, this.getTextLocale());
     }
 
     /**

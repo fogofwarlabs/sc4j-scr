@@ -207,8 +207,8 @@ public final class MapInformationPanel {
     }
 
     /**
-     * Draws the selected map preview, heading, description and summary rows in the browser panel. The scenario name and description show
-     * in the text language ({@link GlueContext#resolveMapText}).
+     * Draws the selected map preview, heading, description and summary rows in the browser panel. The scenario name and description are
+     * map texts ({@link GlueContext#presentMapText}).
      *
      * @param canvas  the glue canvas (its palette gives the color codes of the heading)
      * @param context the glue context, which gives the {@code gluAll} strings
@@ -240,7 +240,7 @@ public final class MapInformationPanel {
             heading = heading.length() > PLAYER_COUNT_PREFIX_LENGTH ? heading.substring(PLAYER_COUNT_PREFIX_LENGTH) : "";
         }
 
-        heading = context.resolveMapText(heading);
+        heading = context.presentMapText(heading);
 
         int headingLines = canvas.measure(BROWSER_HEADING, StatText.stripColors(heading)) > innerWidth ? BROWSER_HEADING_LINES : 1;
 
@@ -263,7 +263,7 @@ public final class MapInformationPanel {
             description = description.substring(lineEnd + 1).replaceFirst("^\r?\n", "");
         }
 
-        description = context.resolveMapText(description);
+        description = context.presentMapText(description);
 
         List<String[]> rows = new ArrayList<>();
 

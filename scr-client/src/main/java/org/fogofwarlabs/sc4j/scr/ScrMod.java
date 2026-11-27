@@ -4,8 +4,9 @@ import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.engine.mod.*;
 import org.fogofwarlabs.sc4j.engine.mod.identity.ModIdentity;
 import org.fogofwarlabs.sc4j.scr.client.Main;
-import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrClientExtensionUtils;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.core.LcgRandom;
 import org.fogofwarlabs.sc4j.scr.data.format.casc.BuildInfo;
 import org.fogofwarlabs.sc4j.scr.data.format.casc.GameLocaleUtils;
@@ -36,9 +37,8 @@ import java.util.List;
  * The client runs with the mod's storage folder as its root, so its in-game options ({@code sc4j-settings.json}), maps
  * (the only folder the map list shows), replays, desync dumps ({@code desyncs}), saved games, single player IDs ({@code characters}) and
  * caches live in {@code <install>/userdata/mods/scr/}, while the log is the runtime's. The installation's build version is added to the
- * mod identity. The text language is the setting {@value #LOCALE_SETTING} when the installation has it, English otherwise. The setting
- * {@value #TRANSLATE_CHAT_SETTING} shows other players' chat and the setting {@value #TRANSLATE_MAP_TEXT_SETTING} the texts of the map
- * translated into the text language by the run's translator ({@link ModContext#getTranslator}).
+ * mod identity. The text language is the setting {@value #LOCALE_SETTING} when the installation has it, English otherwise. The client shows
+ * map texts and the texts of other players as the client extensions of the mod's jar choose ({@link ScrClientExtensionUtils}).
  */
 public final class ScrMod implements Mod {
     /**
@@ -50,16 +50,6 @@ public final class ScrMod implements Mod {
      * The setting naming the text language, such as {@code koKR}.
      */
     public static final @NotNull String LOCALE_SETTING = "locale";
-
-    /**
-     * The setting that turns the translation of other players' chat on.
-     */
-    public static final @NotNull String TRANSLATE_CHAT_SETTING = "translateChat";
-
-    /**
-     * The setting that turns the translation of the map's texts on.
-     */
-    public static final @NotNull String TRANSLATE_MAP_TEXT_SETTING = "translateMapText";
 
     /**
      * The only StarCraft: Remastered build the mod runs with.
@@ -78,7 +68,7 @@ public final class ScrMod implements Mod {
         private final @NotNull Path clientRoot;
         private final @NotNull List<@NotNull String> clientArguments;
         private final @NotNull ScrResourceProvider resources;
-        private final @NotNull TextTranslation textTranslation;
+        private final @NotNull ScrTextPresenter textPresenter;
 
         /**
          * Creates a {@link ClientApplication} instance.
@@ -86,14 +76,14 @@ public final class ScrMod implements Mod {
          * @param clientRoot      the client root, the mod's storage folder
          * @param clientArguments the client launch options derived from the settings, before the run's own options
          * @param resources       the registered resource provider, which the client reads
-         * @param textTranslation the translation of other players' chat texts and of map texts
+         * @param textPresenter   how the client shows map texts and the texts of other players
          */
         private ClientApplication(@NotNull Path clientRoot, @NotNull List<@NotNull String> clientArguments, @NotNull ScrResourceProvider resources,
-                                  @NotNull TextTranslation textTranslation) {
+                                  @NotNull ScrTextPresenter textPresenter) {
             this.clientRoot      = clientRoot;
             this.clientArguments = List.copyOf(clientArguments);
             this.resources       = resources;
-            this.textTranslation = textTranslation;
+            this.textPresenter   = textPresenter;
         }
 
         /**
@@ -126,7 +116,7 @@ public final class ScrMod implements Mod {
             }
 
             try {
-                Main.launch(InstallLayout.of(this.clientRoot), this.resources, launch.getBeaconLink(), this.textTranslation,
+                Main.launch(InstallLayout.of(this.clientRoot), this.resources, launch.getBeaconLink(), this.textPresenter,
                             describeBuild(launch.getIdentity()), arguments.toArray(String[]::new));
             } catch (IOException exception) {
                 throw Exceptions.newUncheckedIOException(exception);
@@ -207,9 +197,8 @@ public final class ScrMod implements Mod {
      * @param registration receives the mod's registrations
      * @throws ModException if the mod cannot register what it needs
      * @implSpec Adds the installation's build version to the identity, registers the installation's resource provider (it opens the storage
-     * on the first load), the client application with the run's translator for the texts that {@value #TRANSLATE_CHAT_SETTING} and
-     * {@value #TRANSLATE_MAP_TEXT_SETTING} turn on, the SC:R simulation, the native replay format and the native save format of each
-     * {@link SaveGameKind}.
+     * on the first load), the client application with the text presenter of the mod's client extensions, the SC:R simulation, the native
+     * replay format and the native save format of each {@link SaveGameKind}.
      */
     @Override
     public void register(@NotNull ModRegistration registration) throws ModException {
@@ -226,8 +215,7 @@ public final class ScrMod implements Mod {
         String requestedLocale = settings.hasValue(LOCALE_SETTING) ? settings.getChoice(LOCALE_SETTING) : GameLocaleUtils.FALLBACK;
         String locale = GameLocaleUtils.selectInstalled(requestedLocale, game);
         List<String> clientArguments = new ArrayList<>(List.of(DATA_OPTION, game.toString(), LOCALE_OPTION, locale));
-        TextTranslation textTranslation = new TextTranslation(initialized.getTranslator(), settings.getBoolean(TRANSLATE_CHAT_SETTING),
-                                                              settings.getBoolean(TRANSLATE_MAP_TEXT_SETTING));
+        ScrTextPresenter textPresenter = ScrClientExtensionUtils.createTextPresenter(initialized);
 
         if (!locale.equals(requestedLocale)) {
             initialized.getLogger().info("SC:R LOCALE: {0} is not installed in {1}; using {2}.", requestedLocale, game, locale);
@@ -239,7 +227,7 @@ public final class ScrMod implements Mod {
 
         registration.addIdentityData(build.getBytes(StandardCharsets.UTF_8));
         registration.registerResourceProvider(provider);
-        registration.registerApplication(new ClientApplication(initialized.getStorage().getRoot(), clientArguments, provider, textTranslation));
+        registration.registerApplication(new ClientApplication(initialized.getStorage().getRoot(), clientArguments, provider, textPresenter));
         Game.register(registration.getSimulation());
         registration.registerReplayFormat(identity -> new ScrReplayFormat());
 

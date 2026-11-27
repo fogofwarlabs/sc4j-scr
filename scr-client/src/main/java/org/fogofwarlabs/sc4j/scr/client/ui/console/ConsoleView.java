@@ -12,8 +12,10 @@ import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteFrame;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.ChatPrompt;
-import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.client.cursor.GameCursor;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrMessageAreaPresenter;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrMessageSubstitute;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.ui.PictureTextureCache;
 import org.fogofwarlabs.sc4j.scr.client.ui.PlayerColorUtils;
@@ -888,8 +890,8 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
     private @Nullable DialogLayout chatLayout;
     private @Nullable ConsoleDialog textBox;
     private @Nullable MessageLines messageLines;
-    private @Nullable MessageLineTranslations lineTranslations;
-    private @NotNull TextTranslation textTranslation;
+    private @Nullable ScrMessageAreaPresenter messageArea;
+    private @NotNull ScrTextPresenter textPresenter;
     private @NotNull Locale textTarget;
     private boolean minimapBlinkPhase;
     private long transmissionEnd;
@@ -1095,8 +1097,8 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
         this.chatLayout            = null;
         this.textBox               = null;
         this.messageLines          = null;
-        this.lineTranslations      = null;
-        this.textTranslation       = TextTranslation.OFF;
+        this.messageArea           = null;
+        this.textPresenter         = ScrTextPresenter.UNCHANGED;
         this.textTarget            = Locale.ROOT;
         this.minimapBlinkPhase     = false;
         this.transmissionEnd       = 0L;
@@ -2660,7 +2662,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
         }
 
         if (this.leaderboard.isMapLabel()) {
-            label = this.textTranslation.resolveMapText(label, this.textTarget);
+            label = this.textPresenter.presentMapText(label, this.textTarget);
         }
 
         DialogLayout.Control value = dialog.getControl(Leaderboard.FIRST_VALUE);
@@ -4077,31 +4079,28 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
 
     /**
      * Supplies the game's message-line model with the local text layout ({@code font10} word wrap against the interface width minus
-     * {@code 20}) and draws its lines from now on, with the translations of other players' texts and of map texts in place of their bytes
-     * while chat or map-text translation is on ({@link MessageLineTranslations}). The leaderboard label of the map is drawn translated in
-     * the same language. The localized texts, host clock and subtitle option are session inputs that {@code ClientSession} installs before
-     * the first frame.
+     * {@code 20}) and draws its lines from now on, with what the presenter's message area shows in place of their bytes
+     * ({@link ScrTextPresenter#createMessageArea}). The leaderboard label of the map is a map text of the same presenter. The localized
+     * texts, host clock and subtitle option are session inputs that {@code ClientSession} installs before the first frame.
      *
-     * @param presentation      the presentation state of the game whose message lines are drawn
-     * @param translation       the translation of other players' chat texts and of map texts
-     * @param target            the language to translate into
-     * @param translatedSenders tells whether the chat texts of a sender slot are translated ({@link MessageLineTranslations})
+     * @param presentation    the presentation state of the game whose message lines are drawn
+     * @param presenter       how the client shows map texts and the texts of other players
+     * @param target          the text language of the client
+     * @param otherHumanTexts tells whether the chat texts of a sender slot are those of another human player
      */
-    public void installMessageLines(@NotNull ScrPresentation presentation, @NotNull TextTranslation translation, @NotNull Locale target,
-                                    @NotNull IntPredicate translatedSenders) {
+    public void installMessageLines(@NotNull ScrPresentation presentation, @NotNull ScrTextPresenter presenter, @NotNull Locale target,
+                                    @NotNull IntPredicate otherHumanTexts) {
         MessageLines lines = presentation.getInterfaceLink().getMessageLines();
         MessageLines.TextLayout layout = this.getMessageLayout();
-        MessageLineTranslations translations = translation.isChatEnabled() || translation.isMapTextEnabled()
-                                               ? new MessageLineTranslations(lines, layout, translation, target, translatedSenders)
-                                               : null;
+        ScrMessageAreaPresenter area = presenter.createMessageArea(lines, layout, target, otherHumanTexts);
 
         lines.setLayout(layout);
-        lines.setTextListener(translations);
+        lines.setTextListener(area);
 
-        this.messageLines     = lines;
-        this.lineTranslations = translations;
-        this.textTranslation  = translation;
-        this.textTarget       = target;
+        this.messageLines  = lines;
+        this.messageArea   = area;
+        this.textPresenter = presenter;
+        this.textTarget    = target;
     }
 
     /**
@@ -4109,7 +4108,7 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
      */
     private void drawMessages(@NotNull ConsoleLayout console) {
         MessageLines lines = this.messageLines;
-        MessageLineTranslations translations = this.lineTranslations;
+        ScrMessageAreaPresenter area = this.messageArea;
         InterfaceFont font = this.normalFont;
 
         if (lines == null) {
@@ -4132,8 +4131,8 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
                 continue;
             }
 
-            // Another player's text and a map text show their translation once it came, while the line keeps its bytes.
-            MessageLineTranslations.Substitute substitute = translations == null ? null : translations.findSubstitute(line, bytes, hostTime);
+            // The presenter's message area may show another text in place of the line's bytes, which the line keeps.
+            ScrMessageSubstitute substitute = area == null ? null : area.findSubstitute(line, bytes, hostTime);
             String text = substitute == null ? LegacyTextUtils.decode(bytes, 0, bytes.length) : substitute.getText();
 
             if (text.isEmpty()) {
@@ -4163,10 +4162,8 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
         byte[] status = lines.getLine(MessageLines.SYSTEM_LINE);
 
         if (status.length > 0) {
-            // A map text written into the system line shows its translation once it came, as the rotating lines do.
-            MessageLineTranslations.Substitute substitute = translations == null
-                                                            ? null
-                                                            : translations.findSubstitute(MessageLines.SYSTEM_LINE, status, hostTime);
+            // The system line may show another text too, as the rotating lines do.
+            ScrMessageSubstitute substitute = area == null ? null : area.findSubstitute(MessageLines.SYSTEM_LINE, status, hostTime);
 
             InterfaceText.draw(this.renderer, console,
                                font, substitute == null ? LegacyTextUtils.decode(status, 0, status.length) : substitute.getText(),

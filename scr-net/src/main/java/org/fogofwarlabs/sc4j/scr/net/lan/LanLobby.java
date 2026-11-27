@@ -1131,7 +1131,8 @@ public final class LanLobby implements GameLobby {
      * included:
      * <ol>
      * <li>the slot choice ({@link #chooseSlot});</li>
-     * <li>every record the player already holds becomes an open slot ({@link #TYPE_OPEN}) and gives up its saved slot; it
+     * <li>every record the player already holds becomes an open slot of its kind ({@link #TYPE_OPEN}, an observer slot
+     * {@link #TYPE_OBSERVER_OPEN}) and gives up its saved slot; it
      * keeps the player's id and name, its race and force;</li>
      * <li>a choice that is not an open player slot falls back to the first open observer slot that is not pending
      * ({@link #reserveObserverSlot}), so a player slot the player released takes the player again;</li>
@@ -1166,7 +1167,7 @@ public final class LanLobby implements GameLobby {
 
             if (record.getPlayerId() == playerIdentifier) {
                 records[heldIndex] = new MeleeGameSetup.PlayerRecord(playerIdentifier,
-                                                                     TYPE_OPEN, record.getRace(),
+                                                                     getOccupantType(TYPE_OPEN, heldIndex), record.getRace(),
                                                                      record.getTeam(),
                                                                      record.getName());
 
@@ -1443,6 +1444,17 @@ public final class LanLobby implements GameLobby {
         };
     }
 
+
+    /**
+     * Gives the type a slot takes when its player leaves it: an observer slot is an open observer slot ({@link #TYPE_OBSERVER_OPEN}), a
+     * player slot its template type.
+     *
+     * @param index the record index
+     * @return the type
+     */
+    private int getReleasedType(int index) {
+        return index >= PlayerTable.PLAYABLE_PLAYER_SLOTS ? TYPE_OBSERVER_OPEN : this.templateTypes[index] & BYTE_MASK;
+    }
 
     /**
      * Creates the slot change command {@code 0x3e}: slot, player id byte, type, race, force.
@@ -2933,7 +2945,7 @@ public final class LanLobby implements GameLobby {
         MeleeGameSetup.PlayerRecord previous = this.records[index];
         int type = previous.getType() == PlayerTypes.CLOSED || previous.getType() == PlayerTypes.EITHER_PREFER_COMPUTER
                    ? previous.getType()
-                   : this.templateTypes[index] & BYTE_MASK;
+                   : this.getReleasedType(index);
 
         this.records[index] = new MeleeGameSetup.PlayerRecord(-1, type, previous.getRace(), previous.getTeam(), "");
         // The departed player's slot gives up its saved slot.
@@ -3859,7 +3871,7 @@ public final class LanLobby implements GameLobby {
 
     /**
      * Moves a player's record to another slot: the target takes the record with its own race and force; the source
-     * returns to its template type keeping its race and force. Between a player slot and an observer slot the type
+     * returns to its released type ({@link #getReleasedType}) keeping its race and force. Between a player slot and an observer slot the type
      * follows the slot kind (human {@code 2} and observer {@code 9}). Both slots' changes {@code 0x3e} are queued.
      *
      * @param sourceIndex      the record index of the moving player
@@ -3881,7 +3893,7 @@ public final class LanLobby implements GameLobby {
                                                                          target.getTeam(),
                                                                          moving.getName());
         this.records[sourceIndex]      = new MeleeGameSetup.PlayerRecord(-1,
-                                                                         this.templateTypes[sourceIndex] & BYTE_MASK, moving.getRace(),
+                                                                         this.getReleasedType(sourceIndex), moving.getRace(),
                                                                          moving.getTeam(),
                                                                          "");
         this.playerSlots.update(this.records, RECORDS);

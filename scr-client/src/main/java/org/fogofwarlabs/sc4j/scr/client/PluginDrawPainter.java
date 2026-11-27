@@ -3,6 +3,7 @@ package org.fogofwarlabs.sc4j.scr.client;
 import org.fogofwarlabs.sc4j.engine.client.render.Canvas;
 import org.fogofwarlabs.sc4j.engine.client.render.Texture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.client.ui.PictureTextureCache;
 import org.fogofwarlabs.sc4j.scr.game.extension.ScrDrawList;
 import org.fogofwarlabs.sc4j.scr.game.presentation.LocalDisplay;
@@ -12,13 +13,15 @@ import org.fogofwarlabs.sc4j.scr.render.ui.InterfaceTransform;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
+
 /**
  * Draws the draw lists of the game's plugins ({@link ScrDrawList}) on a canvas in screen coordinates. Before the commands of a space, the client
  * sets the space's mapping ({@link #setSpace}): a space coordinate {@code v} is drawn at {@code origin + v * scale}, and line thicknesses, points
  * and texts are drawn at {@code unitScale} screen pixels per unit. Circles are drawn as polygons of about {@value #CIRCLE_SEGMENT_PIXELS} screen
  * pixels per side. Texts are drawn by the game's interface text ({@link InterfaceText#drawAligned}) in the game's interface fonts
- * ({@link InterfaceFonts}, the slot of the font's order) with the game's colour codes; without fonts no text is drawn. Pictures are uploaded once
- * per picture instance.
+ * ({@link InterfaceFonts}, the slot of the font's order) with the game's colour codes; without fonts no text is drawn. A text is drawn and
+ * measured as the text presenter shows a map text ({@link ScrTextPresenter#presentMapText}). Pictures are uploaded once per picture instance.
  * <p>
  * It also measures texts for the plugins ({@link LocalDisplay.TextMeasure}).
  */
@@ -120,6 +123,9 @@ final class PluginDrawPainter implements ScrDrawList.Painter, LocalDisplay.TextM
     private final @NotNull TextTransform textTransform;
     private final float @NotNull [] corners;
 
+    private @NotNull ScrTextPresenter textPresenter;
+    private @NotNull Locale textTarget;
+
     private float originX;
     private float originY;
     private float scale;
@@ -138,6 +144,9 @@ final class PluginDrawPainter implements ScrDrawList.Painter, LocalDisplay.TextM
         this.textTransform = new TextTransform();
         this.corners       = new float[CORNER_COUNT];
 
+        this.textPresenter = ScrTextPresenter.UNCHANGED;
+        this.textTarget    = Locale.ROOT;
+
         this.originX   = 0;
         this.originY   = 0;
         this.scale     = 1;
@@ -150,6 +159,17 @@ final class PluginDrawPainter implements ScrDrawList.Painter, LocalDisplay.TextM
      */
     boolean isFor(@NotNull Canvas canvas) {
         return this.canvas == canvas;
+    }
+
+    /**
+     * Sets how the texts are shown.
+     *
+     * @param presenter the text presenter
+     * @param target    the language of the shown texts
+     */
+    void setTextPresenter(@NotNull ScrTextPresenter presenter, @NotNull Locale target) {
+        this.textPresenter = presenter;
+        this.textTarget    = target;
     }
 
     /**
@@ -178,7 +198,13 @@ final class PluginDrawPainter implements ScrDrawList.Painter, LocalDisplay.TextM
     public float measureText(@NotNull String text, ScrDrawList.@NotNull Font font) {
         InterfaceFonts shownFonts = this.fonts;
 
-        return shownFonts == null ? 0 : InterfaceText.measureAligned(shownFonts.getFont(font.ordinal()), text, InterfaceText.LEFT);
+        if (shownFonts == null) {
+            return 0;
+        }
+
+        String shown = this.textPresenter.presentMapText(text, this.textTarget);
+
+        return InterfaceText.measureAligned(shownFonts.getFont(font.ordinal()), shown, InterfaceText.LEFT);
     }
 
     /**
@@ -332,8 +358,10 @@ final class PluginDrawPainter implements ScrDrawList.Painter, LocalDisplay.TextM
             case RIGHT -> InterfaceText.RIGHT;
         };
 
+        String shown = this.textPresenter.presentMapText(text, this.textTarget);
+
         this.textTransform.set(this.toScreenX(x), this.toScreenY(y), this.unitScale);
-        InterfaceText.drawAligned(this.canvas, this.textTransform, shownFonts.getFont(font.ordinal()), text, 0, 0, format, toCanvasColor(color),
+        InterfaceText.drawAligned(this.canvas, this.textTransform, shownFonts.getFont(font.ordinal()), shown, 0, 0, format, toCanvasColor(color),
                                   InterfaceText.GAME_CODE_COLORS);
     }
 

@@ -11,7 +11,7 @@ import org.fogofwarlabs.sc4j.engine.player.Player;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.engine.terrain.TerrainGrid;
-import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.content.ScrResources;
 import org.fogofwarlabs.sc4j.scr.core.GameSettings;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkUnit;
@@ -264,7 +264,7 @@ public final class ScrGameView implements GameView {
     private final @NotNull List<org.fogofwarlabs.sc4j.engine.entity.@NotNull Unit> unitList;
     private @Nullable ScrUnitView @NotNull [] unitViews;
 
-    private @NotNull TextTranslation textTranslation;
+    private @NotNull ScrTextPresenter textPresenter;
     private @NotNull Locale textTarget;
 
     /**
@@ -287,8 +287,8 @@ public final class ScrGameView implements GameView {
         this.unitList    = Collections.unmodifiableList(this.units);
         this.unitViews   = new ScrUnitView[0];
 
-        this.textTranslation = TextTranslation.OFF;
-        this.textTarget      = Locale.ROOT;
+        this.textPresenter = ScrTextPresenter.UNCHANGED;
+        this.textTarget    = Locale.ROOT;
 
         this.installedStatTextTable     = null;
         this.installedStatTextTableRead = false;
@@ -403,8 +403,8 @@ public final class ScrGameView implements GameView {
     }
 
     /**
-     * Returns the shown name of a unit type: the map's name for it, if the map renames it, in the text language once its translation came
-     * ({@link #setTextTranslation}).
+     * Returns the shown name of a unit type: the map's name for it, if the map renames it, as a map text of the view's text presenter
+     * ({@link #setTextPresenter}).
      *
      * @param unitType the units.dat type
      * @return the map's name as shown, or {@code null} if the map keeps the type's own name
@@ -412,25 +412,24 @@ public final class ScrGameView implements GameView {
     public @Nullable String getUnitDisplayName(int unitType) {
         String name = this.game.getUnitDisplayName(unitType);
 
-        return name == null ? null : this.resolveMapText(name);
+        return name == null ? null : this.presentMapText(name);
     }
 
     /**
-     * @return {@code true} if the view shows the map's texts in the text language ({@link #setTextTranslation}), {@code false} otherwise
+     * @return {@code true} if the view's text presenter changes map texts ({@link ScrTextPresenter#presentsMapTexts}), {@code false} otherwise
      */
-    public boolean isMapTextTranslated() {
-        return this.textTranslation.isMapTextEnabled();
+    public boolean presentsMapTexts() {
+        return this.textPresenter.presentsMapTexts();
     }
 
     /**
-     * Returns the text a map text shows: its translation into the text language once it came, the text itself until then and while
-     * map-text translation is off ({@link TextTranslation#resolveMapText}).
+     * Returns the text a map text shows ({@link ScrTextPresenter#presentMapText}).
      *
      * @param text the map text
      * @return the shown text
      */
-    public @NotNull String resolveMapText(@NotNull String text) {
-        return this.textTranslation.resolveMapText(text, this.textTarget);
+    public @NotNull String presentMapText(@NotNull String text) {
+        return this.textPresenter.presentMapText(text, this.textTarget);
     }
 
     /**
@@ -942,14 +941,14 @@ public final class ScrGameView implements GameView {
     }
 
     /**
-     * Sets the translation of the map's texts the view shows, such as the map's unit names.
+     * Sets how the view shows the map's texts, such as the map's unit names.
      *
-     * @param translation the translation of map texts
-     * @param target      the language to translate into
+     * @param presenter how the client shows map texts
+     * @param target    the text language of the client
      */
-    public void setTextTranslation(@NotNull TextTranslation translation, @NotNull Locale target) {
-        this.textTranslation = translation;
-        this.textTarget      = target;
+    public void setTextPresenter(@NotNull ScrTextPresenter presenter, @NotNull Locale target) {
+        this.textPresenter = presenter;
+        this.textTarget    = target;
     }
 
 

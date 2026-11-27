@@ -1211,7 +1211,7 @@ public final class GameLobbyScreen extends GlueScreen {
             if (options.isTopVsBottom()) {
                 title = text.get(team == TOP_TEAM ? "tvbTEAMONE" : "tvbTEAMTWO");
             } else if (options.isUseMapSettings()) {
-                String mapName = this.getContext().resolveMapText(lobby.getForceName(team - 1));
+                String mapName = this.getContext().presentMapText(lobby.getForceName(team - 1));
 
                 title = ForceNamesUtils.resolveForceName(this.getContext().getNetworkText()::get, false, mapName, team);
             } else {
@@ -1702,7 +1702,7 @@ public final class GameLobbyScreen extends GlueScreen {
                                       glueContext.getGluText().get("chatSECONDS"));
         }
 
-        String mapName = glueContext.resolveMapText(information.getName());
+        String mapName = glueContext.presentMapText(information.getName());
 
         MapInformationPanel.drawLobby(canvas,
                                       glueContext.getGluText(),

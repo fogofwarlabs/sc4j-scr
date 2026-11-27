@@ -421,7 +421,7 @@ final class LanLobbyInMemoryTest {
     /**
      * Creates a {@link LanLobby.Setup} instance with four Use Map Settings slots. The host occupies slot {@code 0} in force
      * {@code 1}; slot {@code 1} is open in force {@code 1} and slots {@code 2} and {@code 3} are open in force {@code 2}.
-     * The joiner takes slot {@code 2}, in the force with the most open slots.
+     * The joiner takes slot {@code 2}, in the force with the most open slots. Observer slots {@code 0x80} and {@code 0x81} are open.
      *
      * @return the created {@link LanLobby.Setup} instance
      */
@@ -438,9 +438,7 @@ final class LanLobbyInMemoryTest {
             records[slot] = new MeleeGameSetup.PlayerRecord(NO_PLAYER, PlayerTypes.NONE, 0, 0, "");
         }
 
-        for (int slot = PlayerTable.PLAYABLE_PLAYER_SLOTS; slot < LanLobby.RECORDS; slot++) {
-            records[slot] = new MeleeGameSetup.PlayerRecord(NO_PLAYER, PlayerTypes.CLOSED, 0, 0, "");
-        }
+        addObserverRecords(records);
 
         return new LanLobby.Setup(TILESET,
                                   MAP_SIZE, MAP_SIZE,
@@ -1136,6 +1134,25 @@ final class LanLobbyInMemoryTest {
 
         Assertions.assertEquals(JOINER_PLAYER, network.host.getRecord(SECOND_OPEN_SLOT).getPlayerId());
         Assertions.assertEquals(JOINER_PLAYER, network.requireJoinerLobby().getRecord(SECOND_OPEN_SLOT).getPlayerId());
+    }
+
+    @Test
+    void observer_moving_into_a_force_leaves_an_open_observer_slot() {
+        Network network = new Network(createForcesSetup());
+
+        network.requireJoinerLobby().requestObserver();
+        network.run(SETTLE_MILLISECONDS);
+
+        Assertions.assertEquals(FIRST_OBSERVER_RECORD, network.host.getPlayerSlot(JOINER_PLAYER));
+
+        network.requireJoinerLobby().requestForce(FIRST_FORCE);
+        network.run(SETTLE_MILLISECONDS);
+
+        for (LanLobby lobby : new LanLobby[]{network.host, network.requireJoinerLobby()}) {
+            Assertions.assertEquals(JOINER_SLOT, lobby.getPlayerSlot(JOINER_PLAYER));
+            Assertions.assertEquals(HUMAN_TYPE, lobby.getRecord(JOINER_SLOT).getType());
+            Assertions.assertEquals(OPEN_OBSERVER_TYPE, lobby.getRecord(FIRST_OBSERVER_RECORD).getType());
+        }
     }
 
     @Test

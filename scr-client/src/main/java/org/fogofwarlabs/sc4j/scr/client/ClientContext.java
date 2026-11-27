@@ -12,6 +12,7 @@ import org.fogofwarlabs.sc4j.scr.client.audio.Music;
 import org.fogofwarlabs.sc4j.scr.client.audio.SoundTable;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
 import org.fogofwarlabs.sc4j.scr.client.cursor.GameCursor;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialogLayer;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.SheetFrameRecords;
 import org.fogofwarlabs.sc4j.scr.client.ui.observer.ObserverProduction;
@@ -67,22 +68,22 @@ public final class ClientContext implements AutoCloseable {
     private static final @NotNull Logger LOGGER = Logger.of(ClientContext.class);
 
     /**
-     * Creates a {@link ClientContext} instance with the acquired client resources, the run's Beacon.Link, its text translation and its release
+     * Creates a {@link ClientContext} instance with the acquired client resources, the run's Beacon.Link, its text presenter and its release
      * status. The context closes the provider and the audio when it is closed or when the creation fails.
      *
-     * @param installLayout   the selected client directories
-     * @param resources       the resource provider of the StarCraft: Remastered installation
-     * @param locale          the text locale, for example {@code koKR}
-     * @param audio           the client audio, or {@code null} to play no sound
-     * @param beaconLink      the Beacon.Link sessions of the multiplayer screens
-     * @param textTranslation the translation of other players' chat texts and of map texts
-     * @param releaseStatus   the running SC4J version and how it stands against the latest SC4J release
+     * @param installLayout the selected client directories
+     * @param resources     the resource provider of the StarCraft: Remastered installation
+     * @param locale        the text locale, for example {@code koKR}
+     * @param audio         the client audio, or {@code null} to play no sound
+     * @param beaconLink    the Beacon.Link sessions of the multiplayer screens
+     * @param textPresenter how the client shows map texts and the texts of other players
+     * @param releaseStatus the running SC4J version and how it stands against the latest SC4J release
      * @return the created {@link ClientContext} instance
      * @throws IOException if the storage, the renderer or the fonts cannot be loaded
      */
     public static @NotNull ClientContext open(@NotNull InstallLayout installLayout, @NotNull ScrResourceProvider resources,
                                               @NotNull String locale, @Nullable ClientAudio audio,
-                                              @NotNull BeaconLinkAccess beaconLink, @NotNull TextTranslation textTranslation,
+                                              @NotNull BeaconLinkAccess beaconLink, @NotNull ScrTextPresenter textPresenter,
                                               @NotNull ReleaseStatus releaseStatus) throws IOException {
         CascStorage storage;
 
@@ -110,7 +111,7 @@ public final class ClientContext implements AutoCloseable {
             renderer.setTextFonts(gameFonts);
 
             return new ClientContext(installLayout, resources, storage, renderer, gameFonts, glueFonts, new GameCursor(storage, renderer), audio,
-                                     beaconLink, textTranslation, releaseStatus);
+                                     beaconLink, textPresenter, releaseStatus);
         } catch (IOException | RuntimeException exception) {
             if (glueFonts != null) {
                 glueFonts.close();
@@ -152,7 +153,7 @@ public final class ClientContext implements AutoCloseable {
 
     private final @Nullable ClientAudio audio;
     private final @NotNull BeaconLinkAccess beaconLink;
-    private final @NotNull TextTranslation textTranslation;
+    private final @NotNull ScrTextPresenter textPresenter;
     private final @NotNull ReleaseStatus releaseStatus;
     /**
      * The player of the run: the run's account, else the local ID chosen on the ID screen or a guest before one is chosen.
@@ -221,7 +222,7 @@ public final class ClientContext implements AutoCloseable {
      * @param cursor            the drawn cursor
      * @param audio             the client audio, or {@code null} without sound
      * @param beaconLink        the Beacon.Link sessions of the multiplayer screens
-     * @param textTranslation   the translation of other players' chat texts and of map texts
+     * @param textPresenter     how the client shows map texts and the texts of other players
      * @param releaseStatus     the running SC4J version and how it stands against the latest SC4J release
      */
     private ClientContext(@NotNull InstallLayout installLayout,
@@ -230,7 +231,7 @@ public final class ClientContext implements AutoCloseable {
                           @NotNull InterfaceFonts gameFonts, @NotNull InterfaceFonts glueFonts,
                           @NotNull GameCursor cursor,
                           @Nullable ClientAudio audio,
-                          @NotNull BeaconLinkAccess beaconLink, @NotNull TextTranslation textTranslation,
+                          @NotNull BeaconLinkAccess beaconLink, @NotNull ScrTextPresenter textPresenter,
                           @NotNull ReleaseStatus releaseStatus) {
         this.installLayout = installLayout;
 
@@ -248,13 +249,13 @@ public final class ClientContext implements AutoCloseable {
         this.dialogs           = new DialogStack<>();
         this.sheetFrameRecords = new SheetFrameRecords(storage);
 
-        this.audio           = audio;
-        this.beaconLink      = beaconLink;
-        this.textTranslation = textTranslation;
-        this.releaseStatus   = releaseStatus;
-        this.player          = ClientPlayer.of(beaconLink.getAccount());
-        this.music           = new Music(storage, audio);
-        this.musicRotation   = new MusicRotation();
+        this.audio         = audio;
+        this.beaconLink    = beaconLink;
+        this.textPresenter = textPresenter;
+        this.releaseStatus = releaseStatus;
+        this.player        = ClientPlayer.of(beaconLink.getAccount());
+        this.music         = new Music(storage, audio);
+        this.musicRotation = new MusicRotation();
 
         this.globalRandom = new LcgRandom(GLOBAL_RANDOM_SEED);
         this.globalRandom.setEnabled(GLOBAL_RANDOM_DISABLED);
@@ -281,10 +282,10 @@ public final class ClientContext implements AutoCloseable {
     }
 
     /**
-     * @return the translation of other players' chat texts and of map texts
+     * @return how the client shows map texts and the texts of other players
      */
-    public @NotNull TextTranslation getTextTranslation() {
-        return this.textTranslation;
+    public @NotNull ScrTextPresenter getTextPresenter() {
+        return this.textPresenter;
     }
 
     /**

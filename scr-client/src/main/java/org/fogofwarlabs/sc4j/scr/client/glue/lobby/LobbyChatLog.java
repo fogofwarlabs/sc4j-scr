@@ -10,7 +10,8 @@ import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChatEntry;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChatEntryKind;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
-import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrShownText;
+import org.fogofwarlabs.sc4j.scr.client.extension.ScrTextPresenter;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueContext;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueScreen;
@@ -40,8 +41,9 @@ import java.util.function.Consumer;
  * extends the selection, a double press selects a word, a press elsewhere ends it, and a copy ({@link #copy}) takes the selected text, one
  * message (sender and text) per line. The pointer maps to the rows as they were last drawn.
  * <p>
- * While chat translation is on, the lines and emotes other players say in a channel and the whispers they send show their text until its
- * translation comes, then the translation in its place, without a mark; the selection and the copy take the text as it shows.
+ * The lines and emotes other players say in a channel and the whispers they send show their text until the text presenter's shown text for
+ * it comes ({@link ScrTextPresenter#presentChat}), then that text in its place, without a mark; the selection and the copy take the text as
+ * it shows.
  */
 final class LobbyChatLog {
     /**
@@ -159,34 +161,34 @@ final class LobbyChatLog {
     }
 
     /**
-     * One paragraph of the log: the sender's prefix (empty for a line without a sender), the text as it shows, their colors and the answer
-     * for the text's translation until the translation is taken.
+     * One paragraph of the log: the sender's prefix (empty for a line without a sender), the text as it shows, their colors and the text
+     * presenter's shown text until it is taken.
      */
     private static final class Line {
         private final @NotNull String prefix;
         private @NotNull String text;
         private final int prefixColor;
         private final int textColor;
-        private TextTranslation.@Nullable Answer translation;
+        private @Nullable ScrShownText shown;
 
-        private Line(@NotNull String prefix, @NotNull String text, int prefixColor, int textColor, TextTranslation.@Nullable Answer translation) {
+        private Line(@NotNull String prefix, @NotNull String text, int prefixColor, int textColor, @Nullable ScrShownText shown) {
             this.prefix      = prefix;
             this.text        = text;
             this.prefixColor = prefixColor;
             this.textColor   = textColor;
-            this.translation = translation;
+            this.shown       = shown;
         }
 
         /**
-         * Takes the translation once it came: a translated text shows in place of the text from now on.
+         * Takes the shown text once it came: it shows in place of the text from now on.
          */
-        private void takeTranslation() {
-            TextTranslation.Answer answer = this.translation;
-            String translated = answer == null ? null : answer.findTranslatedText();
+        private void takeShownText() {
+            ScrShownText pending = this.shown;
+            String text = pending == null ? null : pending.findShownText();
 
-            if (translated != null) {
-                this.text        = translated;
-                this.translation = null;
+            if (text != null) {
+                this.text  = text;
+                this.shown = null;
             }
         }
 
@@ -567,8 +569,8 @@ final class LobbyChatLog {
     }
 
     /**
-     * Adds this log to the chat's logs with the chat translation, the text language and the account's player of the glue context
-     * ({@link #listen(ChannelChat, TextTranslation, Locale, LinkPlayer)}).
+     * Adds this log to the chat's logs with the text presenter, the text language and the account's player of the glue context
+     * ({@link #listen(ChannelChat, ScrTextPresenter, Locale, LinkPlayer)}).
      *
      * @param chat    the chat
      * @param context the glue context
@@ -576,31 +578,30 @@ final class LobbyChatLog {
     void listen(@NotNull ChannelChat chat, @NotNull GlueContext context) {
         LinkAccount account = context.getBeaconLink().getAccount();
 
-        this.listen(chat, context.getTextTranslation(), context.getTextLocale(), account == null ? null : account.getPlayer());
+        this.listen(chat, context.getTextPresenter(), context.getTextLocale(), account == null ? null : account.getPlayer());
     }
 
     /**
-     * Adds this log to the chat's logs: the chat's recent entries and then each new entry are added in their kind's colors. While chat
-     * translation is on, the text of another player's entry ({@link #isOtherPlayerText}) is translated, an emote without the name it starts
-     * with.
+     * Adds this log to the chat's logs: the chat's recent entries and then each new entry are added in their kind's colors. The text of
+     * another player's entry ({@link #isOtherPlayerText}) is shown as the presenter chooses, an emote's text with the name it starts with
+     * kept.
      *
-     * @param chat        the chat
-     * @param translation the translation of other players' chat texts
-     * @param target      the language to translate into
-     * @param self        the run's player, or {@code null} for a run without one
+     * @param chat      the chat
+     * @param presenter how the client shows the texts of other players
+     * @param target    the text language of the client
+     * @param self      the run's player, or {@code null} for a run without one
      */
-    void listen(@NotNull ChannelChat chat, @NotNull TextTranslation translation, @NotNull Locale target, @Nullable LinkPlayer self) {
+    void listen(@NotNull ChannelChat chat, @NotNull ScrTextPresenter presenter, @NotNull Locale target, @Nullable LinkPlayer self) {
         Consumer<ChatEntry> log = entry -> {
             String name = entry.getPlayerName();
             int nameLength = entry.getKind() == ChatEntryKind.EMOTE && name != null && entry.getText().startsWith(name) ? name.length() : 0;
-            TextTranslation.Answer translated = isOtherPlayerText(entry, self) ? translation.translateChat(entry.getText(), nameLength, target)
-                                                                               : null;
+            ScrShownText shown = isOtherPlayerText(entry, self) ? presenter.presentChat(entry.getText(), nameLength, target) : null;
 
             this.add(new Line(entry.getPrefix(),
                               entry.getText(),
                               ChannelChatScreen.getEntryColor(entry.getKind(), true),
                               ChannelChatScreen.getEntryColor(entry.getKind(), false),
-                              translated));
+                              shown));
         };
 
         this.listener = log;
@@ -644,7 +645,7 @@ final class LobbyChatLog {
         float logHeight = logBottom - logTop;
 
         for (Line line : this.lines) {
-            line.takeTranslation();
+            line.takeShownText();
         }
 
         // The paragraphs' heights at the full width, then with the scroll bar when they do not fit.

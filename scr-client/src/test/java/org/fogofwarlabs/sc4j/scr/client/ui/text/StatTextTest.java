@@ -1,8 +1,7 @@
 package org.fogofwarlabs.sc4j.scr.client.ui.text;
 
 import org.fogofwarlabs.sc4j.base.binary.LittleEndianUtils;
-import org.fogofwarlabs.sc4j.scr.client.RecordingTranslator;
-import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
+import org.fogofwarlabs.sc4j.scr.client.extension.RecordingTextPresenter;
 import org.fogofwarlabs.sc4j.scr.client.ui.input.HotkeyProfile;
 import org.fogofwarlabs.sc4j.scr.client.world.ScrGameView;
 import org.fogofwarlabs.sc4j.scr.core.LcgRandom;
@@ -13,7 +12,6 @@ import org.fogofwarlabs.sc4j.scr.game.state.GameContext;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
 import org.fogofwarlabs.sc4j.scr.game.terrain.GameMap;
 import org.fogofwarlabs.sc4j.scr.game.trigger.eud.region.ClassicStatTextRegion;
-import org.fogofwarlabs.sc4j.translate.TranslationRequest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -28,8 +26,8 @@ import java.util.Map;
 
 /**
  * Checks the {@code stat_txt} string tables: the product name substitution of a parsed table, the committed game-specific button strings and
- * hotkeys with their isolation from the next game, the strings a plugin overrides, unit names included, and the translation of the strings
- * a map changed.
+ * hotkeys with their isolation from the next game, the strings a plugin overrides, unit names included, and the strings a map changed as map
+ * texts of the text presenter.
  */
 final class StatTextTest {
     private static final int MOVE = 664;
@@ -144,7 +142,7 @@ final class StatTextTest {
 
     @RequiresInstallation
     @Test
-    void strings_a_map_changed_show_their_translation_with_the_button_prefix_kept() throws IOException {
+    void strings_a_map_changed_are_map_texts_with_the_button_prefix_kept() throws IOException {
         StatText text = StatTextScenario.createStatText(MOVE, identifier -> "");
         HotkeyProfile profile = new HotkeyProfile(text, HotkeyProfile.DEVICE, Map.of());
         String changed = "s\u0001\u0003생산 \u0004[S]";
@@ -163,46 +161,45 @@ final class StatTextTest {
 
             Game game = Game.create(data.createGameCopy(), new GameMap(1, 1, 0, new int[1]), new LcgRandom(0));
             ScrGameView view = new ScrGameView(game);
-            RecordingTranslator translator = new RecordingTranslator();
+            RecordingTextPresenter presenter = new RecordingTextPresenter();
 
             game.getGameContext().setStatTextTable(table);
 
             String move = text.getString(view, MOVE);
 
-            view.setTextTranslation(new TextTranslation(translator, false, true), TARGET);
+            view.setTextPresenter(presenter, TARGET);
 
-            Assertions.assertEquals(changed, text.getString(view, BUILD_SCV), "The map's string until its translation came.");
+            Assertions.assertEquals(changed, text.getString(view, BUILD_SCV), "The map's string until the presenter shows another text.");
             Assertions.assertEquals(move, text.getString(view, MOVE), "An unchanged string stays as it is.");
-            Assertions.assertEquals(List.of("\u0003생산 \u0004[S]"), translator.getRequests().stream().map(TranslationRequest::getText).toList(),
-                                    "The text after the hotkey and the type byte is asked for.");
+            Assertions.assertEquals(List.of("\u0003생산 \u0004[S]"), presenter.getMapTexts(), "The text after the hotkey and the type byte is a map text.");
 
-            translator.answer(0, "\u0003Train \u0004[S]");
+            presenter.showMapText("\u0003생산 \u0004[S]", "\u0003Train \u0004[S]");
 
             Assertions.assertEquals("s\u0001\u0003Train \u0004[S]", text.getString(view, BUILD_SCV));
             Assertions.assertEquals('s', profile.getHotkey(view, BUILD_SCV), "The hotkey stays.");
             Assertions.assertEquals(move, text.getString(view, MOVE));
-            Assertions.assertEquals(1, translator.getRequests().size());
+            Assertions.assertEquals(List.of("\u0003생산 \u0004[S]"), presenter.getMapTexts().stream().distinct().toList());
         }
     }
 
     @Test
-    void plugin_overrides_that_differ_from_the_installed_string_show_their_translation() throws IOException {
+    void plugin_overrides_that_differ_from_the_installed_string_are_map_texts() throws IOException {
         StatText text = StatTextScenario.createStatText(MOVE, identifier -> identifier == CUSTOM ? "Installed" : "");
         Game game = Game.create(null, new GameMap(1, 1, 0, new int[1]), new LcgRandom(0));
         ScrGameView view = new ScrGameView(game);
-        RecordingTranslator translator = new RecordingTranslator();
+        RecordingTextPresenter presenter = new RecordingTextPresenter();
 
-        view.setTextTranslation(new TextTranslation(translator, false, true), TARGET);
+        view.setTextPresenter(presenter, TARGET);
         game.getInterfaceLink().getStatTextOverrides().set(CUSTOM, "Installed");
 
         Assertions.assertEquals("Installed", text.getString(view, CUSTOM));
-        Assertions.assertEquals(List.of(), translator.getRequests(), "An override that equals the installed string is not asked for.");
+        Assertions.assertEquals(List.of(), presenter.getMapTexts(), "An override that equals the installed string is not a map text.");
 
         game.getInterfaceLink().getStatTextOverrides().set(CUSTOM, "Bouclier du roi");
 
         Assertions.assertEquals("Bouclier du roi", text.getString(view, CUSTOM));
 
-        translator.answer(0, "King's shield");
+        presenter.showMapText("Bouclier du roi", "King's shield");
 
         Assertions.assertEquals("King's shield", text.getString(view, CUSTOM));
     }

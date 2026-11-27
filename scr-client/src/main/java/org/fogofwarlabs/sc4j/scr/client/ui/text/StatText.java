@@ -179,20 +179,20 @@ public final class StatText {
     }
 
     /**
-     * Returns the text a string the map changed shows ({@link ScrGameView#resolveMapText}). Of a string whose second character is a control
-     * character, such as a button string with its hotkey and type byte, the first two characters stay as they are and the rest is
-     * translated.
+     * Returns the text a string the map changed shows ({@link ScrGameView#presentMapText}). Of a string whose second character is a control
+     * character, such as a button string with its hotkey and type byte, the first two characters stay as they are and the rest is a map
+     * text.
      *
      * @param view  the game view
      * @param value the string
      * @return the shown string
      */
-    private static @NotNull String resolveMapString(@NotNull ScrGameView view, @NotNull String value) {
+    private static @NotNull String presentMapString(@NotNull ScrGameView view, @NotNull String value) {
         if (value.length() < BUTTON_PREFIX_LENGTH || value.charAt(1) >= FIRST_PRINTABLE_CHARACTER) {
-            return view.resolveMapText(value);
+            return view.presentMapText(value);
         }
 
-        return value.substring(0, BUTTON_PREFIX_LENGTH) + view.resolveMapText(value.substring(BUTTON_PREFIX_LENGTH));
+        return value.substring(0, BUTTON_PREFIX_LENGTH) + view.presentMapText(value.substring(BUTTON_PREFIX_LENGTH));
     }
 
     private final @Nullable String locale;
@@ -236,10 +236,9 @@ public final class StatText {
      * installed string. {@link GameContext#getStatTextBytes} supplies the committed bytes, decoded through {@link LegacyTextUtils}.
      * A one-byte hotkey prefix is joined to text read at offset two with an intervening NUL character.
      * <p>
-     * While the view shows the map's texts in the text language ({@link ScrGameView#isMapTextTranslated}), a string the map changed shows its
-     * translation once it came: an override that differs from the installed string, or a committed string that differs from the installed
-     * table ({@link ScrGameView#isStatTextChanged}). The hotkey and the type byte of a button string, the color and control codes and the
-     * line breaks stay as they are.
+     * While the view's text presenter changes map texts ({@link ScrGameView#presentsMapTexts}), a string the map changed is a map text: an
+     * override that differs from the installed string, or a committed string that differs from the installed table
+     * ({@link ScrGameView#isStatTextChanged}). The hotkey and the type byte of a button string stay as they are.
      *
      * @param view       the game view whose overrides and committed table apply, or {@code null} outside a game
      * @param identifier the one-based string identifier
@@ -253,7 +252,7 @@ public final class StatText {
         String override = view.findStatTextOverride(identifier);
 
         if (override != null) {
-            return view.isMapTextTranslated() && !override.equals(this.getString(identifier)) ? resolveMapString(view, override) : override;
+            return view.presentsMapTexts() && !override.equals(this.getString(identifier)) ? presentMapString(view, override) : override;
         }
 
         byte[] head = view.getGameContext().getStatTextBytes(identifier, 0);
@@ -269,7 +268,7 @@ public final class StatText {
             value = value + '\0' + LegacyTextUtils.decode(text, 0, text.length);
         }
 
-        return view.isMapTextTranslated() && view.isStatTextChanged(identifier) ? resolveMapString(view, value) : value;
+        return view.presentsMapTexts() && view.isStatTextChanged(identifier) ? presentMapString(view, value) : value;
     }
 
 

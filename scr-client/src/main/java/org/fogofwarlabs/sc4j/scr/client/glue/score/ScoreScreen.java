@@ -688,7 +688,7 @@ public final class ScoreScreen {
 
     /**
      * @param forceName a force name of a row ({@link Row#getForceName})
-     * @return {@code true} if the force name is the map's name of its force, which shows in the text language, {@code false} otherwise
+     * @return {@code true} if the force name is the map's name of its force, a map text, {@code false} otherwise
      */
     public boolean isMapForceName(@NotNull String forceName) {
         return this.mapForceNames.contains(forceName);

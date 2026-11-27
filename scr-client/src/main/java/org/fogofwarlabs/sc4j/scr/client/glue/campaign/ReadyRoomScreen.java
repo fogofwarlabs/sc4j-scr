@@ -480,15 +480,15 @@ public final class ReadyRoomScreen extends GlueScreen {
             /**
              * Measures the text height used by scroll timing.
              * <p>
-             * The text wraps at the transmission text control's width. The text is measured as it shows: in the text language once its
-             * translation came.
+             * The text wraps at the transmission text control's width. The text is measured as it shows, as a map text of the text
+             * presenter.
              *
              * @param text the text shown
              * @return the wrapped text height in pixels, a signed WORD
              */
             @Override
             public int measureTextHeight(@NotNull String text) {
-                String shown = ReadyRoomScreen.this.getContext().resolveMapText(text);
+                String shown = ReadyRoomScreen.this.getContext().presentMapText(text);
                 int height = measureWrappedHeight(font, textControl, shown);
 
                 ReadyRoomScreen.this.measuredText   = shown;
@@ -609,7 +609,7 @@ public final class ReadyRoomScreen extends GlueScreen {
         String objectives = live ? session.getMissionObjectives() : null;
 
         requireBound(this.objectivesText).setVisible(objectives != null);
-        requireBound(this.objectivesText).setReplacedText(objectives == null ? null : this.getContext().resolveMapText(objectives));
+        requireBound(this.objectivesText).setReplacedText(objectives == null ? null : this.getContext().presentMapText(objectives));
 
         boolean skip = live && session.isSkipTutorialEnabled();
 
@@ -650,7 +650,7 @@ public final class ReadyRoomScreen extends GlueScreen {
                 return;
             }
 
-            String shown = this.getContext().resolveMapText(text);
+            String shown = this.getContext().presentMapText(text);
             int offset = this.findTransmissionScrollOffset(session, canvas.getFont(canvas.getControlFontSlot(control)), control, shown);
 
             canvas.setClip(left, top, control.getWidth(), control.getHeight());
@@ -670,8 +670,8 @@ public final class ReadyRoomScreen extends GlueScreen {
     }
 
     /**
-     * Returns the scroll of the drawn transmission text. A text drawn otherwise than the briefing measured it, such as a translation that
-     * came after the text was shown, scrolls the same share of its own scroll range.
+     * Returns the scroll of the drawn transmission text. A text drawn otherwise than the briefing measured it, such as a shown text that
+     * changed after the text was measured, scrolls the same share of its own scroll range.
      *
      * @param session the briefing
      * @param font    the font of the transmission text control
