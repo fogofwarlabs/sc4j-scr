@@ -7,6 +7,7 @@ import org.fogofwarlabs.sc4j.engine.client.host.HostWindow;
 import org.fogofwarlabs.sc4j.engine.client.host.WindowSettings;
 import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
 import org.fogofwarlabs.sc4j.scr.client.ClientContext;
+import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.client.audio.ClientAudio;
 import org.fogofwarlabs.sc4j.scr.client.audio.SoundSettings;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
@@ -133,7 +134,8 @@ final class GlueInterfaceTest {
                                                   layout.getRecentMapsFile());
 
             try (ClientContext client = ClientContext.open(layout, ScrResourceProvider.open(installationPath, ScrIscriptImporter::readLibrary), LOCALE,
-                                                           createSilentAudio(), BeaconLinkAccess.NONE, BeaconLinkGlueScenario.UNKNOWN_RELEASE);
+                                                           createSilentAudio(), BeaconLinkAccess.NONE, TextTranslation.OFF,
+                                                           BeaconLinkGlueScenario.UNKNOWN_RELEASE);
                  GlueInterface glue = GlueInterface.open(client, LOCALE, folders, openResume)) {
                 if (leaveResume != null) {
                     glue.enterGame();

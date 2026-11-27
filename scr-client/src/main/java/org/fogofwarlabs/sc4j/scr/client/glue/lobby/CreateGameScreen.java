@@ -732,7 +732,7 @@ public final class CreateGameScreen extends FileBrowserScreen {
         this.chat = opened;
 
         if (opened != null) {
-            this.chatLog.listen(opened);
+            this.chatLog.listen(opened, glueContext);
         }
 
         this.showBrowser(false);

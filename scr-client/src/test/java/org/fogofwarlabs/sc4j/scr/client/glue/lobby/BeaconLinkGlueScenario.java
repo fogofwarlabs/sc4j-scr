@@ -15,10 +15,7 @@ import org.fogofwarlabs.sc4j.engine.client.input.PointerButton;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.FoundRoom;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.CommunitySession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingBeaconLink;
-import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
-import org.fogofwarlabs.sc4j.scr.client.ClientContext;
-import org.fogofwarlabs.sc4j.scr.client.ReleaseState;
-import org.fogofwarlabs.sc4j.scr.client.ReleaseStatus;
+import org.fogofwarlabs.sc4j.scr.client.*;
 import org.fogofwarlabs.sc4j.scr.client.audio.ClientAudio;
 import org.fogofwarlabs.sc4j.scr.client.audio.SoundSettings;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
@@ -213,6 +210,7 @@ public final class BeaconLinkGlueScenario implements AutoCloseable {
                                                   locale,
                                                   new ClientAudio(new AudioMixer(new SilentAudioDevice(System::nanoTime)), new SoundSettings()),
                                                   new BeaconLinkAccess(this.beaconLink),
+                                                  TextTranslation.OFF,
                                                   releaseStatus);
 
         this.client = opened;

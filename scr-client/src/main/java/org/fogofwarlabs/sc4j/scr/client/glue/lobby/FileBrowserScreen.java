@@ -522,7 +522,7 @@ public abstract class FileBrowserScreen extends GlueScreen {
 
             if (map != null) {
                 MapInformationPanel.draw(canvas,
-                                         this.getContext().getGluText(),
+                                         this.getContext(),
                                          map,
                                          this.preview,
                                          left, top,

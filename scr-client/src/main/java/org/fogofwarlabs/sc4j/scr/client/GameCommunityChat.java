@@ -19,7 +19,7 @@ import java.util.function.Function;
  * Brings the Beacon.Link community into a network game's message area from the shared channel chat's log: a received whisper shows as the
  * install's {@code bnet_chat_whisperFromPrefix} with the sender's tagged name, a space and the text, a delivered whisper as
  * {@code bnet_chat_whisperToPrefix} with the target's tagged name, both in the whisper style through
- * {@link MessageLines#writeWhisper(String, String, byte[])}; a whisper to a player who is not online is answered with
+ * {@link MessageLines#writeWhisper(String, String, byte[], boolean)}; a whisper to a player who is not online is answered with
  * {@code bnet_chat_whisper_invalidUser}. The community commands typed in the chat box ({@link #isCommand}) run in the channel chat
  * ({@link ChannelChat#submit}); its answers and errors, such as the away notice after a whisper, go to the message area in the chat's order,
  * while channel lines and member notices stay in the channel screens. The chat hides blocked players' whispers.
@@ -130,7 +130,7 @@ public final class GameCommunityChat {
                 String format = entry.isSent() ? this.whisperTo : this.whisperFrom;
                 byte[] text = entry.getText().getBytes(StandardCharsets.UTF_8);
 
-                this.writes.add(lines -> lines.writeWhisper(format, name, text));
+                this.writes.add(lines -> lines.writeWhisper(format, name, text, !entry.isSent()));
             }
             case ERROR -> this.writes.add(lines -> lines.writeErrorMessage(this.invalidUser));
             default -> {

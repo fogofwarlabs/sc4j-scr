@@ -438,7 +438,7 @@ public final class RoomListScreen extends GlueScreen {
         this.chat = opened;
 
         if (opened != null) {
-            this.chatLog.listen(opened);
+            this.chatLog.listen(opened, glueContext);
         }
 
         this.updateJoin();

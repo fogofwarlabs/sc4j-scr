@@ -5,10 +5,7 @@ import org.fogofwarlabs.sc4j.engine.client.dialog.TextClipboard;
 import org.fogofwarlabs.sc4j.engine.client.host.HostWindow;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
-import org.fogofwarlabs.sc4j.scr.client.BeaconLinkAccess;
-import org.fogofwarlabs.sc4j.scr.client.ClientContext;
-import org.fogofwarlabs.sc4j.scr.client.ClientPlayer;
-import org.fogofwarlabs.sc4j.scr.client.ReleaseStatus;
+import org.fogofwarlabs.sc4j.scr.client.*;
 import org.fogofwarlabs.sc4j.scr.client.configuration.InstallLayout;
 import org.fogofwarlabs.sc4j.scr.client.glue.campaign.CampaignMissionNames;
 import org.fogofwarlabs.sc4j.scr.client.glue.lobby.RoomFilter;
@@ -16,6 +13,7 @@ import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ScrDialogLayer;
 import org.fogofwarlabs.sc4j.scr.client.ui.portrait.PortraitTables;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.GluText;
 import org.fogofwarlabs.sc4j.scr.core.LcgRandom;
+import org.fogofwarlabs.sc4j.scr.data.format.casc.GameLocaleUtils;
 import org.fogofwarlabs.sc4j.scr.game.presentation.InterfaceTimers;
 import org.fogofwarlabs.sc4j.scr.net.lan.LanClient;
 import org.fogofwarlabs.sc4j.scr.render.ui.InterfaceAssets;
@@ -31,11 +29,6 @@ import java.util.Locale;
  * Keeps the selected game, map and multiplayer session for the glue flow, and the run player's character file.
  */
 public final class GlueContext {
-    /**
-     * The length of a text locale's language part ({@code ko} of {@code koKR}).
-     */
-    private static final int LANGUAGE_LENGTH = 2;
-
     private final @NotNull ClientContext client;
 
     private final @NotNull GlueCanvas canvas;
@@ -197,11 +190,7 @@ public final class GlueContext {
      * @return the locale of the strings for the engine's texts: the language and country of the text locale, for example Korean in Korea for {@code koKR}; the root locale for a text locale without them
      */
     public @NotNull Locale getTextLocale() {
-        if (this.locale.length() <= LANGUAGE_LENGTH) {
-            return this.locale.isEmpty() ? Locale.ROOT : Locale.of(this.locale);
-        }
-
-        return Locale.of(this.locale.substring(0, LANGUAGE_LENGTH), this.locale.substring(LANGUAGE_LENGTH));
+        return GameLocaleUtils.toLocale(this.locale);
     }
 
     /**
@@ -381,6 +370,23 @@ public final class GlueContext {
      */
     public @NotNull ReleaseStatus getReleaseStatus() {
         return this.client.getReleaseStatus();
+    }
+
+    /**
+     * @return the translation of other players' chat texts and of map texts
+     */
+    public @NotNull TextTranslation getTextTranslation() {
+        return this.client.getTextTranslation();
+    }
+
+    /**
+     * Returns the text a map text shows in the text language ({@link TextTranslation#resolveMapText}).
+     *
+     * @param text the map text
+     * @return the translation once it came, the text itself until then and while map-text translation is off
+     */
+    public @NotNull String resolveMapText(@NotNull String text) {
+        return this.getTextTranslation().resolveMapText(text, this.getTextLocale());
     }
 
     /**

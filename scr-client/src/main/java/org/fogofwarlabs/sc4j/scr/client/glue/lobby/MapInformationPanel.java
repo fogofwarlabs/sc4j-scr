@@ -1,6 +1,7 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
+import org.fogofwarlabs.sc4j.scr.client.glue.GlueContext;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.WebPanelStyleUtils;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.GluText;
 import org.fogofwarlabs.sc4j.scr.client.ui.text.StatText;
@@ -206,10 +207,11 @@ public final class MapInformationPanel {
     }
 
     /**
-     * Draws the selected map preview, heading, description and summary rows in the browser panel.
+     * Draws the selected map preview, heading, description and summary rows in the browser panel. The scenario name and description show
+     * in the text language ({@link GlueContext#resolveMapText}).
      *
      * @param canvas  the glue canvas (its palette gives the color codes of the heading)
-     * @param strings the {@code gluAll} strings
+     * @param context the glue context, which gives the {@code gluAll} strings
      * @param map     the selected map's information
      * @param preview the preview image, or {@code null} when there is none
      * @param left    the control left
@@ -218,11 +220,12 @@ public final class MapInformationPanel {
      * @param height  the control height
      */
     public static void draw(@NotNull GlueCanvas canvas,
-                            @NotNull GluText strings,
+                            @NotNull GlueContext context,
                             @NotNull MapInformation map,
                             @Nullable Preview preview,
                             float left, float top,
                             float width, float height) {
+        GluText strings = context.getGluText();
         float innerLeft = left + BROWSER_PADDING;
         float innerWidth = width - SIDE_COUNT * BROWSER_PADDING;
         float y = top + BROWSER_PADDING_TOP;
@@ -236,6 +239,8 @@ public final class MapInformationPanel {
         if (heading.contains(playerPrefix)) {
             heading = heading.length() > PLAYER_COUNT_PREFIX_LENGTH ? heading.substring(PLAYER_COUNT_PREFIX_LENGTH) : "";
         }
+
+        heading = context.resolveMapText(heading);
 
         int headingLines = canvas.measure(BROWSER_HEADING, StatText.stripColors(heading)) > innerWidth ? BROWSER_HEADING_LINES : 1;
 
@@ -257,6 +262,8 @@ public final class MapInformationPanel {
             // The empty line after it goes too, CR LF or LF (a lone CR left over would draw as a blank first line).
             description = description.substring(lineEnd + 1).replaceFirst("^\r?\n", "");
         }
+
+        description = context.resolveMapText(description);
 
         List<String[]> rows = new ArrayList<>();
 

@@ -424,7 +424,7 @@ public final class ChannelChatScreen extends GlueScreen {
     private void enter(@NotNull ChannelChat opened) {
         this.chat = opened;
         opened.showAvailable();
-        this.chatLog.listen(opened);
+        this.chatLog.listen(opened, this.getContext());
     }
 
     /**

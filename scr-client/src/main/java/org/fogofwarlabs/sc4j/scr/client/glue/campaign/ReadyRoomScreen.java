@@ -66,6 +66,10 @@ public final class ReadyRoomScreen extends GlueScreen {
      */
     private static final int @NotNull [] SWISH = {5, 3, 6, 0, 7, 3, 9, 0, 10, 0, 11, 2, 12, 2};
     private static final int SWISH_DELAY_MILLISECONDS = 80;
+    /**
+     * The transmission text scrolls until its last half box of lines is in the box: the box height is divided by this to get that part.
+     */
+    private static final int SCROLL_END_BOX_DIVISOR = 2;
 
     /**
      * The ready room races: the dialog, palette, music and portrait frames of each.
@@ -229,6 +233,20 @@ public final class ReadyRoomScreen extends GlueScreen {
         return race == RACE_ZERG ? zerg : race == RACE_TERRAN ? terran : protoss;
     }
 
+    /**
+     * Measures the height of a text wrapped at the width of the transmission text control.
+     *
+     * @param font    the control's font
+     * @param control the transmission text control
+     * @param text    the text
+     * @return the wrapped text height in pixels
+     */
+    private static int measureWrappedHeight(@NotNull InterfaceFont font, @NotNull DialogControl control, @NotNull String text) {
+        List<String> lines = InterfaceText.wrap(font, text, control.getWidth());
+
+        return (int) InterfaceText.getLayoutHeight(font, lines, InterfaceText.LEFT | InterfaceText.TOP);
+    }
+
     private final int race;
     private final CampaignEpisodes.@Nullable Entry entry;
     private final @Nullable GlueGameRequest customGame;
@@ -239,6 +257,17 @@ public final class ReadyRoomScreen extends GlueScreen {
     private @Nullable String campaignDirectory;
     private boolean briefingStarted;
     private boolean stopped;
+
+    /**
+     * The transmission text as shown when the briefing measured it for its scroll, and its height.
+     */
+    private @Nullable String measuredText;
+    private int measuredHeight;
+    /**
+     * The transmission text as last drawn, and its height.
+     */
+    private @Nullable String drawnText;
+    private int drawnHeight;
 
     private final @Nullable PortraitPlayer @NotNull [] portraits;
     private final boolean @NotNull [] speaking;
@@ -289,6 +318,11 @@ public final class ReadyRoomScreen extends GlueScreen {
         this.campaignDirectory = null;
         this.briefingStarted   = false;
         this.stopped           = false;
+
+        this.measuredText   = null;
+        this.measuredHeight = 0;
+        this.drawnText      = null;
+        this.drawnHeight    = 0;
 
         this.portraits           = new PortraitPlayer[BriefingSession.SLOT_COUNT];
         this.speaking            = new boolean[BriefingSession.SLOT_COUNT];
@@ -446,16 +480,21 @@ public final class ReadyRoomScreen extends GlueScreen {
             /**
              * Measures the text height used by scroll timing.
              * <p>
-             * The text wraps at the transmission text control's width.
+             * The text wraps at the transmission text control's width. The text is measured as it shows: in the text language once its
+             * translation came.
              *
              * @param text the text shown
              * @return the wrapped text height in pixels, a signed WORD
              */
             @Override
             public int measureTextHeight(@NotNull String text) {
-                List<String> lines = InterfaceText.wrap(font, text, textControl.getWidth());
+                String shown = ReadyRoomScreen.this.getContext().resolveMapText(text);
+                int height = measureWrappedHeight(font, textControl, shown);
 
-                return (int) InterfaceText.getLayoutHeight(font, lines, InterfaceText.LEFT | InterfaceText.TOP);
+                ReadyRoomScreen.this.measuredText   = shown;
+                ReadyRoomScreen.this.measuredHeight = height;
+
+                return height;
             }
         };
     }
@@ -570,7 +609,7 @@ public final class ReadyRoomScreen extends GlueScreen {
         String objectives = live ? session.getMissionObjectives() : null;
 
         requireBound(this.objectivesText).setVisible(objectives != null);
-        requireBound(this.objectivesText).setReplacedText(objectives);
+        requireBound(this.objectivesText).setReplacedText(objectives == null ? null : this.getContext().resolveMapText(objectives));
 
         boolean skip = live && session.isSkipTutorialEnabled();
 
@@ -611,11 +650,12 @@ public final class ReadyRoomScreen extends GlueScreen {
                 return;
             }
 
-            int offset = session.getTransmissionScrollOffset();
+            String shown = this.getContext().resolveMapText(text);
+            int offset = this.findTransmissionScrollOffset(session, canvas.getFont(canvas.getControlFontSlot(control)), control, shown);
 
             canvas.setClip(left, top, control.getWidth(), control.getHeight());
             canvas.drawText(canvas.getControlFontSlot(control),
-                            text,
+                            shown,
                             left, top - offset,
                             control.getWidth(), control.getHeight() + offset,
                             GlueCanvas.FORMAT_LEFT | GlueCanvas.FORMAT_TOP,
@@ -627,6 +667,36 @@ public final class ReadyRoomScreen extends GlueScreen {
         }
 
         super.drawControl(canvas, control, left, top);
+    }
+
+    /**
+     * Returns the scroll of the drawn transmission text. A text drawn otherwise than the briefing measured it, such as a translation that
+     * came after the text was shown, scrolls the same share of its own scroll range.
+     *
+     * @param session the briefing
+     * @param font    the font of the transmission text control
+     * @param control the transmission text control
+     * @param shown   the drawn text
+     * @return the scroll offset in pixels
+     */
+    private int findTransmissionScrollOffset(@NotNull BriefingSession session, @NotNull InterfaceFont font, @NotNull DialogControl control,
+                                             @NotNull String shown) {
+        int offset = session.getTransmissionScrollOffset();
+
+        if (shown.equals(this.measuredText)) {
+            return offset;
+        }
+
+        if (!shown.equals(this.drawnText)) {
+            this.drawnText   = shown;
+            this.drawnHeight = measureWrappedHeight(font, control, shown);
+        }
+
+        int scrollEnd = control.getHeight() / SCROLL_END_BOX_DIVISOR;
+        int measuredRange = this.measuredHeight - scrollEnd;
+        int drawnRange = this.drawnHeight - scrollEnd;
+
+        return measuredRange > 0 && drawnRange > 0 ? (int) ((long) offset * drawnRange / measuredRange) : 0;
     }
 
     /**

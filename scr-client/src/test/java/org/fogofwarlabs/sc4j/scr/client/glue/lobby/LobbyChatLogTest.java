@@ -1,12 +1,18 @@
 package org.fogofwarlabs.sc4j.scr.client.glue.lobby;
 
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.ChatLineKind;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerPresence;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.PlayerStatus;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.RecordingCommunitySession;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
+import org.fogofwarlabs.sc4j.scr.client.RecordingTranslator;
+import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueScreen;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrControlType;
 import org.fogofwarlabs.sc4j.scr.data.resource.dialog.ScrDialogControlUtils;
+import org.fogofwarlabs.sc4j.translate.TranslationRequest;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +22,8 @@ import java.util.Set;
 
 /**
  * Checks the chat log's rectangle in a chat page after the page's style cascade, the log of a page with a text field down to the field, the
- * text field being the screens' framed one, and that a log stays the chat's log when the screen it replaced closes.
+ * text field being the screens' framed one, that a log stays the chat's log when the screen it replaced closes, and which entries it asks to
+ * translate.
  */
 final class LobbyChatLogTest {
     /**
@@ -51,6 +58,12 @@ final class LobbyChatLogTest {
     private static final float GLOBAL_PADDING_TOP = 2;
     private static final float FIELD_GAP = 4;
     private static final int SELF_KEY = 1;
+    private static final int ZERATUL_KEY = 2;
+
+    private static @NotNull PlayerPresence createPresence(int key, @NotNull String name) {
+        return RecordingCommunitySession.createPresence(key, name, BeaconLinkGlueScenario.MOD_ID, BeaconLinkGlueScenario.MOD_VERSION, true,
+                                                        PlayerStatus.AVAILABLE);
+    }
 
     @Test
     void get_bounds_should_span_the_page_width_without_padding() {
@@ -100,10 +113,10 @@ final class LobbyChatLogTest {
         LobbyChatLog next = LobbyChatLog.createChatPageLog(LobbyChatLog.Page.GLOBAL);
 
         chat.open();
-        left.listen(chat);
+        left.listen(chat, TextTranslation.OFF, Locale.ENGLISH, null);
 
         // The next screen opens and listens before the left screen closes.
-        next.listen(chat);
+        next.listen(chat, TextTranslation.OFF, Locale.ENGLISH, null);
         left.stopListening(chat);
 
         int leftLines = left.getLineCount();
@@ -118,5 +131,51 @@ final class LobbyChatLogTest {
         chat.submit("gone");
 
         Assertions.assertEquals(nextLines + 1, next.getLineCount());
+    }
+
+    @Test
+    void listen_should_ask_to_translate_only_the_lines_emotes_and_whispers_of_other_players() {
+        PlayerPresence self = createPresence(SELF_KEY, "Raynor");
+        PlayerPresence zeratul = createPresence(ZERATUL_KEY, "Zeratul");
+        RecordingCommunitySession community = new RecordingCommunitySession(self);
+        ChannelChat chat = new ChannelChat(community, Locale.ENGLISH, ChannelChat.SHARED_CHANNEL);
+        RecordingTranslator translator = new RecordingTranslator();
+        LobbyChatLog log = LobbyChatLog.createChatPageLog(LobbyChatLog.Page.CHANNEL);
+
+        community.setChannelSetup(channel -> channel.addMember(zeratul));
+        chat.open();
+        log.listen(chat, new TextTranslation(translator, true, false), Locale.KOREAN, self.getPlayer());
+
+        RecordingCommunitySession.Channel channel = community.findChannel(ChannelChat.findDefaultChannel(ChannelChat.SHARED_CHANNEL, List.of()));
+
+        Assertions.assertNotNull(channel);
+
+        chat.submit("hello");
+        channel.receiveLine(zeratul, ChatLineKind.SAY, "en taro adun");
+        channel.receiveLine(zeratul, ChatLineKind.EMOTE, "bows");
+        community.receiveWhisper(zeratul, "gg");
+
+        List<TranslationRequest> requests = translator.getRequests();
+
+        Assertions.assertEquals(List.of("en taro adun", zeratul.getTaggedName() + " bows", "gg"),
+                                requests.stream().map(TranslationRequest::getText).toList(), "The own line and the notices stay as they are.");
+        Assertions.assertEquals(Locale.KOREAN, requests.getFirst().getTarget());
+        Assertions.assertEquals(zeratul.getTaggedName().length(), requests.get(1).getProtectedSpans().getFirst().getEnd(),
+                                "An emote keeps the name it starts with.");
+    }
+
+    @Test
+    void listen_should_ask_for_nothing_while_chat_translation_is_off() {
+        PlayerPresence zeratul = createPresence(ZERATUL_KEY, "Zeratul");
+        RecordingCommunitySession community = new RecordingCommunitySession(createPresence(SELF_KEY, "Raynor"));
+        ChannelChat chat = new ChannelChat(community, Locale.ENGLISH, ChannelChat.SHARED_CHANNEL);
+        RecordingTranslator translator = new RecordingTranslator();
+        LobbyChatLog log = LobbyChatLog.createChatPageLog(LobbyChatLog.Page.CHANNEL);
+
+        chat.open();
+        log.listen(chat, new TextTranslation(translator, false, false), Locale.KOREAN, null);
+        community.receiveWhisper(zeratul, "gg");
+
+        Assertions.assertEquals(List.of(), translator.getRequests());
     }
 }

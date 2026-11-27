@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Stores end-of-game score rows, sort order and animated values for {@link GlueScoreScreen}.
@@ -503,6 +504,7 @@ public final class ScoreScreen {
     private final int race;
     private final long elapsedSeconds;
     private final int @NotNull [] actionsPerMinute;
+    private @NotNull Set<@NotNull String> mapForceNames;
 
     private @Nullable FillListener fillListener;
     private @Nullable Tab tab;
@@ -558,6 +560,7 @@ public final class ScoreScreen {
         this.race             = Math.clamp(race, 0, MAXIMUM_RACE);
         this.elapsedSeconds   = elapsedSeconds;
         this.actionsPerMinute = new int[MAXIMUM_ROWS];
+        this.mapForceNames    = Set.of();
 
         this.fillListener = null;
         this.tab          = null;
@@ -684,6 +687,14 @@ public final class ScoreScreen {
     }
 
     /**
+     * @param forceName a force name of a row ({@link Row#getForceName})
+     * @return {@code true} if the force name is the map's name of its force, which shows in the text language, {@code false} otherwise
+     */
+    public boolean isMapForceName(@NotNull String forceName) {
+        return this.mapForceNames.contains(forceName);
+    }
+
+    /**
      * @return {@code true} if the values are counting, {@code false} otherwise
      */
     public boolean isFilling() {
@@ -726,6 +737,15 @@ public final class ScoreScreen {
      */
     public void setActionsPerMinute(int @NotNull [] bySlot) {
         System.arraycopy(bySlot, 0, this.actionsPerMinute, 0, Math.min(bySlot.length, MAXIMUM_ROWS));
+    }
+
+    /**
+     * Sets the force names that are the map's names of their forces ({@link #isMapForceName}).
+     *
+     * @param mapForceNames the map's force names
+     */
+    public void setMapForceNames(@NotNull Set<@NotNull String> mapForceNames) {
+        this.mapForceNames = Set.copyOf(mapForceNames);
     }
 
     /**

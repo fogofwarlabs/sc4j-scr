@@ -127,6 +127,7 @@ public final class Leaderboard {
     private final @NotNull String @NotNull [] minerals;
     private final @NotNull String @NotNull [] gas;
     private @Nullable String label;
+    private boolean mapLabel;
     private boolean due;
 
     /**
@@ -140,6 +141,7 @@ public final class Leaderboard {
         this.minerals        = new String[ROWS];
         this.gas             = new String[ROWS];
         this.label           = null;
+        this.mapLabel        = false;
         this.due             = false;
 
         Arrays.fill(this.rowPlayers, NO_PLAYER);
@@ -192,6 +194,13 @@ public final class Leaderboard {
      */
     public @Nullable String getLabel() {
         return this.label;
+    }
+
+    /**
+     * @return {@code true} if the label is the map's string, {@code false} if it is the leaderboard type's default or hidden
+     */
+    public boolean isMapLabel() {
+        return this.mapLabel;
     }
 
     /**
@@ -249,8 +258,9 @@ public final class Leaderboard {
     }
 
     private void clear() {
-        this.mode  = Mode.NONE;
-        this.label = null;
+        this.mode     = Mode.NONE;
+        this.label    = null;
+        this.mapLabel = false;
 
         Arrays.fill(this.rowPlayers, NO_PLAYER);
     }
@@ -284,15 +294,17 @@ public final class Leaderboard {
             shown = text.getString(view, type + GOAL_LABEL_BASE);
         }
 
-        this.label = this.values[0].isEmpty() ? null : shown;
+        this.label    = this.values[0].isEmpty() ? null : shown;
+        this.mapLabel = this.label != null && mapLabel != null && !mapLabel.isEmpty();
     }
 
     /**
      * Updates minerals and gas for each shown row without a label.
      */
     private void showGreed(@NotNull ScrGameView view, @NotNull TriggerContext context) {
-        this.mode  = Mode.GREED;
-        this.label = null;
+        this.mode     = Mode.GREED;
+        this.label    = null;
+        this.mapLabel = false;
 
         for (int row = 0; row < ROWS; row++) {
             int player = context.getLeaderboardPlayerIndex(row);

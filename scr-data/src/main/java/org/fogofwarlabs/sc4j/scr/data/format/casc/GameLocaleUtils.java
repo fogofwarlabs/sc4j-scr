@@ -26,9 +26,28 @@ public final class GameLocaleUtils {
      */
     public static final @NotNull String FALLBACK = "enUS";
 
+    /**
+     * The length of a game locale's language part ({@code ko} of {@code koKR}).
+     */
+    private static final int LANGUAGE_LENGTH = 2;
+
     private static final @NotNull Logger LOGGER = Logger.of(GameLocaleUtils.class);
     private static final @NotNull Pattern TEXT_TAG = Pattern.compile("([a-zA-Z]{4}) text\\?");
     private static final @NotNull Pattern LOCALE_FILE = Pattern.compile("(?i)^locales/([a-z]{4})/assets/rez/stat_txt\\.json$");
+
+    /**
+     * Returns the language and country of a game locale, for example Korean in Korea for {@code koKR}.
+     *
+     * @param locale the game locale, such as {@code koKR}
+     * @return the locale of the language and country, or the root locale for an empty game locale
+     */
+    public static @NotNull Locale toLocale(@NotNull String locale) {
+        if (locale.length() <= LANGUAGE_LENGTH) {
+            return locale.isEmpty() ? Locale.ROOT : Locale.of(locale);
+        }
+
+        return Locale.of(locale.substring(0, LANGUAGE_LENGTH), locale.substring(LANGUAGE_LENGTH));
+    }
 
     /**
      * @param storage the installed storage

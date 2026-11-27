@@ -52,6 +52,10 @@ public final class StatText {
     public static final @NotNull TextSubstitutionHook PRODUCT_NAME_SUBSTITUTION = text -> NAME_SUBSTITUTION.substitute(REGISTERED_NAME_SUBSTITUTION.substitute(text));
 
     private static final int BUTTON_PREFIX_LENGTH = 2;
+    /**
+     * The first character that is not a control character.
+     */
+    private static final char FIRST_PRINTABLE_CHARACTER = ' ';
     private static final int UNICODE_ESCAPE_LENGTH = 6;
     private static final int UNICODE_DIGITS_OFFSET = 2;
     private static final int HEXADECIMAL_RADIX = 16;
@@ -174,6 +178,23 @@ public final class StatText {
         return end < 0 ? value : value.substring(0, end);
     }
 
+    /**
+     * Returns the text a string the map changed shows ({@link ScrGameView#resolveMapText}). Of a string whose second character is a control
+     * character, such as a button string with its hotkey and type byte, the first two characters stay as they are and the rest is
+     * translated.
+     *
+     * @param view  the game view
+     * @param value the string
+     * @return the shown string
+     */
+    private static @NotNull String resolveMapString(@NotNull ScrGameView view, @NotNull String value) {
+        if (value.length() < BUTTON_PREFIX_LENGTH || value.charAt(1) >= FIRST_PRINTABLE_CHARACTER) {
+            return view.resolveMapText(value);
+        }
+
+        return value.substring(0, BUTTON_PREFIX_LENGTH) + view.resolveMapText(value.substring(BUTTON_PREFIX_LENGTH));
+    }
+
     private final @Nullable String locale;
     private final @NotNull List<String> strings;
 
@@ -214,33 +235,41 @@ public final class StatText {
      * Reads a string a plugin of the game overrides ({@link ScrGameView#findStatTextOverride}), else from the game's committed table, else the
      * installed string. {@link GameContext#getStatTextBytes} supplies the committed bytes, decoded through {@link LegacyTextUtils}.
      * A one-byte hotkey prefix is joined to text read at offset two with an intervening NUL character.
+     * <p>
+     * While the view shows the map's texts in the text language ({@link ScrGameView#isMapTextTranslated}), a string the map changed shows its
+     * translation once it came: an override that differs from the installed string, or a committed string that differs from the installed
+     * table ({@link ScrGameView#isStatTextChanged}). The hotkey and the type byte of a button string, the color and control codes and the
+     * line breaks stay as they are.
      *
      * @param view       the game view whose overrides and committed table apply, or {@code null} outside a game
      * @param identifier the one-based string identifier
      * @return the string
      */
     public @NotNull String getString(@Nullable ScrGameView view, int identifier) {
-        String override = view == null ? null : view.findStatTextOverride(identifier);
-
-        if (override != null) {
-            return override;
+        if (view == null) {
+            return this.getString(identifier);
         }
 
-        byte[] head = view == null ? null : view.getGameContext().getStatTextBytes(identifier, 0);
+        String override = view.findStatTextOverride(identifier);
+
+        if (override != null) {
+            return view.isMapTextTranslated() && !override.equals(this.getString(identifier)) ? resolveMapString(view, override) : override;
+        }
+
+        byte[] head = view.getGameContext().getStatTextBytes(identifier, 0);
 
         if (head == null) {
             return this.getString(identifier);
         }
 
         String value = LegacyTextUtils.decode(head, 0, head.length);
+        byte[] text = head.length == 1 ? view.getGameContext().getStatTextBytes(identifier, BUTTON_PREFIX_LENGTH) : null;
 
-        if (head.length != 1) {
-            return value;
+        if (text != null) {
+            value = value + '\0' + LegacyTextUtils.decode(text, 0, text.length);
         }
 
-        byte[] text = view.getGameContext().getStatTextBytes(identifier, BUTTON_PREFIX_LENGTH);
-
-        return text == null ? value : value + '\0' + LegacyTextUtils.decode(text, 0, text.length);
+        return view.isMapTextTranslated() && view.isStatTextChanged(identifier) ? resolveMapString(view, value) : value;
     }
 
 

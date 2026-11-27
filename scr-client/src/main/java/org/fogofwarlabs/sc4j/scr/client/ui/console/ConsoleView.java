@@ -12,6 +12,7 @@ import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteFrame;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.scr.client.ChatPrompt;
+import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.client.cursor.GameCursor;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
 import org.fogofwarlabs.sc4j.scr.client.ui.PictureTextureCache;
@@ -71,6 +72,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 
 /**
  * Draws console and replay panes from the console model, game state and installed interface assets.
@@ -886,6 +888,9 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
     private @Nullable DialogLayout chatLayout;
     private @Nullable ConsoleDialog textBox;
     private @Nullable MessageLines messageLines;
+    private @Nullable MessageLineTranslations lineTranslations;
+    private @NotNull TextTranslation textTranslation;
+    private @NotNull Locale textTarget;
     private boolean minimapBlinkPhase;
     private long transmissionEnd;
     private boolean transmissionStart;
@@ -1090,6 +1095,9 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
         this.chatLayout            = null;
         this.textBox               = null;
         this.messageLines          = null;
+        this.lineTranslations      = null;
+        this.textTranslation       = TextTranslation.OFF;
+        this.textTarget            = Locale.ROOT;
         this.minimapBlinkPhase     = false;
         this.transmissionEnd       = 0L;
         this.transmissionStart     = false;
@@ -2651,6 +2659,10 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
             return;
         }
 
+        if (this.leaderboard.isMapLabel()) {
+            label = this.textTranslation.resolveMapText(label, this.textTarget);
+        }
+
         DialogLayout.Control value = dialog.getControl(Leaderboard.FIRST_VALUE);
         DialogLayout.Control title = dialog.getControl(Leaderboard.LABEL);
         int valueRight = value.getX() + value.getWidth() - 1;
@@ -4065,18 +4077,31 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
 
     /**
      * Supplies the game's message-line model with the local text layout ({@code font10} word wrap against the interface width minus
-     * {@code 20}) and draws its lines from now on. The localized texts, host clock and subtitle option are session inputs that
-     * {@code ClientSession} installs before the first frame.
+     * {@code 20}) and draws its lines from now on, with the translations of other players' texts and of map texts in place of their bytes
+     * while chat or map-text translation is on ({@link MessageLineTranslations}). The leaderboard label of the map is drawn translated in
+     * the same language. The localized texts, host clock and subtitle option are session inputs that {@code ClientSession} installs before
+     * the first frame.
      *
-     * @param presentation the presentation state of the game whose message lines are drawn
+     * @param presentation      the presentation state of the game whose message lines are drawn
+     * @param translation       the translation of other players' chat texts and of map texts
+     * @param target            the language to translate into
+     * @param translatedSenders tells whether the chat texts of a sender slot are translated ({@link MessageLineTranslations})
      */
-    public void installMessageLines(@NotNull ScrPresentation presentation) {
+    public void installMessageLines(@NotNull ScrPresentation presentation, @NotNull TextTranslation translation, @NotNull Locale target,
+                                    @NotNull IntPredicate translatedSenders) {
         MessageLines lines = presentation.getInterfaceLink().getMessageLines();
         MessageLines.TextLayout layout = this.getMessageLayout();
+        MessageLineTranslations translations = translation.isChatEnabled() || translation.isMapTextEnabled()
+                                               ? new MessageLineTranslations(lines, layout, translation, target, translatedSenders)
+                                               : null;
 
         lines.setLayout(layout);
+        lines.setTextListener(translations);
 
-        this.messageLines = lines;
+        this.messageLines     = lines;
+        this.lineTranslations = translations;
+        this.textTranslation  = translation;
+        this.textTarget       = target;
     }
 
     /**
@@ -4084,13 +4109,16 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
      */
     private void drawMessages(@NotNull ConsoleLayout console) {
         MessageLines lines = this.messageLines;
+        MessageLineTranslations translations = this.lineTranslations;
         InterfaceFont font = this.normalFont;
 
         if (lines == null) {
             return;
         }
 
-        lines.expire(MessageAreaUtils.createHostClock().getAsInt());
+        int hostTime = MessageAreaUtils.createHostClock().getAsInt();
+
+        lines.expire(hostTime);
 
         float width = console.getInterfaceWidth();
         int next = lines.getNextLine();
@@ -4104,16 +4132,26 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
                 continue;
             }
 
+            // Another player's text and a map text show their translation once it came, while the line keeps its bytes.
+            MessageLineTranslations.Substitute substitute = translations == null ? null : translations.findSubstitute(line, bytes, hostTime);
+            String text = substitute == null ? LegacyTextUtils.decode(bytes, 0, bytes.length) : substitute.getText();
+
+            if (text.isEmpty()) {
+                continue;
+            }
+
             // A row is one wrapped piece, drawn left aligned in its clip x 10 .. W - 10; its inline codes 0x12 / 0x13 align
             // the rest of the row against W - 10 (InterfaceText.computeAlignmentShifts).
             float y = MessageAreaUtils.FIRST_ROW + MessageAreaUtils.ROW_STEP * row;
+            int lineColor = substitute == null ? lines.getColor(line) : substitute.getColor();
+            int style = substitute == null ? lines.getStyle(line) : substitute.getStyle();
             // A chat line starts in the sender's player color (its color struct), others in their style code.
-            int color = lines.getColor(line) != 0 ? lines.getColor(line) : InterfaceFont.getCodeColor(lines.getStyle(line));
+            int color = lineColor != 0 ? lineColor : InterfaceFont.getCodeColor(style);
 
             InterfaceText.drawColored(this.renderer,
                                       console,
                                       font,
-                                      LegacyTextUtils.decode(bytes, 0, bytes.length),
+                                      text,
                                       MessageAreaUtils.MARGIN, y,
                                       width - MESSAGE_WIDTH_MARGIN + 1, MessageAreaUtils.ROW_STEP,
                                       LTEXT_FORMAT,
@@ -4125,8 +4163,13 @@ public final class ConsoleView implements AutoCloseable, LocalDisplay.ConsoleRec
         byte[] status = lines.getLine(MessageLines.SYSTEM_LINE);
 
         if (status.length > 0) {
+            // A map text written into the system line shows its translation once it came, as the rotating lines do.
+            MessageLineTranslations.Substitute substitute = translations == null
+                                                            ? null
+                                                            : translations.findSubstitute(MessageLines.SYSTEM_LINE, status, hostTime);
+
             InterfaceText.draw(this.renderer, console,
-                               font, LegacyTextUtils.decode(status, 0, status.length),
+                               font, substitute == null ? LegacyTextUtils.decode(status, 0, status.length) : substitute.getText(),
                                0, MessageAreaUtils.STATUS_ROW, console.getInterfaceWidth(), MessageAreaUtils.ROW_STEP,
                                CTEXT_FORMAT,
                                MessageLines.STYLE_SYSTEM_LINE,

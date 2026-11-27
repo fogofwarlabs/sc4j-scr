@@ -577,7 +577,7 @@ public final class Main {
 
         String[] launchArguments = CommandLineArgumentsUtils.recover(arguments);
 
-        start(ClientOptions.parse(launchArguments), launchArguments, null, null, UNKNOWN_BUILD);
+        start(ClientOptions.parse(launchArguments), launchArguments, null, null, TextTranslation.OFF, UNKNOWN_BUILD);
     }
 
     /**
@@ -591,28 +591,31 @@ public final class Main {
      * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a bounded replay load fails
      */
     public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources, @NotNull String @NotNull [] arguments) throws IOException {
-        launch(layout, resources, null, UNKNOWN_BUILD, arguments);
+        launch(layout, resources, null, TextTranslation.OFF, UNKNOWN_BUILD, arguments);
     }
 
     /**
-     * Starts the client below a given root with the run's Beacon.Link, which the multiplayer menu offers next to LAN, and the run's build
-     * identity: as {@link #launch(InstallLayout, ScrResourceProvider, String[])}.
+     * Starts the client below a given root with the run's Beacon.Link, which the multiplayer menu offers next to LAN, the translation of other
+     * players' chat texts and of map texts and the run's build identity: as {@link #launch(InstallLayout, ScrResourceProvider, String[])}.
      *
-     * @param layout     the client root and its folders
-     * @param resources  the mod's resource provider, which the client context reads and closes
-     * @param beaconLink the run's Beacon.Link, or {@code null} if the run offers none
-     * @param build      the run's build identity, which the desync dumps of network games name
-     * @param arguments  the launch options; {@code --help} describes available options
+     * @param layout          the client root and its folders
+     * @param resources       the mod's resource provider, which the client context reads and closes
+     * @param beaconLink      the run's Beacon.Link, or {@code null} if the run offers none
+     * @param textTranslation the translation of other players' chat texts and of map texts
+     * @param build           the run's build identity, which the desync dumps of network games name
+     * @param arguments       the launch options; {@code --help} describes available options
      * @throws IOException if the data directory holds no data pack, the startup storage is missing or invalid, a screenshot cannot be written or a bounded replay load fails
      */
     public static void launch(@NotNull InstallLayout layout, @NotNull ScrResourceProvider resources,
-                              @Nullable BeaconLink beaconLink, @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
+                              @Nullable BeaconLink beaconLink, @NotNull TextTranslation textTranslation,
+                              @NotNull String build, @NotNull String @NotNull [] arguments) throws IOException {
         ConsoleOutputUtils.install();
-        start(ClientOptions.parse(arguments, layout), arguments, resources, beaconLink, build);
+        start(ClientOptions.parse(arguments, layout), arguments, resources, beaconLink, textTranslation, build);
     }
 
     private static void start(@NotNull ClientOptions options, @NotNull String @NotNull [] launchArguments,
-                              @Nullable ScrResourceProvider resources, @Nullable BeaconLink beaconLink, @NotNull String build) throws IOException {
+                              @Nullable ScrResourceProvider resources, @Nullable BeaconLink beaconLink, @NotNull TextTranslation textTranslation,
+                              @NotNull String build) throws IOException {
         options.getInstallLayout().applyProcessProperties();
         Logging.setLevel(options.getLogLevel());
         installTextProbe(options.getInstallLayout());
@@ -647,7 +650,7 @@ public final class Main {
             return;
         }
 
-        new Main(options, resources, beaconLink, build).run();
+        new Main(options, resources, beaconLink, textTranslation, build).run();
         LOGGER.info("CLIENT END");
     }
 
@@ -1022,6 +1025,10 @@ public final class Main {
      */
     private final @NotNull BeaconLinkAccess beaconLink;
     /**
+     * The translation of other players' chat texts in the message area and the channel chat, and of the map texts the client shows.
+     */
+    private final @NotNull TextTranslation textTranslation;
+    /**
      * The run's build identity, which the desync dumps of network games name.
      */
     private final @NotNull String build;
@@ -1256,18 +1263,20 @@ public final class Main {
      * @param resources the mod's resource provider, or {@code null} to open one from the game directory
      */
     Main(@NotNull ClientOptions options, @Nullable ScrResourceProvider resources) {
-        this(options, resources, null, UNKNOWN_BUILD);
+        this(options, resources, null, TextTranslation.OFF, UNKNOWN_BUILD);
     }
 
     /**
-     * Creates a {@link Main} instance with the run's Beacon.Link and build identity.
+     * Creates a {@link Main} instance with the run's Beacon.Link, its text translation and its build identity.
      *
-     * @param options    the configured launch and live client settings
-     * @param resources  the mod's resource provider, or {@code null} to open one from the game directory
-     * @param beaconLink the run's Beacon.Link, or {@code null} if the run offers none
-     * @param build      the run's build identity, which the desync dumps of network games name
+     * @param options         the configured launch and live client settings
+     * @param resources       the mod's resource provider, or {@code null} to open one from the game directory
+     * @param beaconLink      the run's Beacon.Link, or {@code null} if the run offers none
+     * @param textTranslation the translation of other players' chat texts and of map texts
+     * @param build           the run's build identity, which the desync dumps of network games name
      */
-    Main(@NotNull ClientOptions options, @Nullable ScrResourceProvider resources, @Nullable BeaconLink beaconLink, @NotNull String build) {
+    Main(@NotNull ClientOptions options, @Nullable ScrResourceProvider resources, @Nullable BeaconLink beaconLink,
+         @NotNull TextTranslation textTranslation, @NotNull String build) {
         this.clientHost = null;
 
         this.hostWindow = null;
@@ -1363,10 +1372,11 @@ public final class Main {
 
         this.seekSequenceEnded = false;
 
-        this.resources     = resources;
-        this.beaconLink    = new BeaconLinkAccess(beaconLink);
-        this.build         = build;
-        this.clientContext = null;
+        this.resources       = resources;
+        this.beaconLink      = new BeaconLinkAccess(beaconLink);
+        this.textTranslation = textTranslation;
+        this.build           = build;
+        this.clientContext   = null;
 
         this.consoleView = null;
 
@@ -1881,6 +1891,25 @@ public final class Main {
         }
 
         return forces;
+    }
+
+    /**
+     * Collects the scenario's force names, which the score screen shows in the text language.
+     *
+     * @return the scenario's nonempty force names
+     */
+    private @NotNull Set<@NotNull String> getMapForceNames() {
+        Set<String> names = new HashSet<>();
+
+        for (int force = 0; force < PlayerTable.FORCE_COUNT; force++) {
+            String name = this.requireSession().getForceName(force);
+
+            if (name != null && !name.isEmpty()) {
+                names.add(name);
+            }
+        }
+
+        return names;
     }
 
     /**
@@ -2890,7 +2919,7 @@ public final class Main {
 
             this.clientContext = ClientContext.open(this.options.getInstallLayout(), provider,
                                                     this.getTextLocale(), ClientAudio.open(this.options.getSoundSettings()),
-                                                    this.beaconLink,
+                                                    this.beaconLink, this.textTranslation,
                                                     ReleaseStatus.checkRunningVersion());
             this.clientContext.setWindow(this.hostWindow);
             // The localized text tables are client data, loaded once at the start (and again for another locale).
@@ -4487,8 +4516,18 @@ public final class Main {
             this.viewJumps.startAlert();
         }
 
+        Locale textTarget = GameLocaleUtils.toLocale(this.requireSession().getLocale());
+
+        state.setTextTranslation(this.textTranslation, textTarget);
+
         if (this.consoleView != null) {
-            this.consoleView.installMessageLines(this.consoleModel.getPresentation());
+            // Chat translation takes the texts of human players and of whispers from outside the game.
+            this.consoleView.installMessageLines(this.consoleModel.getPresentation(), this.textTranslation, textTarget,
+                                                 sender -> {
+                                                     Player player = state.getPlayerTable().getPlayer(sender);
+
+                                                     return player != null && player.getType() == PlayerTypes.HUMAN;
+                                                 });
         }
 
         if (this.requireSession().isLive()) {
@@ -7035,6 +7074,7 @@ public final class Main {
                                             seconds);
 
         score.setActionsPerMinute(this.computeScoreActionsPerMinute(seconds * MILLISECONDS_PER_SECOND));
+        score.setMapForceNames(this.getMapForceNames());
 
         score.setReplaySavingAllowed(!this.replayWriter.isCampaignGame() && !this.sessionClassicLimits);
         this.sessionClassicLimits = false;
@@ -7148,7 +7188,10 @@ public final class Main {
             ScrControl objectives = menu.getDialog().findControl(OBJECTIVES_TEXT_CONTROL);
 
             if (objectives != null) {
-                objectives.setReplacedText(StatText.stripColors(this.requireSession().getMapString(index)));
+                String text = this.textTranslation.resolveMapText(this.requireSession().getMapString(index),
+                                                                  GameLocaleUtils.toLocale(this.requireSession().getLocale()));
+
+                objectives.setReplacedText(StatText.stripColors(text));
             }
         }
 

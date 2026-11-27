@@ -373,7 +373,7 @@ final class MessageLinesTest {
 
         lines.setChatListener((line, style, color) -> written.add(new String(line, StandardCharsets.UTF_8)));
 
-        lines.writeWhisper("<To: %s>", "Zeratul#abcd12", "en taro".getBytes(StandardCharsets.UTF_8));
+        lines.writeWhisper("<To: %s>", "Zeratul#abcd12", "en taro".getBytes(StandardCharsets.UTF_8), false);
 
         Assertions.assertEquals("<To: Zeratul#abcd12> en taro", new String(lines.getLine(FIRST_LINE), StandardCharsets.UTF_8));
         Assertions.assertEquals(WHISPER_STYLE, lines.getStyle(FIRST_LINE));

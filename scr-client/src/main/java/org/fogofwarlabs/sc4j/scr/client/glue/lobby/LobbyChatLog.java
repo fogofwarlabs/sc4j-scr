@@ -4,11 +4,15 @@ import org.fogofwarlabs.sc4j.base.exception.Exceptions;
 import org.fogofwarlabs.sc4j.base.text.LogSelectionModel;
 import org.fogofwarlabs.sc4j.base.text.TextBoundaryUtils;
 import org.fogofwarlabs.sc4j.engine.client.dialog.TextClipboard;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.LinkAccount;
+import org.fogofwarlabs.sc4j.engine.net.beaconlink.LinkPlayer;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChannelChat;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChatEntry;
 import org.fogofwarlabs.sc4j.engine.net.beaconlink.community.chat.ChatEntryKind;
 import org.fogofwarlabs.sc4j.engine.resource.dialog.DialogControl;
+import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueCanvas;
+import org.fogofwarlabs.sc4j.scr.client.glue.GlueContext;
 import org.fogofwarlabs.sc4j.scr.client.glue.GlueScreen;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.ControlPainterUtils;
 import org.fogofwarlabs.sc4j.scr.client.ui.dialog.EditControl;
@@ -23,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -34,6 +39,9 @@ import java.util.function.Consumer;
  * The log is read-only but selectable ({@link LogSelectionModel}): a press and drag on its text selects across messages, Shift with a press
  * extends the selection, a double press selects a word, a press elsewhere ends it, and a copy ({@link #copy}) takes the selected text, one
  * message (sender and text) per line. The pointer maps to the rows as they were last drawn.
+ * <p>
+ * While chat translation is on, the lines and emotes other players say in a channel and the whispers they send show their text until its
+ * translation comes, then the translation in its place, without a mark; the selection and the copy take the text as it shows.
  */
 final class LobbyChatLog {
     /**
@@ -151,23 +159,39 @@ final class LobbyChatLog {
     }
 
     /**
-     * One paragraph of the log: the sender's prefix (empty for a line without a sender), the text and their colors.
+     * One paragraph of the log: the sender's prefix (empty for a line without a sender), the text as it shows, their colors and the answer
+     * for the text's translation until the translation is taken.
      */
     private static final class Line {
         private final @NotNull String prefix;
-        private final @NotNull String text;
+        private @NotNull String text;
         private final int prefixColor;
         private final int textColor;
+        private TextTranslation.@Nullable Answer translation;
 
-        private Line(@NotNull String prefix, @NotNull String text, int prefixColor, int textColor) {
+        private Line(@NotNull String prefix, @NotNull String text, int prefixColor, int textColor, TextTranslation.@Nullable Answer translation) {
             this.prefix      = prefix;
             this.text        = text;
             this.prefixColor = prefixColor;
             this.textColor   = textColor;
+            this.translation = translation;
         }
 
         /**
-         * @return the line as copied: the prefix and the text
+         * Takes the translation once it came: a translated text shows in place of the text from now on.
+         */
+        private void takeTranslation() {
+            TextTranslation.Answer answer = this.translation;
+            String translated = answer == null ? null : answer.findTranslatedText();
+
+            if (translated != null) {
+                this.text        = translated;
+                this.translation = null;
+            }
+        }
+
+        /**
+         * @return the line as copied: the prefix and the text as it shows
          */
         private @NotNull String getCopiedText() {
             return this.prefix + this.text;
@@ -406,6 +430,24 @@ final class LobbyChatLog {
     }
 
     /**
+     * Tests whether an entry shows the text of another player: a line or an emote another player said in a channel, or a whisper another
+     * player sent.
+     *
+     * @param entry the entry
+     * @param self  the run's player, or {@code null} for a run without one
+     * @return {@code true} if the entry shows another player's text, {@code false} otherwise
+     */
+    private static boolean isOtherPlayerText(@NotNull ChatEntry entry, @Nullable LinkPlayer self) {
+        LinkPlayer author = entry.getPlayer();
+
+        return switch (entry.getKind()) {
+            case SAY, EMOTE -> entry.getChannel() != null && author != null && !author.equals(self);
+            case WHISPER -> !entry.isSent();
+            case INFO, ERROR -> false;
+        };
+    }
+
+    /**
      * Returns a paragraph's height: its wrapped lines at the line box of its text.
      *
      * @param canvas the glue canvas
@@ -505,7 +547,11 @@ final class LobbyChatLog {
      * @param textColor   the packed {@code 0xRRGGBBAA} color of the text
      */
     void add(@NotNull String prefix, @NotNull String text, int prefixColor, int textColor) {
-        this.lines.add(new Line(prefix, text, prefixColor, textColor));
+        this.add(new Line(prefix, text, prefixColor, textColor, null));
+    }
+
+    private void add(@NotNull Line line) {
+        this.lines.add(line);
 
         while (this.lines.size() > this.history) {
             this.lines.removeFirst();
@@ -521,15 +567,41 @@ final class LobbyChatLog {
     }
 
     /**
-     * Adds this log to the chat's logs: the chat's recent entries and then each new entry are added in their kind's colors.
+     * Adds this log to the chat's logs with the chat translation, the text language and the account's player of the glue context
+     * ({@link #listen(ChannelChat, TextTranslation, Locale, LinkPlayer)}).
      *
-     * @param chat the chat
+     * @param chat    the chat
+     * @param context the glue context
      */
-    void listen(@NotNull ChannelChat chat) {
-        Consumer<ChatEntry> log = entry -> this.add(entry.getPrefix(),
-                                                    entry.getText(),
-                                                    ChannelChatScreen.getEntryColor(entry.getKind(), true),
-                                                    ChannelChatScreen.getEntryColor(entry.getKind(), false));
+    void listen(@NotNull ChannelChat chat, @NotNull GlueContext context) {
+        LinkAccount account = context.getBeaconLink().getAccount();
+
+        this.listen(chat, context.getTextTranslation(), context.getTextLocale(), account == null ? null : account.getPlayer());
+    }
+
+    /**
+     * Adds this log to the chat's logs: the chat's recent entries and then each new entry are added in their kind's colors. While chat
+     * translation is on, the text of another player's entry ({@link #isOtherPlayerText}) is translated, an emote without the name it starts
+     * with.
+     *
+     * @param chat        the chat
+     * @param translation the translation of other players' chat texts
+     * @param target      the language to translate into
+     * @param self        the run's player, or {@code null} for a run without one
+     */
+    void listen(@NotNull ChannelChat chat, @NotNull TextTranslation translation, @NotNull Locale target, @Nullable LinkPlayer self) {
+        Consumer<ChatEntry> log = entry -> {
+            String name = entry.getPlayerName();
+            int nameLength = entry.getKind() == ChatEntryKind.EMOTE && name != null && entry.getText().startsWith(name) ? name.length() : 0;
+            TextTranslation.Answer translated = isOtherPlayerText(entry, self) ? translation.translateChat(entry.getText(), nameLength, target)
+                                                                               : null;
+
+            this.add(new Line(entry.getPrefix(),
+                              entry.getText(),
+                              ChannelChatScreen.getEntryColor(entry.getKind(), true),
+                              ChannelChatScreen.getEntryColor(entry.getKind(), false),
+                              translated));
+        };
 
         this.listener = log;
         chat.addLog(log, true);
@@ -570,6 +642,10 @@ final class LobbyChatLog {
         float logLeft = bounds.getLeft();
         float logRight = bounds.getRight();
         float logHeight = logBottom - logTop;
+
+        for (Line line : this.lines) {
+            line.takeTranslation();
+        }
 
         // The paragraphs' heights at the full width, then with the scroll bar when they do not fit.
         float textWidth = logRight - logLeft;

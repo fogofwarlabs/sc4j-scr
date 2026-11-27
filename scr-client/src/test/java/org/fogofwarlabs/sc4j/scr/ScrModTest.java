@@ -12,12 +12,15 @@ import org.fogofwarlabs.sc4j.manifest.ModManifest;
 import org.fogofwarlabs.sc4j.manifest.ModManifestReader;
 import org.fogofwarlabs.sc4j.manifest.settings.ChoiceSetting;
 import org.fogofwarlabs.sc4j.manifest.settings.DirectorySetting;
+import org.fogofwarlabs.sc4j.manifest.settings.SettingDefinition;
+import org.fogofwarlabs.sc4j.manifest.settings.SettingType;
 import org.fogofwarlabs.sc4j.manifest.settings.value.SettingValues;
 import org.fogofwarlabs.sc4j.manifest.settings.value.SettingValuesException;
 import org.fogofwarlabs.sc4j.manifest.version.EngineVersion;
 import org.fogofwarlabs.sc4j.scr.core.LcgRandom;
 import org.fogofwarlabs.sc4j.scr.data.resource.ScrResourceProvider;
 import org.fogofwarlabs.sc4j.scr.game.save.SaveGameKind;
+import org.fogofwarlabs.sc4j.translate.Translator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
@@ -149,6 +152,11 @@ final class ScrModTest {
         }
 
         @Override
+        public @NotNull Translator getTranslator() {
+            return Translator.unavailable();
+        }
+
+        @Override
         public boolean hasValue(@NotNull String key) {
             return this.values.hasValue(key);
         }
@@ -195,10 +203,12 @@ final class ScrModTest {
     }
 
     @Test
-    void manifest_names_this_entry_and_declares_the_installation_and_locale_settings() throws IOException, ManifestException {
+    void manifest_names_this_entry_and_declares_the_installation_locale_and_translation_settings() throws IOException, ManifestException {
         ModManifest manifest = readManifest();
         DirectorySetting folder = (DirectorySetting) manifest.getSettings().findDefinition(ScrMod.GAME_FOLDER_SETTING);
         ChoiceSetting locale = (ChoiceSetting) manifest.getSettings().findDefinition(ScrMod.LOCALE_SETTING);
+        SettingDefinition translateChat = manifest.getSettings().findDefinition(ScrMod.TRANSLATE_CHAT_SETTING);
+        SettingDefinition translateMapText = manifest.getSettings().findDefinition(ScrMod.TRANSLATE_MAP_TEXT_SETTING);
 
         Assertions.assertEquals("scr", manifest.getId());
         Assertions.assertEquals(ScrMod.class.getName(), manifest.getEntry());
@@ -215,6 +225,12 @@ final class ScrModTest {
         Assertions.assertTrue(locale.isSystemDefault());
         Assertions.assertTrue(locale.getOptions().containsAll(List.of("enUS", "koKR", "deDE", "zhTW")), () -> locale.getOptions().toString());
         Assertions.assertEquals("koKR", locale.findOption(Locale.KOREA));
+        Assertions.assertNotNull(translateChat);
+        Assertions.assertEquals(SettingType.BOOLEAN, translateChat.getType());
+        Assertions.assertEquals(true, translateChat.getDefaultValue(), "Chat translation is on by default.");
+        Assertions.assertNotNull(translateMapText);
+        Assertions.assertEquals(SettingType.BOOLEAN, translateMapText.getType());
+        Assertions.assertEquals(true, translateMapText.getDefaultValue(), "Map-text translation is on by default.");
 
         for (String image : manifest.getImages().getEntries()) {
             try (InputStream input = ScrModTest.class.getClassLoader().getResourceAsStream(image)) {

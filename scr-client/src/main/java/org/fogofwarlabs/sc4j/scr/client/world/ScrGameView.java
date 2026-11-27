@@ -11,6 +11,7 @@ import org.fogofwarlabs.sc4j.engine.player.Player;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.Picture;
 import org.fogofwarlabs.sc4j.engine.resource.graphics.SpriteSheet;
 import org.fogofwarlabs.sc4j.engine.terrain.TerrainGrid;
+import org.fogofwarlabs.sc4j.scr.client.TextTranslation;
 import org.fogofwarlabs.sc4j.scr.content.ScrResources;
 import org.fogofwarlabs.sc4j.scr.core.GameSettings;
 import org.fogofwarlabs.sc4j.scr.data.format.chk.ChkUnit;
@@ -40,15 +41,14 @@ import org.fogofwarlabs.sc4j.scr.game.state.GameData;
 import org.fogofwarlabs.sc4j.scr.game.terrain.GameMap;
 import org.fogofwarlabs.sc4j.scr.game.terrain.TerrainContours;
 import org.fogofwarlabs.sc4j.scr.game.trigger.TriggerContext;
+import org.fogofwarlabs.sc4j.scr.game.trigger.eud.region.ClassicStatTextRegion;
 import org.fogofwarlabs.sc4j.scr.game.unit.*;
 import org.fogofwarlabs.sc4j.scr.game.visibility.LocalVision;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Shows a running SC:R game to the client: the SC:R {@link GameView}. The engine part reads the SC:R state the engine systems of the game expose
@@ -73,6 +73,10 @@ public final class ScrGameView implements GameView {
      */
     private static final int SHIELD_LAYER_COUNT = 1;
     private static final int NO_POOL_INDEX = 0;
+    /**
+     * The bytes of a {@code stat_txt} button string before its text: the hotkey and the type byte.
+     */
+    private static final int BUTTON_PREFIX_LENGTH = 2;
     private static final @NotNull List<@NotNull ResourceKind> RESOURCE_KINDS = List.of(ScrResources.MINERALS, ScrResources.GAS);
     /**
      * The player colours by display colour index ({@code tunit.pcx} row), packed {@code 0xRRGGBB}: red, blue, teal, purple, orange, brown,
@@ -260,8 +264,18 @@ public final class ScrGameView implements GameView {
     private final @NotNull List<org.fogofwarlabs.sc4j.engine.entity.@NotNull Unit> unitList;
     private @Nullable ScrUnitView @NotNull [] unitViews;
 
+    private @NotNull TextTranslation textTranslation;
+    private @NotNull Locale textTarget;
+
     /**
-     * Creates a {@link ScrGameView} instance without local player.
+     * The installed {@code stat_txt} table the committed table is compared with ({@link #isStatTextChanged}), once read; {@code null}
+     * before the first comparison and when it cannot be read.
+     */
+    private byte @Nullable [] installedStatTextTable;
+    private boolean installedStatTextTableRead;
+
+    /**
+     * Creates a {@link ScrGameView} instance without local player that shows the map's texts as they are.
      *
      * @param game the SC:R game
      */
@@ -272,6 +286,12 @@ public final class ScrGameView implements GameView {
         this.units       = new ArrayList<>();
         this.unitList    = Collections.unmodifiableList(this.units);
         this.unitViews   = new ScrUnitView[0];
+
+        this.textTranslation = TextTranslation.OFF;
+        this.textTarget      = Locale.ROOT;
+
+        this.installedStatTextTable     = null;
+        this.installedStatTextTableRead = false;
     }
 
     /**
@@ -383,13 +403,34 @@ public final class ScrGameView implements GameView {
     }
 
     /**
-     * Returns the shown name of a unit type: the map's name for it, if the map renames it.
+     * Returns the shown name of a unit type: the map's name for it, if the map renames it, in the text language once its translation came
+     * ({@link #setTextTranslation}).
      *
      * @param unitType the units.dat type
-     * @return the map's name, or {@code null} if the map keeps the type's own name
+     * @return the map's name as shown, or {@code null} if the map keeps the type's own name
      */
     public @Nullable String getUnitDisplayName(int unitType) {
-        return this.game.getUnitDisplayName(unitType);
+        String name = this.game.getUnitDisplayName(unitType);
+
+        return name == null ? null : this.resolveMapText(name);
+    }
+
+    /**
+     * @return {@code true} if the view shows the map's texts in the text language ({@link #setTextTranslation}), {@code false} otherwise
+     */
+    public boolean isMapTextTranslated() {
+        return this.textTranslation.isMapTextEnabled();
+    }
+
+    /**
+     * Returns the text a map text shows: its translation into the text language once it came, the text itself until then and while
+     * map-text translation is off ({@link TextTranslation#resolveMapText}).
+     *
+     * @param text the map text
+     * @return the shown text
+     */
+    public @NotNull String resolveMapText(@NotNull String text) {
+        return this.textTranslation.resolveMapText(text, this.textTarget);
     }
 
     /**
@@ -698,6 +739,53 @@ public final class ScrGameView implements GameView {
     }
 
     /**
+     * Tests whether the {@code stat_txt} table the game's EUD emulation committed ({@link GameContext#getStatTextTable}) holds other
+     * bytes for a string than the installed table it copies: the bytes from the string's start, and for a string whose type byte is
+     * {@code 0} also the text after it. The installed table is read on the first call.
+     *
+     * @param identifier the one-based string identifier
+     * @return {@code true} if a committed table changes the string, {@code false} otherwise and when the installed table cannot be read
+     */
+    public boolean isStatTextChanged(int identifier) {
+        GameContext context = this.game.getGameContext();
+        byte[] head = context.getStatTextBytes(identifier, 0);
+
+        if (head == null) {
+            return false;
+        }
+
+        if (!this.installedStatTextTableRead) {
+            this.installedStatTextTableRead = true;
+
+            GameData gameData = this.game.getGameData();
+
+            try {
+                this.installedStatTextTable = gameData == null ? null : gameData.readInstalledFile(ClassicStatTextRegion.FILE);
+            } catch (IOException exception) {
+                this.installedStatTextTable = null;
+            }
+        }
+
+        byte[] installed = this.installedStatTextTable;
+
+        if (installed == null) {
+            return false;
+        }
+
+        if (!Arrays.equals(head, GameContext.readStatTextBytes(installed, identifier, 0))) {
+            return true;
+        }
+
+        if (head.length != 1) {
+            return false;
+        }
+
+        byte[] text = context.getStatTextBytes(identifier, BUTTON_PREFIX_LENGTH);
+
+        return !Arrays.equals(text, GameContext.readStatTextBytes(installed, identifier, BUTTON_PREFIX_LENGTH));
+    }
+
+    /**
      * @return the local command card state the game plugins set: the plugin button states and the requested button set
      */
     public @NotNull ScrButtonStates getButtonStates() {
@@ -851,6 +939,17 @@ public final class ScrGameView implements GameView {
      */
     public void setLocalPlayerIndex(int localPlayer) {
         this.localPlayer = localPlayer;
+    }
+
+    /**
+     * Sets the translation of the map's texts the view shows, such as the map's unit names.
+     *
+     * @param translation the translation of map texts
+     * @param target      the language to translate into
+     */
+    public void setTextTranslation(@NotNull TextTranslation translation, @NotNull Locale target) {
+        this.textTranslation = translation;
+        this.textTarget      = target;
     }
 
 

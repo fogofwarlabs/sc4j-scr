@@ -62,6 +62,39 @@ public final class GameContext {
      */
     private static final int BYTE_MASK = 0xFF;
 
+    /**
+     * Reads the bytes of a string of a {@code stat_txt} table in the {@code rez\stat_txt.tbl} layout (the string count, the string
+     * offsets and the strings) from the string's start plus a skip up to the next {@code 0} byte, as {@link #getStatTextBytes} reads the
+     * committed table.
+     *
+     * @param table      the table bytes
+     * @param identifier the 1-based string identifier
+     * @param skip       the bytes to skip from the string's start
+     * @return the bytes, or {@code null} for an identifier outside the count
+     */
+    public static byte @Nullable [] readStatTextBytes(byte @NotNull [] table, int identifier, int skip) {
+        if (table.length < Short.BYTES) {
+            return null;
+        }
+
+        int count = LittleEndianUtils.readUnsigned16(table, 0);
+        int entry = identifier * Short.BYTES;
+
+        if (identifier < 1 || identifier > count || entry + 1 >= table.length) {
+            return null;
+        }
+
+        int start = LittleEndianUtils.readUnsigned16(table, entry) + skip;
+        int end = start;
+
+        while (end < table.length && table[end] != 0) {
+            end++;
+        }
+
+        return start >= table.length ? new byte[0] : Arrays.copyOfRange(table, start, end);
+    }
+
+
     private final @NotNull GameMap map;
 
     /**
@@ -413,25 +446,7 @@ public final class GameContext {
     public byte @Nullable [] getStatTextBytes(int identifier, int skip) {
         byte[] table = this.statTextTable;
 
-        if (table == null || table.length < Short.BYTES) {
-            return null;
-        }
-
-        int count = LittleEndianUtils.readUnsigned16(table, 0);
-        int entry = identifier * Short.BYTES;
-
-        if (identifier < 1 || identifier > count || entry + 1 >= table.length) {
-            return null;
-        }
-
-        int start = LittleEndianUtils.readUnsigned16(table, entry) + skip;
-        int end = start;
-
-        while (end < table.length && table[end] != 0) {
-            end++;
-        }
-
-        return start >= table.length ? new byte[0] : Arrays.copyOfRange(table, start, end);
+        return table == null ? null : readStatTextBytes(table, identifier, skip);
     }
 
     /**
