@@ -486,7 +486,7 @@ public final class RecordWriter implements Closeable {
      *
      * @throws IOException if an I/O error occurs
      * @implSpec Closes the owned output stream without fabricating an {@code END} chunk; the writer is marked closed and its
-     * frame stage inactive first.
+     *         frame stage inactive first.
      */
     @Override
     public void close() throws IOException {

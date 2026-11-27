@@ -162,13 +162,13 @@ public final class ScrRoomData {
      * result must be returned.
      *
      * @apiNote In general, the
-     * {@code toString} method returns a string that
-     * "textually represents" this object. The result should
-     * be a concise but informative representation that is easy for a
-     * person to read.
-     * It is recommended that all subclasses override this method.
-     * The string output is not necessarily stable over time or across
-     * JVM invocations.
+     *         {@code toString} method returns a string that
+     *         "textually represents" this object. The result should
+     *         be a concise but informative representation that is easy for a
+     *         person to read.
+     *         It is recommended that all subclasses override this method.
+     *         The string output is not necessarily stable over time or across
+     *         JVM invocations.
      * @implSpec Returns the type, subtype, speed and map size, for logs.
      */
     @Override

@@ -216,7 +216,7 @@ public final class LanTurnTransport implements LockstepTransport {
     /**
      * @return the turn rate of the session and of the network it runs on, {@link TurnRate#UNSPECIFIED} for a transport that names none
      * @implSpec The session's turns per second are the advertised game information's {@code net_turn_rate} ({@code 0} without one); the
-     * network's are the provider's caps ({@link ProviderSession#DEFAULT_TURNS_PER_SECOND}, {@link ProviderSession#DEFAULT_TURNS_IN_TRANSIT}).
+     *         network's are the provider's caps ({@link ProviderSession#DEFAULT_TURNS_PER_SECOND}, {@link ProviderSession#DEFAULT_TURNS_IN_TRANSIT}).
      */
     @Override
     public @NotNull TurnRate getTurnRate() {
@@ -230,9 +230,9 @@ public final class LanTurnTransport implements LockstepTransport {
     /**
      * @return the waiting state of the all-turns barrier (the awaited and overdue participants, the drop countdown), or {@code null} if the transport never drops one
      * @implSpec The awaited participants are the present players and observers whose turn the last waiting receive missed, each peer the
-     * network id; the wait counts from the last receive that took every turn, in milliseconds of the session's clock. The drop countdown
-     * is the nominal one ({@value #WAIT_COUNTDOWN_SECONDS} seconds after the overdue time); the dialog's seconds are those of its
-     * {@link WaitCountdown}, and only its Drop Players button drops ({@link #dropWaitingPeers()}). Read it on the thread that receives.
+     *         network id; the wait counts from the last receive that took every turn, in milliseconds of the session's clock. The drop countdown
+     *         is the nominal one ({@value #WAIT_COUNTDOWN_SECONDS} seconds after the overdue time); the dialog's seconds are those of its
+     *         {@link WaitCountdown}, and only its Drop Players button drops ({@link #dropWaitingPeers()}). Read it on the thread that receives.
      */
     @Override
     public @NotNull WaitingPeers getWaitingPeers() {
@@ -286,7 +286,7 @@ public final class LanTurnTransport implements LockstepTransport {
      *
      * @return the players' turns in execution order, each peer the sender's network id, or {@code null} while a player's turn is missing
      * @implSpec Runs the network pump first and starts the waiting countdown after {@value #WAIT_DELAY_MILLISECONDS} milliseconds without a turn.
-     * A receive that takes every turn reports the departures of the session's events since the last such receive ({@link #takeDepartures()}).
+     *         A receive that takes every turn reports the departures of the session's events since the last such receive ({@link #takeDepartures()}).
      */
     @Override
     public @Nullable List<@NotNull PeerTurn> receiveTurns() {
@@ -381,8 +381,8 @@ public final class LanTurnTransport implements LockstepTransport {
      *
      * @return the departures in the order of the receives, the participants' execution order within one receive; empty if there is none
      * @implSpec A departure is a player or observer that the session reported as left, {@link DepartureKind#DROPPED} with the drop reason
-     * {@link LanLobby#DROP_REASON} and {@link DepartureKind#LEFT} otherwise, with the session's departure reason. Within one receive the
-     * departures keep the order of the session's events.
+     *         {@link LanLobby#DROP_REASON} and {@link DepartureKind#LEFT} otherwise, with the session's departure reason. Within one receive the
+     *         departures keep the order of the session's events.
      */
     @Override
     public @NotNull List<@NotNull PeerDeparture> takeDepartures() {
@@ -401,7 +401,7 @@ public final class LanTurnTransport implements LockstepTransport {
      *
      * @param reason the departure reason, the session's own code
      * @implSpec Leaves through {@link ProviderSession#leave} and pumps pending work for {@value #LEAVE_PUMP_MILLISECONDS} milliseconds.
-     * A player that already left only ends the client's game state. An interrupted pump restores the interrupt flag.
+     *         A player that already left only ends the client's game state. An interrupted pump restores the interrupt flag.
      */
     @Override
     public void leave(int reason) {

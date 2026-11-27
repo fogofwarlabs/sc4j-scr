@@ -1808,9 +1808,9 @@ public final class LanLobby implements GameLobby {
     /**
      * @return the room's state at this machine
      * @implSpec A refusal of the host ({@link #getRefusal()}) is {@link LobbyState#REFUSED}; the game state ({@link #STATE_GAME}) is
-     * {@link LobbyState#STARTED}; a lobby the local player left ({@link #hasLeft()}), whose host left ({@link #hasHostLeft()}) or that timed
-     * out ({@link #isTimedOut()}) is {@link LobbyState#CLOSED}; from the start command's countdown on it is {@link LobbyState#STARTED}, in
-     * the lobby {@link LobbyState#OPEN}, and before it {@link LobbyState#JOINING}.
+     *         {@link LobbyState#STARTED}; a lobby the local player left ({@link #hasLeft()}), whose host left ({@link #hasHostLeft()}) or that timed
+     *         out ({@link #isTimedOut()}) is {@link LobbyState#CLOSED}; from the start command's countdown on it is {@link LobbyState#STARTED}, in
+     *         the lobby {@link LobbyState#OPEN}, and before it {@link LobbyState#JOINING}.
      */
     @Override
     public @NotNull LobbyState getLobbyState() {
@@ -1836,8 +1836,8 @@ public final class LanLobby implements GameLobby {
     /**
      * @return the room's members in the room's order, each with its slot index or {@link NetworkLobby#OBSERVER_SLOT}
      * @implSpec The records a player or an observer holds ({@link PlayerSlots#isPlayerRecord}), in record order: a player's slot index is
-     * its record index {@code 0..7}, an observer's {@link NetworkLobby#OBSERVER_SLOT}; the peer is the holder's network id
-     * ({@link NetworkPeerUtils#getPeer}).
+     *         its record index {@code 0..7}, an observer's {@link NetworkLobby#OBSERVER_SLOT}; the peer is the holder's network id
+     *         ({@link NetworkPeerUtils#getPeer}).
      */
     @Override
     public @NotNull List<@NotNull LobbyMember> getMembers() {

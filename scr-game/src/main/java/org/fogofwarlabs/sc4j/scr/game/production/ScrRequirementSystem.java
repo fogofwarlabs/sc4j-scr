@@ -612,9 +612,9 @@ public final class ScrRequirementSystem implements RequirementSystem {
      * @return the result; {@link RequirementResult#isMet()} if the player may do it
      * @throws IllegalArgumentException if the actor is not an SC:R unit
      * @implSpec Every SC:R test needs its actor, an SC:R unit, whose type the native tests read themselves. The action runs
-     * {@link #checkBuild}, {@link #checkUpgrade}, {@link #checkResearch}, {@link #checkTechnologyUse} or {@link #checkOrder} with
-     * the native entry of the type ({@link ScrNativeIds#toNative}) and the player slot index, and returns the shared
-     * {@link ScrRequirementResult} of its native result.
+     *         {@link #checkBuild}, {@link #checkUpgrade}, {@link #checkResearch}, {@link #checkTechnologyUse} or {@link #checkOrder} with
+     *         the native entry of the type ({@link ScrNativeIds#toNative}) and the player slot index, and returns the shared
+     *         {@link ScrRequirementResult} of its native result.
      */
     @Override
     public @NotNull RequirementResult check(@NotNull RequirementAction action, @NotNull ContentType type, @NotNull Player player,

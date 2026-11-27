@@ -197,8 +197,8 @@ public final class ScrMod implements Mod {
      * @param registration receives the mod's registrations
      * @throws ModException if the mod cannot register what it needs
      * @implSpec Adds the installation's build version to the identity, registers the installation's resource provider (it opens the storage
-     * on the first load), the client application with the text presenter of the mod's client extensions, the SC:R simulation, the native
-     * replay format and the native save format of each {@link SaveGameKind}.
+     *         on the first load), the client application with the text presenter of the mod's client extensions, the SC:R simulation, the native
+     *         replay format and the native save format of each {@link SaveGameKind}.
      */
     @Override
     public void register(@NotNull ModRegistration registration) throws ModException {
@@ -240,7 +240,7 @@ public final class ScrMod implements Mod {
      * Releases what {@link #initialize} opened, in reverse order.
      *
      * @implSpec The mod opens nothing in {@link #initialize}; the client application releases its own resources when it returns, and the
-     * resource provider (and its storage, if opened) is closed here.
+     *         resource provider (and its storage, if opened) is closed here.
      */
     @Override
     public void close() {

@@ -166,7 +166,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
          * Closes the link; it receives and sends nothing afterwards.
          *
          * @implSpec Ends the game's use of the network: removes the game's participants from the overlay, closes both ports and withdraws a hosted
-         * room.
+         *         room.
          */
         @Override
         public void close() {
@@ -362,8 +362,8 @@ public final class BeaconLinkProvider implements NetworkProvider {
      *
      * @return the games
      * @implSpec Lists the rooms of the last complete search by the SC:R mod's identity, without the session's own, at the host's address: the room
-     * name, the map name, the player counts and the room's {@link ScrRoomData} (game type, subtype, speed and map size; zero when a room
-     * carries none); the other attributes arrive with the join.
+     *         name, the map name, the player counts and the room's {@link ScrRoomData} (game type, subtype, speed and map size; zero when a room
+     *         carries none); the other attributes arrive with the join.
      */
     @Override
     public synchronized @NotNull List<LanDiscovery.Game> getGames() {
@@ -382,7 +382,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
      *
      * @return the rooms, empty for a network without rooms
      * @implSpec Returns the rooms of the last complete search by the SC:R mod's identity; each room's settings carry its {@link ScrRoomData} as the mod
-     * data, and {@link #getGames()} lists the joinable ones at the hosts' addresses ({@link #getAddress}).
+     *         data, and {@link #getGames()} lists the joinable ones at the hosts' addresses ({@link #getAddress}).
      */
     @Override
     public synchronized @NotNull List<@NotNull FoundRoom> getRooms() {
@@ -427,7 +427,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
      *
      * @param password the password, empty for none
      * @implSpec A room published from now on is private with the password (the room's advertisement says so; the password is never sent), and the
-     * next join proves the password to a private room's host.
+     *         next join proves the password to a private room's host.
      */
     @Override
     public synchronized void setPassword(@NotNull String password) {
@@ -491,8 +491,8 @@ public final class BeaconLinkProvider implements NetworkProvider {
      * @param record the game record
      * @param port   the game socket's local port ({@link GameProxySocket#getLocalPort()})
      * @implSpec Publishes the room of the game at the first call and updates it afterwards: the game name, the map name (both cut to
-     * {@value RoomSettings#MAXIMUM_NAME_LENGTH} UTF-8 bytes), the players, the open player slots and the {@link ScrRoomData} of the game as
-     * the room's mod data. The members receive the record with the next room message.
+     *         {@value RoomSettings#MAXIMUM_NAME_LENGTH} UTF-8 bytes), the players, the open player slots and the {@link ScrRoomData} of the game as
+     *         the room's mod data. The members receive the record with the next room message.
      */
     @Override
     public synchronized void setGame(@NotNull LanRecord record, int port) {
@@ -582,8 +582,8 @@ public final class BeaconLinkProvider implements NetworkProvider {
      *
      * @param game the game, as {@link #getGames()} listed it
      * @implSpec Joins the listed room whose host has the game's address: the host checks the engine version and the mod identity, a refusal ends the
-     * connection with {@link ProviderSession.JoinState#REJECTED}, every other failure of the channel with
-     * {@link ProviderSession.JoinState#TIMED_OUT}.
+     *         connection with {@link ProviderSession.JoinState#REJECTED}, every other failure of the channel with
+     *         {@link ProviderSession.JoinState#TIMED_OUT}.
      */
     @Override
     public synchronized void connect(LanDiscovery.@NotNull Game game) {
@@ -625,7 +625,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
      * Carries out the network's due work without waiting.
      *
      * @implSpec Polls the session; without a game it searches the rooms once a second, a host takes its room's joined participants and sends the room
-     * messages, and a joiner reads them and follows its channel to the host.
+     *         messages, and a joiner reads them and follows its channel to the host.
      */
     @Override
     public synchronized void update() {
@@ -652,7 +652,7 @@ public final class BeaconLinkProvider implements NetworkProvider {
      *
      * @return the player's address in the game, or {@code null} if none is waiting or the network does not see connections end
      * @implSpec Returns the address of the next member whose channel to the host closed; the datagrams the member sent before were taken for
-     * the game socket first.
+     *         the game socket first.
      */
     @Override
     public synchronized @Nullable InetSocketAddress pollDeparture() {
