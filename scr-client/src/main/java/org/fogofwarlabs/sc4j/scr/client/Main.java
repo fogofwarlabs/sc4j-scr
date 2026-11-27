@@ -770,6 +770,18 @@ public final class Main {
         };
     }
 
+    /**
+     * Returns the path that names the session of a glue game: the map or the saved game, or {@code campaign-<mission>} for a campaign mission.
+     *
+     * @param request the glue's game
+     * @return the session path
+     */
+    private static @NotNull Path getSessionPath(@NotNull GlueGameRequest request) {
+        Path path = request.getPath();
+
+        return path != null ? path : Path.of("campaign-" + request.getCampaignMission());
+    }
+
     private static @NotNull String describeUnit(@Nullable Unit unit) {
         return unit == null ? "none"
                             : String.format(Locale.ROOT, "unit %d type %d at %d,%d", unit.getIndex(), unit.getUnitId(), unit.getPositionX(),
@@ -2817,10 +2829,8 @@ public final class Main {
         if (request != null) {
             // A replay loads as any replay; for the other games loadReplay starts the request, and the pending path only names the session (the map,
             // or the mission index).
-            Path path = request.getPath();
-
             this.glueRequest        = request.getKind() == GlueGameRequest.Kind.REPLAY ? null : request;
-            this.pendingReplay      = path != null ? path : Path.of("campaign-" + request.getCampaignMission());
+            this.pendingReplay      = getSessionPath(request);
             this.sessionGlueRequest = request;
         }
 
@@ -3041,6 +3051,12 @@ public final class Main {
         if (this.requireSession().getEnd() == GameEnd.EUD_FAILURE && !this.sessionEndsWithNotice && triggers != null) {
             // A step that did not present its trigger events (a seek, a single step) ended the game: its notice shows now.
             this.showEudFailureNotice(false, ~triggers.getEudFailureAddress());
+        }
+
+        if (this.requireSession().getEnd() == GameEnd.RESTART && this.requireSession().isLive()) {
+            this.restartLiveGame();
+
+            return;
         }
 
         if (this.requireSession().getEnd() == GameEnd.RESTART) {
@@ -6226,6 +6242,11 @@ public final class Main {
                     this.endWithoutScore();
                 }
             }
+            case RESTART_MISSION -> {
+                if (this.session != null && this.requireSession().isLive()) {
+                    this.requireSession().requestRestartGame();
+                }
+            }
             case EXIT_PROGRAM -> this.endLiveGame();
             case OPTIONS -> this.openOptionsOverGame();
             // Pause or resume through the turn buffer; the menu page stays open.
@@ -6769,6 +6790,35 @@ public final class Main {
         this.playing            = false;
 
         return true;
+    }
+
+    /**
+     * Starts the live game that a Restart Game command ended again with the same request: the glue's game, or the game of the launch options.
+     * The ended game's replay is saved first; a game without either request ends as Quit Mission does.
+     */
+    private void restartLiveGame() {
+        GlueGameRequest played = this.sessionGlueRequest;
+        ClientOptions.Melee melee = this.options.getMelee();
+        Path restarted = played != null ? getSessionPath(played) : melee != null ? melee.getMap() : null;
+
+        if (restarted == null) {
+            this.endWithoutScore();
+
+            return;
+        }
+
+        LOGGER.info("RESTART GAME: " + restarted);
+
+        if (this.gameMenu != null) {
+            this.gameMenu.close();
+        }
+
+        this.stopTriggerSounds();
+        this.replayWriter.saveAtEnd(this.session);
+
+        this.glueRequest   = played;
+        this.pendingReplay = restarted;
+        this.playing       = false;
     }
 
     /**

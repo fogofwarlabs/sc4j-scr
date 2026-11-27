@@ -688,8 +688,8 @@ final class GameClientState implements InputListener {
 
         ClientCamera camera = session.getCamera();
         boolean consumed = this.pluginInput.pressButton(plugins, pluginButton, toPluginModifiers(modifiers),
-                                                        Math.round(camera.screenToWorldX(this.main.pointerHorizontal)),
-                                                        Math.round(camera.screenToWorldY(this.main.pointerVertical)));
+                                                        camera.getMapPixelX(this.main.pointerHorizontal),
+                                                        camera.getMapPixelY(this.main.pointerVertical));
 
         this.main.applyLocalViewWrite();
 
@@ -719,8 +719,8 @@ final class GameClientState implements InputListener {
 
         ClientCamera camera = session.getCamera();
         boolean consumed = this.pluginInput.releaseButton(plugins, pluginButton, toPluginModifiers(modifiers),
-                                                          Math.round(camera.screenToWorldX(this.main.pointerHorizontal)),
-                                                          Math.round(camera.screenToWorldY(this.main.pointerVertical)));
+                                                          camera.getMapPixelX(this.main.pointerHorizontal),
+                                                          camera.getMapPixelY(this.main.pointerVertical));
 
         this.main.applyLocalViewWrite();
 
@@ -856,7 +856,7 @@ final class GameClientState implements InputListener {
                 pointerY = Math.max(play.getTop(), Math.min(pointerY, play.getBottom() - 1));
             }
 
-            world.handlePointerMove(Math.round(camera.screenToWorldX(pointerX)), Math.round(camera.screenToWorldY(pointerY)), pointerX, -1);
+            world.handlePointerMove(camera.getMapPixelX(pointerX), camera.getMapPixelY(pointerY), pointerX, -1);
         } catch (IOException exception) {
             this.main.setAssetWarning(POINTER_WARNING_PREFIX + exception.getMessage());
         }
@@ -966,8 +966,8 @@ final class GameClientState implements InputListener {
             return true;
         }
 
-        int mapX = Math.round(camera.screenToWorldX(this.main.pointerHorizontal));
-        int mapY = Math.round(camera.screenToWorldY(this.main.pointerVertical));
+        int mapX = camera.getMapPixelX(this.main.pointerHorizontal);
+        int mapY = camera.getMapPixelY(this.main.pointerVertical);
 
         try {
             if (button == PointerButton.LEFT && pressed && this.main.isOnMapView()) {
@@ -991,10 +991,10 @@ final class GameClientState implements InputListener {
                 PointerClip play = viewport.getPlayClip();
                 float pointerX = Math.max(play.getLeft(), Math.min(this.main.pointerHorizontal, play.getRight() - 1));
                 float pointerY = Math.max(play.getTop(), Math.min(this.main.pointerVertical, play.getBottom() - 1));
-                int left = Math.round(camera.screenToWorldX(viewport.getGameLeft()));
-                int top = Math.round(camera.getY());
-                CommandInput.Result result = this.main.worldInterface.handleLeftRelease(Math.round(camera.screenToWorldX(pointerX)),
-                                                                                        Math.round(camera.screenToWorldY(pointerY)),
+                int left = camera.getMapPixelX(viewport.getGameLeft());
+                int top = camera.getMapPixelY(0);
+                CommandInput.Result result = this.main.worldInterface.handleLeftRelease(camera.getMapPixelX(pointerX),
+                                                                                        camera.getMapPixelY(pointerY),
                                                                                         shift,
                                                                                         KeyModifier.CONTROL.isIn(modifiers),
                                                                                         KeyModifier.ALT.isIn(modifiers),

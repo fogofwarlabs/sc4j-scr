@@ -387,6 +387,30 @@ public final class ClientCamera {
     }
 
     /**
+     * Returns the map column of the pixel under a horizontal viewport coordinate, as the game maps the pointer: the screen position plus the pointer
+     * offset in whole map pixels. The column is the pixel that contains the point, never the next one, so the right map edge gives the last column;
+     * a point past the map gives the nearest column of the map.
+     *
+     * @param horizontal the viewport coordinate in screen pixels
+     * @return the map column from {@code 0} to the map width less one
+     */
+    public int getMapPixelX(float horizontal) {
+        return Math.clamp((long) Math.floor(this.screenToWorldX(horizontal)), 0, Math.max(0, this.mapWidth - 1));
+    }
+
+    /**
+     * Returns the map row of the pixel under a vertical viewport coordinate, as the game maps the pointer: the screen position plus the pointer
+     * offset in whole map pixels. The row is the pixel that contains the point, never the next one, so the bottom map edge gives the last row; a
+     * point past the map gives the nearest row of the map.
+     *
+     * @param vertical the viewport coordinate in screen pixels
+     * @return the map row from {@code 0} to the map height less one
+     */
+    public int getMapPixelY(float vertical) {
+        return Math.clamp((long) Math.floor(this.screenToWorldY(vertical)), 0, Math.max(0, this.mapHeight - 1));
+    }
+
+    /**
      * Converts a horizontal map coordinate to a viewport coordinate.
      *
      * @param horizontal the map coordinate in pixels

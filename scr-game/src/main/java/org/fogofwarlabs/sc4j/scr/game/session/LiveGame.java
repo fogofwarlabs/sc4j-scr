@@ -17,14 +17,12 @@ import org.fogofwarlabs.sc4j.scr.game.frame.GameSpeed;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerColorRows;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTable;
 import org.fogofwarlabs.sc4j.scr.game.player.PlayerTypes;
+import org.fogofwarlabs.sc4j.scr.game.replay.ReplayCommandExecutor;
 import org.fogofwarlabs.sc4j.scr.game.replay.ReplaySession;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.MeleeGameSetup;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.PlayerSlots;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.SavedGamePlayers;
-import org.fogofwarlabs.sc4j.scr.game.state.Game;
-import org.fogofwarlabs.sc4j.scr.game.state.GameContext;
-import org.fogofwarlabs.sc4j.scr.game.state.GameRulesVersion;
-import org.fogofwarlabs.sc4j.scr.game.state.RuntimeRandom;
+import org.fogofwarlabs.sc4j.scr.game.state.*;
 import org.fogofwarlabs.sc4j.scr.game.trigger.TriggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1133,6 +1131,14 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
     }
 
     /**
+     * Queues a Restart Game command; it ends a single-player game for a restart ({@link GameEnd#RESTART}) when it executes in the turn and is
+     * not recorded. A network game ignores it.
+     */
+    public void requestRestartGame() {
+        this.outgoingTurn.queue(new byte[]{(byte) ReplayCommandIds.RESTART_GAME});
+    }
+
+    /**
      * Queues a Save Game command for the first player, retaining the time and the name bytes cut to the command's name
      * buffer. Nothing is queued while the started game cannot be saved ({@link Game#isSaveAllowed()}).
      *
@@ -1247,6 +1253,17 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
         }
 
         this.pauseNotices.add(new PauseNotice(slot, false, slot < 0 ? 0 : this.getPausesLeft(slot)));
+    }
+
+    /**
+     * Executes an unrecorded Restart Game command ({@link ReplayCommandExecutor#restartGame}); nothing happens before the game started.
+     */
+    private void executeRestartGame() {
+        Game game = this.game;
+
+        if (game != null && game.getTriggerContext() != null) {
+            ReplayCommandExecutor.restartGame(game);
+        }
     }
 
     /**
@@ -1696,6 +1713,8 @@ public final class LiveGame implements ScrModCommandSubmitter, ScrPauseRequester
             }
         } else if (typeId == ReplayCommandIds.PAUSE || typeId == ReplayCommandIds.RESUME) {
             this.executePause(typeId, this.findCommandSlot(playerId));
+        } else if (typeId == ReplayCommandIds.RESTART_GAME) {
+            this.executeRestartGame();
         } else if (typeId == ReplayCommandIds.SAVE_GAME || typeId == ReplayCommandIds.LOAD_GAME) {
             this.executeSavedGameCommand(typeId, payload, playerId);
         } else if (typeId == ReplayCommandIds.LATENCY) {

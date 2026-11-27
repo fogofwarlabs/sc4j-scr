@@ -171,6 +171,10 @@ public final class GameMenu {
          */
         QUIT_MISSION,
         /**
+         * Restart Mission: the Restart Game command {@code 0x08} is sent; the game ends and starts again.
+         */
+        RESTART_MISSION,
+        /**
          * Exit Program: game end code {@code 2}.
          */
         EXIT_PROGRAM,
@@ -282,7 +286,6 @@ public final class GameMenu {
 
     /**
      * Creates a {@link ScrDialog} instance with mode-dependent visibility, replay labels and tip alignment.
-     * Restart activation remains disabled.
      */
     private static @NotNull ScrDialog createDialog(@NotNull Page page,
                                                    @NotNull DialogDefinition definition,
@@ -334,14 +337,6 @@ public final class GameMenu {
 
                 if (tip != null) {
                     tip.setTextFormat(InterfaceText.LEFT | InterfaceText.TOP);
-                }
-            }
-            case RESTART -> {
-                // The restart page disables its default push button, whose id is the Enter request's.
-                ScrControl defaultButton = dialog.findControl(ScrDialog.ENTER_REQUEST);
-
-                if (defaultButton != null) {
-                    defaultButton.setEnabled(false);
                 }
             }
             default -> {
@@ -686,8 +681,19 @@ public final class GameMenu {
                     }
                 }
             }
-            case RESTART, OBJECTIVES -> {
-                if (identifier == ScrDialog.ESCAPE_REQUEST || identifier == ScrDialog.ENTER_REQUEST && current == Page.OBJECTIVES) {
+            case RESTART -> {
+                if (identifier == ScrDialog.ESCAPE_REQUEST) {
+                    return this.previous();
+                }
+
+                if (identifier == ScrDialog.ENTER_REQUEST) {
+                    this.close();
+
+                    return Result.RESTART_MISSION;
+                }
+            }
+            case OBJECTIVES -> {
+                if (identifier == ScrDialog.ESCAPE_REQUEST || identifier == ScrDialog.ENTER_REQUEST) {
                     return this.previous();
                 }
             }

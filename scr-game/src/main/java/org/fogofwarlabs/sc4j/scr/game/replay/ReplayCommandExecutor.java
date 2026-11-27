@@ -66,6 +66,25 @@ public final class ReplayCommandExecutor implements ReplayCommandHandler {
     }
 
     /**
+     * Runs Restart Game, recorded or received in a turn: outside a network session it ends the game ({@link GameEnd#RESTART}); in a network
+     * session it does nothing.
+     *
+     * @param game the simulation state
+     * @throws IllegalStateException if the game has no trigger context, which holds the network session BYTE
+     */
+    public static void restartGame(@NotNull Game game) {
+        TriggerContext triggers = game.getTriggerContext();
+
+        if (triggers == null) {
+            throw Exceptions.newIllegalStateException("Restart Game requires the trigger context.");
+        }
+
+        if (triggers.getMultiplayerSession() == 0) {
+            game.end(GameEnd.RESTART);
+        }
+    }
+
+    /**
      * The replay's frame count, the largest frame a Replay Seek command seeks to (an unsigned DWORD).
      */
     private final int replayFrames;
@@ -429,25 +448,6 @@ public final class ReplayCommandExecutor implements ReplayCommandHandler {
         }
 
         this.dispatch(game, player, commandPlayer, type, command);
-    }
-
-    /**
-     * Runs Restart Game: outside a network session it ends the game ({@link GameEnd#RESTART}); in a network session it
-     * does nothing.
-     *
-     * @param game the simulation state
-     * @throws IllegalStateException if the game has no trigger context, which holds the network session BYTE
-     */
-    void restartGame(@NotNull Game game) {
-        TriggerContext triggers = game.getTriggerContext();
-
-        if (triggers == null) {
-            throw Exceptions.newIllegalStateException("Restart Game requires the trigger context.");
-        }
-
-        if (triggers.getMultiplayerSession() == 0) {
-            game.end(GameEnd.RESTART);
-        }
     }
 
     /**

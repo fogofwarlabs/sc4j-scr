@@ -19,7 +19,9 @@ import org.fogofwarlabs.sc4j.scr.game.replay.ScrCommandType;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.GameTemplate;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.LobbyResolution;
 import org.fogofwarlabs.sc4j.scr.game.session.setup.MeleeGameSetup;
+import org.fogofwarlabs.sc4j.scr.game.state.Game;
 import org.fogofwarlabs.sc4j.scr.game.state.GameData;
+import org.fogofwarlabs.sc4j.scr.game.state.GameEnd;
 import org.fogofwarlabs.sc4j.scr.game.state.RuntimeRandom;
 import org.fogofwarlabs.sc4j.scr.game.test.GameTestResources;
 import org.fogofwarlabs.sc4j.scr.game.test.RunningGameScenario;
@@ -40,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Checks how a live network game finds a player's slot from its player id (the waiting-for-players list and the issuer of the player's commands, in
  * melee games with fixed start positions), the name bytes of the Save Game commands a live game queues and executes, the turns a single-player game
- * keeps in transit, the turns a full outgoing turn sends early, the player table of the game's start, and the replay a live game writes: its name
- * section, a write while commands are recorded and a submitted mod command.
+ * keeps in transit, the turns a full outgoing turn sends early, the end of a single-player game by its Restart Game command, the player table of the
+ * game's start, and the replay a live game writes: its name section, a write while commands are recorded and a submitted mod command.
  * <p>
  * The Save Game command layout (type, time DWORD, name and terminator), the player records (36 bytes, the name at {@code +0xb}) and the replay's name
  * section (twelve 96-byte records) are native formats, so the tests compare their bytes.
@@ -154,6 +156,10 @@ final class LiveGameTest {
     private static final int RECORDED_TURNS = 200000;
     private static final byte @NotNull [] STOP_PAYLOAD = {0};
     private static final byte @NotNull [] CHAT_TEXT = {'g', 'g'};
+    /**
+     * The game loops a single-player game runs at most until its queued Restart Game command executed.
+     */
+    private static final int RESTART_LOOP_LIMIT = 100;
 
     /**
      * Creates a {@link LobbyResolution.Table} instance of a melee game whose eight player slots are closed but for the host's slot 0.
@@ -546,6 +552,40 @@ final class LiveGameTest {
             Assertions.assertEquals(ReplayCommandIssuer.Status.RESOLVED, issuer.getStatus());
             Assertions.assertEquals(JOINER_SLOT, issuer.getRecordIndex(), "the player's commands select in the slot it holds");
             Assertions.assertEquals(JOINER_SLOT, issuer.getCommandPlayerIndex(), "the player's commands act for the slot it holds");
+        }
+    }
+
+    @RequiresInstallation
+    @Test
+    void request_restart_game_should_end_a_single_player_game_for_a_restart() throws IOException {
+        byte[] mapData = readMapData();
+        LiveGame live = new LiveGame(new MeleeGameSetup(mapData, HOST_NAME, ScrRaceIds.TERRAN, 0, new int[]{ScrRaceIds.ZERG}, GameSpeed.FASTEST), SEED);
+
+        try (GameData gameData = GameData.loadFrom(ExternalInput.INSTALLATION.getPath())) {
+            ReplayRuntime runtime = ReplayRuntime.createLiveGame(live.getReplay(), ChkFile.parseTolerant(mapData), gameData,
+                                                                 live.getLocalPlayer(),
+                                                                 RunningGameScenario.VIEWPORT_WIDTH, RunningGameScenario.VIEWPORT_HEIGHT,
+                                                                 RunningGameScenario.INSTRUCTION_LIMIT);
+
+            runtime.start(0, 0);
+
+            Game game = runtime.getGame();
+
+            live.startSession(game, runtime.getFrameTiming());
+            live.requestRestartGame();
+
+            for (int loop = 0; loop < RESTART_LOOP_LIMIT && game.getEnd() == null; loop++) {
+                live.exchangeTurn(game.getCurrentFrame());
+                runtime.step(GameSpeed.FASTEST_DURATION, loop * GameSpeed.FASTEST_DURATION);
+            }
+
+            int endFrame = game.getCurrentFrame();
+
+            Assertions.assertEquals(GameEnd.RESTART, game.getEnd());
+            Assertions.assertFalse(runtime.step(GameSpeed.FASTEST_DURATION, RESTART_LOOP_LIMIT * GameSpeed.FASTEST_DURATION));
+            Assertions.assertEquals(endFrame, game.getCurrentFrame(), "the ended game runs no further frame");
+            Assertions.assertTrue(live.getHistory().stream().noneMatch(command -> command.getTypeId() == ReplayCommandIds.RESTART_GAME),
+                                  "the replay does not record Restart Game");
         }
     }
 

@@ -29,6 +29,23 @@ final class ClientCameraTest {
     private static final int SETTLE_STEP_COUNT = 60;
     private static final int CLAMPED_STEP_COUNT = 30;
 
+    /**
+     * The last map column and row of {@link #MAP_SIZE}.
+     */
+    private static final int LAST_MAP_PIXEL = MAP_SIZE - 1;
+    /**
+     * A pointer in the last screen column of the viewport, past its middle, and the right viewport edge itself.
+     */
+    private static final float LAST_COLUMN_POINTER = VIEWPORT_WIDTH - 0.4f;
+    private static final float RIGHT_EDGE_POINTER = VIEWPORT_WIDTH;
+    /**
+     * Pointers at the start, inside and at the end of the third map pixel at twice the zoom: screen pixels 4 and 5 show map pixel 2.
+     */
+    private static final float PIXEL_START_POINTER = 4.0f;
+    private static final float PIXEL_INSIDE_POINTER = 5.9f;
+    private static final float NEXT_PIXEL_POINTER = 6.0f;
+    private static final int POINTER_PIXEL = 2;
+
     private static final float POSITION_TOLERANCE = 0.001f;
     private static final float ANCHOR_TOLERANCE = 0.01f;
     private static final float TARGET_ZOOM_TOLERANCE = 0.0001f;
@@ -265,5 +282,38 @@ final class ClientCameraTest {
         Assertions.assertEquals(0, camera.getX());
         Assertions.assertEquals(0, camera.getY());
         Assertions.assertEquals(1.0f, camera.getZoom());
+    }
+
+    @Test
+    void get_map_pixel_should_give_the_last_map_column_and_row_at_the_map_edge() {
+        ClientCamera camera = new ClientCamera(MAP_SIZE, MAP_SIZE);
+
+        camera.setViewportSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+        camera.pan(MAP_SIZE, MAP_SIZE);
+
+        // The last screen column shows map pixel 4095.6, which rounding would turn into 4096.
+        Assertions.assertEquals(LAST_MAP_PIXEL, camera.getMapPixelX(LAST_COLUMN_POINTER));
+        Assertions.assertEquals(LAST_MAP_PIXEL, camera.getMapPixelX(RIGHT_EDGE_POINTER));
+        Assertions.assertEquals(LAST_MAP_PIXEL, camera.getMapPixelY(VIEWPORT_HEIGHT));
+
+        // Zoomed out, a screen column covers several map pixels: the pointer gives the one it is in, and the right edge the last column.
+        camera.zoomAt(ZOOM_OUT_FACTOR, VIEWPORT_CENTER_X, VIEWPORT_CENTER_Y);
+
+        Assertions.assertEquals((int) Math.floor(camera.screenToWorldX(LAST_COLUMN_POINTER)), camera.getMapPixelX(LAST_COLUMN_POINTER));
+        Assertions.assertEquals(LAST_MAP_PIXEL, camera.getMapPixelX(RIGHT_EDGE_POINTER));
+    }
+
+    @Test
+    void get_map_pixel_should_give_the_pixel_that_contains_the_pointer() {
+        ClientCamera camera = new ClientCamera(MAP_SIZE, MAP_SIZE);
+
+        camera.setViewportSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+        camera.zoomAt(ZOOM_IN_FACTOR, 0, 0);
+
+        Assertions.assertEquals(POINTER_PIXEL, camera.getMapPixelX(PIXEL_START_POINTER));
+        Assertions.assertEquals(POINTER_PIXEL, camera.getMapPixelX(PIXEL_INSIDE_POINTER));
+        Assertions.assertEquals(POINTER_PIXEL + 1, camera.getMapPixelX(NEXT_PIXEL_POINTER));
+        Assertions.assertEquals(POINTER_PIXEL, camera.getMapPixelY(PIXEL_INSIDE_POINTER));
+        Assertions.assertEquals(0, camera.getMapPixelX(-PIXEL_INSIDE_POINTER), "a point left of the map gives the first column");
     }
 }

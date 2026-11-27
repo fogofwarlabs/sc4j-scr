@@ -16,7 +16,7 @@ import java.io.IOException;
 
 /**
  * Checks the game menu pages of replays, single player and multiplayer games on installed dialogs and texts: the shown
- * buttons, the pause state, the mission outcome, exit confirmations, the help pages and direct page opening.
+ * buttons, the pause state, the mission outcome, the restart and exit confirmations, the help pages and direct page opening.
  */
 @RequiresInstallation
 final class GameMenuTest {
@@ -192,6 +192,30 @@ final class GameMenuTest {
             menu.press(EXIT_REPLAY);
 
             Assertions.assertEquals(GameMenu.Page.QUIT_MISSION, menu.getPage());
+        }
+    }
+
+    @Test
+    void single_player_restart_page_restarts_the_mission_or_goes_back() throws IOException {
+        try (CascStorage storage = CascStorage.open(ExternalInput.INSTALLATION.getPath())) {
+            GameMenu menu = new GameMenu(storage);
+
+            menu.toggle();
+            menu.press(END_MISSION);
+
+            ScrDialog end = menu.getDialog();
+
+            Assertions.assertNotNull(end);
+            Assertions.assertTrue(isControlVisible(end, RESTART_MISSION), "single player shows Restart Mission");
+            Assertions.assertEquals(GameMenu.Result.NONE, menu.press(RESTART_MISSION));
+            Assertions.assertEquals(GameMenu.Page.RESTART, menu.getPage());
+            Assertions.assertEquals(GameMenu.Result.NONE, menu.press(CANCEL));
+            Assertions.assertEquals(GameMenu.Page.END_MISSION, menu.getPage());
+
+            menu.press(RESTART_MISSION);
+
+            Assertions.assertEquals(GameMenu.Result.RESTART_MISSION, menu.enter());
+            Assertions.assertFalse(menu.isOpen());
         }
     }
 

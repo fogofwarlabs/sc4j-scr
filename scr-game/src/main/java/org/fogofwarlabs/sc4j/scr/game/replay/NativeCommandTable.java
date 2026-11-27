@@ -107,7 +107,7 @@ final class NativeCommandTable {
         register(registry,
                  raw,
                  ScrCommandType.Dispatch.SESSION,
-                 (game, commandPlayer, command) -> this.executor.restartGame(game),
+                 (game, commandPlayer, command) -> ReplayCommandExecutor.restartGame(game),
                  ReplayCommandIds.RESTART_GAME);
         register(registry,
                  ReplayValueCommand.DWORD,
